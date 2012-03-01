@@ -9,7 +9,9 @@ Winston : 2d vector plotting for Julia
 
     p = FramedPlot()
     add(p, Curve(x, y))
+
     x11(p)
+    file(p, "winston.eps")
 
 Install
 -------

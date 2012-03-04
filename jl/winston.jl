@@ -187,6 +187,14 @@ end
 
 # BoundingBox -----------------------------------------------------------------
 
+type Point{T}
+    x::T
+    y::T
+end
+
+(+){T}(a::Point{T}, b::Point{T}) = Point{T}(a.x + b.x, a.y + b.y)
+(-){T}(a::Point{T}, b::Point{T}) = Point{T}(a.x - b.x, a.y - b.y)
+
 #
 # python1.5 legacy code -- scheduled for demolition
 #
@@ -236,7 +244,6 @@ function pt_min( a, b )
     elseif b == nothing
         return a
     else
-        #return (min(a[1],b[1]), min(a[2],b[2]))
         return python_min(a[1],b[1]), python_min(a[2],b[2])
     end
 end
@@ -251,21 +258,12 @@ function python_max(x, y)
     max(x,y)
 end
 
-# this makes no sense...
 function pt_max( a, b )
     if a == nothing
         return b
     elseif b == nothing
         return a
     end
-    #x = max( a[1], b[1] )
-    #if x == nothing
-    #    x = min( a[1], b[1] )
-    #end
-    #y = max( a[2], b[2] )
-    #if y == nothing
-    #    y = min( a[2], b[2] )
-    #end
     return python_max(a[1],b[1]), python_max(a[2],b[2])
 end
 
@@ -2388,8 +2386,7 @@ function interior( self::PlotContainer, device::Renderer, exterior_bbox::Boundin
             pt_add(upperright(interior_bbox), dur) )
     end
 
-    #throw("interior error")
-    return interior_bbox
+    throw("interior error")
 end
 
 function exterior( self::PlotContainer, device::Renderer, interior::BoundingBox )

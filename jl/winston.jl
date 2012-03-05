@@ -1112,7 +1112,7 @@ function _format_ticklabel( x, range )
         elseif a == -1.
             return "-$$10^{$b}$$"
         else
-            return I"$a\times 10^{$b}$$" # % (a,b)
+            return I"$a\times 10^{$b}$$"
         end
     end
     if range < 1e-6
@@ -1124,16 +1124,17 @@ end
 
 _ticklist_linear( lo, hi, sep ) = _ticklist_linear( lo, hi, sep, 0. )
 function _ticklist_linear( lo, hi, sep, origin )
-    r = Any[]
+    #r = Any[]
     a = iceil(float(lo - origin)/float(sep))
     b = ifloor(float(hi - origin)/float(sep))
     #for i in range( a, b+1 )
     #   r.append( origin + i * sep )
     r0 = origin + a*sep
-    for i in 0:(b-a)
-        push(r, r0 + i*sep )
-    end
-    return r
+    #for i in 0:(b-a)
+    #    push(r, r0 + i*sep )
+    #end
+    #return r
+    [ r0 + i*sep | i = 0:(b-a) ]
 end
 
 function _pow10(x)
@@ -1221,7 +1222,7 @@ function _subticks_log( lim, ticks, num )
     if nn >= 10
         return map( _pow10, _subticks_linear(log_lim, map(log10,ticks), num) )
     elseif nn >= 2
-        minor_ticks = Any[]
+        minor_ticks = Float64[]
         for i in (nlo-1):nhi
             for j in 1:9
                 z = j * _pow10(i)

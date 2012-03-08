@@ -22,5 +22,5 @@ t2[1,1] = t1
 t2[2,1] = p
 
 x11(t2)
-file(t2, "example3.eps")
-file(t2, "example3.png")
+#file(t2, "example3.eps")
+#file(t2, "example3.png")

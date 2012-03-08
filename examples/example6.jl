@@ -29,5 +29,5 @@ add( p, Curve(x, c, "type", "dash") )
 add( p, Curve(x, s) )
 
 x11(p)
-file(p, "example6.eps")
-file(p, "example6.png")
+#file(p, "example6.eps")
+#file(p, "example6.png")

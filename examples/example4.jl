@@ -22,5 +22,5 @@ add( p, Points(x, s, "color", "red") )
 add( p, PlotInset((.6,.6), (.95,.95), inset) )
 
 x11(p)
-file(p, "example4.eps")
-file(p, "example4.png")
+#file(p, "example4.eps")
+#file(p, "example4.png")

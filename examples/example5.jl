@@ -20,5 +20,5 @@ add( a[2,1], Curve(x, .75*y) )
 add( a[2,2], Curve(x, y) )
 
 x11(a)
-file(a, "example5.eps")
-file(a, "example5.png")
+#file(a, "example5.eps")
+#file(a, "example5.png")

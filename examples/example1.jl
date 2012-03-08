@@ -17,5 +17,5 @@ add(p, Curve(x, c, "color", "red") )
 add(p, Curve(x, s, "color", "blue") )
 
 x11(p)
-file(p, "example1.eps")
-file(p, "example1.png")
+#file(p, "example1.eps")
+#file(p, "example1.png")

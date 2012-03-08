@@ -27,5 +27,5 @@ l = Legend( .1, .9, {a,b,s} )
 add( p, s, a, b, l )
 
 x11(p)
-file(p, "example2.eps")
-file(p, "example2.png")
+#file(p, "example2.eps")
+#file(p, "example2.png")

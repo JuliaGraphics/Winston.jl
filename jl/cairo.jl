@@ -4,11 +4,14 @@ abstract Renderer
 
 _jl_libcairo = dlopen("libcairo")
 
+# -----------------------------------------------------------------------------
+
 type CairoSurface
     ptr::Ptr{Void}
+    kind::Symbol
 
-    function CairoSurface(ptr::Ptr{Void})
-        self = new(ptr)
+    function CairoSurface(ptr::Ptr{Void}, kind::Symbol)
+        self = new(ptr, kind)
         finalizer(self, destroy)
         self
     end
@@ -19,16 +22,31 @@ function destroy(surface::CairoSurface)
         Void, (Ptr{Void},), surface.ptr)
 end
 
-function CairoImageSurface(w::Integer, h::Integer)
+function status(surface::CairoSurface)
+    ccall(dlsym(_jl_libcairo,:cairo_surface_status),
+        Int32, (Ptr{Void},), surface.ptr)
+end
+
+function CairoRGBSurface(w::Integer, h::Integer)
     ptr = ccall(dlsym(_jl_libcairo,:cairo_image_surface_create),
-        Ptr{Void}, (Int32,Int32,Int32), 0, w, h)
-    CairoSurface(ptr)
+        Ptr{Void}, (Int32,Int32,Int32), 1, w, h)
+    surface = CairoSurface(ptr, :rgb)
+    @assert status(surface) == 0
+    surface
+end
+
+function CairoPDFSurface(filename::String, w_pts::Real, h_pts::Real)
+    ptr = ccall(dlsym(_jl_libcairo,:cairo_pdf_surface_create), Ptr{Void},
+        (Ptr{Uint8},Float64,Float64), cstring(filename), w_pts, h_pts)
+    CairoSurface(ptr, :pdf)
 end
 
 function write_to_png(surface::CairoSurface, filename::String)
     ccall(dlsym(_jl_libcairo,:cairo_surface_write_to_png), Void,
         (Ptr{Uint8},Ptr{Uint8}), surface.ptr, cstring(filename))
 end
+
+# -----------------------------------------------------------------------------
 
 type CairoContext <: Canvas2D
     ptr::Ptr{Void}
@@ -54,10 +72,16 @@ end
 @_CTX_FUNC_V destroy cairo_destroy
 @_CTX_FUNC_V save cairo_save
 @_CTX_FUNC_V restore cairo_restore
-@_CTX_FUNC_V begin_page cairo_show_page
+@_CTX_FUNC_V show_page cairo_show_page
 @_CTX_FUNC_V clip cairo_clip
+@_CTX_FUNC_V clip_preserve cairo_clip_preserve
 @_CTX_FUNC_V fill cairo_fill
+@_CTX_FUNC_V fill_preserve cairo_fill_preserve
+@_CTX_FUNC_V new_path cairo_new_path
+@_CTX_FUNC_V close_path cairo_close_path
+@_CTX_FUNC_V paint cairo_paint
 @_CTX_FUNC_V stroke cairo_stroke
+@_CTX_FUNC_V stroke_preserve cairo_stroke_preserve
 
 const delete = destroy
 
@@ -79,7 +103,7 @@ macro _CTX_FUNC_D(NAME, FUNCTION)
     end
 end
 
-@_CTX_FUNC_D set_line_size cairo_set_line_width
+@_CTX_FUNC_D set_line_width cairo_set_line_width
 @_CTX_FUNC_D set_font_size cairo_set_font_size
 
 macro _CTX_FUNC_DD(NAME, FUNCTION)
@@ -102,7 +126,18 @@ macro _CTX_FUNC_DDD(NAME, FUNCTION)
     end
 end
 
-@_CTX_FUNC_DDD set_color_fg cairo_set_source_rgb
+@_CTX_FUNC_DDD set_source_rgb cairo_set_source_rgb
+
+macro _CTX_FUNC_DDDD(NAME, FUNCTION)
+    quote
+        ($NAME)(ctx::CairoContext, d0::Real, d1::Real, d2::Real, d3::Real) =
+            ccall(dlsym(_jl_libcairo,$string(FUNCTION)), Void,
+                (Ptr{Void},Float64,Float64,Float64,Float64),
+                ctx.ptr, d0, d1, d2, d3)
+    end
+end
+
+@_CTX_FUNC_DDDD set_source_rgba cairo_set_source_rgba
 
 function set_font_face(ctx::CairoContext, name::String)
     ccall(dlsym(_jl_libcairo,:cairo_select_font_face),
@@ -118,6 +153,9 @@ function space(ctx::CairoContext, x0::Real, y0::Real, x1::Real, y1::Real)
 end
 
 function clear(ctx::CairoContext)
+    set_source_rgb(ctx, 1.,1.,1.)
+    paint(ctx)
+    set_source_rgb(ctx, 0.,0.,0.)
 end
 
 function label(ctx::CairoContext, i0::Integer, i1::Integer, s::String)
@@ -135,6 +173,8 @@ end
 function line(ctx::CairoContext, x0::Real, y0::Real, x1::Real, y1::Real)
     move(ctx, x0, y0)
     lineto(ctx, x1, y1)
+    set_source_rgb(ctx, 0., 0., 0.) # wtf?
+    stroke(ctx)
 end
 
 function end_page(ctx::CairoContext)
@@ -148,6 +188,7 @@ function curve(pl::CairoContext, x::Vector, y::Vector)
         return
     end
  
+    new_path(pl)
     move( pl, x[1], y[1] )
     for i = 2:n
         lineto( pl, x[i], y[i] )
@@ -157,7 +198,7 @@ end
 
 function clipped_curve(pl::CairoContext, x::Vector, y::Vector, xmin, xmax, ymin, ymax)
     save(pl)
-    clip(pl)
+    #clip(pl) # XXX
     curve(pl, x, y)
     restore(pl)
 end
@@ -213,9 +254,10 @@ function color_to_rgb(color::String)
     end
 end
 
-function _set_color( pl::CairoContext, color )
+function _set_color( ctx::CairoContext, color )
+    println("_set_color ",color)
     (r,g,b) = color_to_rgb( color )
-    set_color_fg( pl, r, g, b )
+    set_source_rgb( ctx, r, g, b )
 end
 
 const _set_fill_color = _set_color
@@ -243,7 +285,7 @@ type CairoRenderer <: Renderer
     function CairoRenderer(ll, ur, kind, parameters, fptr)
         width = abs(ur[1] - ll[1])
         height = abs(ur[2] - ll[2])
-        surface = CairoImageSurface(width, height)
+        surface = CairoRGBSurface(width, height)
         ctx = CairoContext(surface)
         new(ll, ur, ctx, surface, nothing, nothing, false)
     end
@@ -253,7 +295,7 @@ end
 
 function open( self::CairoRenderer )
     self.state = RendererState()
-    begin_page( self.ctx )
+    #show_page( self.ctx )
     ll = self.lowerleft
     ur = self.upperright
     space( self.ctx, ll[1], ll[2], ur[1], ur[2] )
@@ -292,7 +334,7 @@ __pl_style_func = {
     "linecolor" => _set_pen_color,
     "fillcolor" => _set_fill_color,
     "linetype"  => _set_line_type,
-    "linewidth" => set_line_size,
+    "linewidth" => set_line_width,
     "filltype"  => set_fill_type,
     "fontface"  => set_font_face,
     "fontsize"  => set_font_size,
@@ -439,6 +481,8 @@ function polygon( self::CairoRenderer, points::Vector )
     for i in 2:length(points)
         lineto(self, points[i])
     end
+    close_path(self.ctx)
+    fill(self.ctx)
 end
 
 # text commands

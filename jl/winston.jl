@@ -28,11 +28,10 @@
 #
 
 load("inifile.jl")
-load("libplot.jl")
+load("cairo.jl")
 
 abstract HasAttr
 abstract HasStyle <: HasAttr
-abstract DeviceObject <: HasStyle
 abstract PlotComponent <: HasStyle
 abstract PlotContainer <: HasAttr
 
@@ -554,15 +553,75 @@ function do_clip( self::PlotContext )
     set(self.draw, "cliprect", (xr[1], xr[2], yr[1], yr[2]) )
 end
 
-# -----------------------------------------------------------------------------
+function _kw_func_relative_fontsize( context::PlotContext, key, value )
+    device_size = _fontsize_relative( value, context.dev_bbox, context.draw.bbox )
+    set( context.draw, key, device_size )
+end
 
-type LineObject <: DeviceObject
-    attr::Associative
+function _kw_func_relative_size( context::PlotContext, key, value )
+    device_size = _size_relative( value, context.dev_bbox )
+    set( context.draw, key, device_size )
+end
+
+function _kw_func_relative_width( context::PlotContext, key, value )
+    device_width = _size_relative( value/10., context.dev_bbox )
+    set( context.draw, key, device_width )
+end
+
+function push_style( context::PlotContext, style )
+    _kw_func = {
+        "fontsize" => _kw_func_relative_fontsize,
+        "linewidth" => _kw_func_relative_width,
+        "symbolsize" => _kw_func_relative_size,
+    }
+    save_state(context.draw)
+    if style != nothing
+        for (key, value) in style
+            if has(_kw_func, key)
+                method = _kw_func[key]
+                method( context, key, value )
+            else
+                set(context.draw, key, value)
+            end
+        end
+    end
+end
+
+function pop_style( context::PlotContext )
+    restore_state(context.draw)
+end
+
+# =============================================================================
+#
+# RenderObjects
+#
+# =============================================================================
+
+abstract RenderObject
+typealias RenderStyle HashTable{String,Union(Integer,Float,String)}
+
+function kw_init( self::RenderObject, args...)
+    for (k,v) in kw_defaults(self)
+        self.style[k] = v
+    end
+    #if hasattr(self, "kw_defaults")
+    #    for (k,v) in getattr(self, "kw_defaults")
+    #        sty[k] = v
+    #    end
+    #end
+    #setattr(self, "style", sty)
+    for (key, value) in args2hashtable(args...)
+        self.style[key] = value
+    end
+end
+
+type LineObject <: RenderObject
+    style::RenderStyle
     p
     q
 
     function LineObject( p, q, args... )
-        self = new(HashTable(), p, q)
+        self = new(RenderStyle(), p, q)
         kw_init(self, args...)
         self
     end
@@ -582,13 +641,13 @@ function draw( self::LineObject, context )
     line( context.draw, self.p, self.q )
 end
 
-type LabelsObject <: DeviceObject
-    attr::PlotAttributes
+type LabelsObject <: RenderObject
+    style::RenderStyle
     points
     labels
 
     function LabelsObject( points, labels, args... )
-        self = new(HashTable(), points, labels)
+        self = new(RenderStyle(), points, labels)
         kw_init(self, args...)
         self
     end
@@ -613,7 +672,7 @@ __valign_offset = { "top"=>(-1,0), "center"=>(-.5,.5), "bottom"=>(0,1) }
 
 function boundingbox( self::LabelsObject, context )
     bb = BoundingBox()
-    kw_predraw(self, context)
+    push_style(context, self.style)
 
     angle = get(context.draw, "textangle" ) * pi/180.
     halign = get(context.draw, "texthalign" )
@@ -637,7 +696,7 @@ function boundingbox( self::LabelsObject, context )
         union( bb, bb_label )
     end
 
-    kw_postdraw(self, context)
+    pop_style(context)
     return bb
 end
 
@@ -647,14 +706,16 @@ function draw( self::LabelsObject, context )
     end
 end
 
-type CombObject <: DeviceObject
-    attr::Associative
+type CombObject <: RenderObject
+    style::RenderStyle
     points
     dp
 
     function CombObject(points, dp, args...)
-        self = new(HashTable(), points, dp)
+        self = new(RenderStyle())
         kw_init(self, args...)
+        self.points = points
+        self.dp = dp
         self
     end
 end
@@ -670,12 +731,12 @@ function draw( self::CombObject, context::PlotContext )
     end
 end
 
-type SymbolObject <: DeviceObject
-    attr::Associative
+type SymbolObject <: RenderObject
+    style::RenderStyle
     pos
 
     function SymbolObject( pos, args... )
-        self = new(HashTable())
+        self = new(RenderStyle())
         kw_init( self, args... )
         self.pos = pos
         self
@@ -688,9 +749,9 @@ _kw_rename(::SymbolObject) = {
 }
 
 function boundingbox( self::SymbolObject, context )
-    kw_predraw(self, context)
+    push_style(context, self.style)
     symbolsize = get( context.draw, "symbolsize" )
-    kw_postdraw(self, context)
+    pop_style(context)
 
     dp = symbolsize/2, symbolsize/2
     p = pt_sub( self.pos, dp )
@@ -702,14 +763,14 @@ function draw( self::SymbolObject, context )
     symbol( context.draw, self.pos )
 end
 
-type TextObject <: DeviceObject
-    attr::PlotAttributes
+type TextObject <: RenderObject
+    style::RenderStyle
     pos
     str
 
     function TextObject( pos, str, args... )
         @assert str != nothing
-        self = new(HashTable())
+        self = new(RenderStyle())
         kw_init(self, args...)
         self.pos = pos
         self.str = str
@@ -717,13 +778,13 @@ type TextObject <: DeviceObject
     end
 end
 
-type SymbolsObject <: DeviceObject
-    attr::Associative
+type SymbolsObject <: RenderObject
+    style::RenderStyle
     x
     y
 
     function SymbolsObject( x, y, args... )
-        self = new(HashTable())
+        self = new(RenderStyle())
         kw_init( self, args... )
         self.x = x
         self.y = y
@@ -763,13 +824,13 @@ _kw_rename(::TextObject) = {
 }
 
 function boundingbox( self::TextObject, context::PlotContext )
-    kw_predraw(self, context)
+    push_style(context, self.style)
     angle = get( context.draw, "textangle" ) * pi/180.
     halign = get( context.draw, "texthalign" )
     valign = get( context.draw, "textvalign" )
     width = textwidth( context.draw, self.str )
     height = textheight( context.draw, self.str )
-    kw_postdraw(self, context)
+    pop_style(context)
 
     hvec = pt_mul( width, __halign_offset[halign] )
     vvec = pt_mul( height, __valign_offset[valign] )
@@ -808,13 +869,13 @@ function LineTextObject( p, q, str, offset, args... )
     TextObject( pos, str, extended_args...)
 end
 
-type PathObject <: DeviceObject
-    attr::PlotAttributes
+type PathObject <: RenderObject
+    style::RenderStyle
     x
     y
 
     function PathObject( x, y, args... )
-        self = new(HashTable())
+        self = new(RenderStyle())
         kw_init( self, args... )
         self.x = x
         self.y = y
@@ -839,12 +900,12 @@ function draw( self::PathObject, context )
     curve( context.draw, self.x, self.y )
 end
 
-type PolygonObject <: DeviceObject
-    attr::PlotAttributes
+type PolygonObject <: RenderObject
+    style::RenderStyle
     points
 
     function PolygonObject( points, args...)
-        self = new(HashTable())
+        self = new(RenderStyle())
         kw_init(self, args...)
         self.points = points
         self
@@ -866,17 +927,23 @@ end
 
 # defaults
 
-#function boundingbox( self::DeviceObject, context )
+#function boundingbox( self::RenderObject, context )
 #    return BoundingBox()
 #end
 
-function render( self::DeviceObject, context )
-    kw_predraw(self, context)
+function render( self::RenderObject, context )
+    push_style(context, self.style)
     draw( self, context )
-    kw_postdraw(self, context)
+    pop_style(context)
 end
 
-# Legend ---------------------------------------------------------------------
+# =============================================================================
+#
+# PlotObjects
+#
+# =============================================================================
+
+# Legend ----------------------------------------------------------------------
 
 type Legend <: PlotComponent
     attr::PlotAttributes
@@ -1665,14 +1732,14 @@ end
 
 function render( self::PlotComposite, context )
     make(self, context)
-    kw_predraw(self, context)
+    push_style(context, getattr(self,"style"))
     if !self.dont_clip
         do_clip(context)
     end
     for obj in self.components
         render(obj, context)
     end
-    kw_postdraw(self, context)
+    pop_style(context)
 end
 
 # -----------------------------------------------------------------------------
@@ -2465,11 +2532,10 @@ function write_eps( self::PlotContainer, filename::String, args... )
 end
 
 function write_img( self::PlotContainer, filename::String, kind::String, width::Int, height::Int )
-    f = _fopen( filename, "w" )
-    device = ImageRenderer( kind, width, height, f )
+    device = ImageRenderer( kind, width, height, filename )
     page_compose( self, device )
+    write_to_png( device.ctx.surface, filename)
     delete(device)
-    _fclose( f )
 end
 
 function file( self::PlotContainer, filename::String, args... )
@@ -3087,11 +3153,11 @@ end
 function render( self::PlotComponent, context )
     clear(self)
     make(self, context)
-    kw_predraw(self, context)
+    push_style(context, getattr(self,"style"))
     for obj in self.device_objects
         render(obj, context)
     end
-    kw_postdraw(self, context)
+    pop_style(context)
 end
 
 # HasAttr ---------------------------------------------------------------------
@@ -3138,28 +3204,8 @@ const conf_setattr = iniattr
 
 # HasStyle ---------------------------------------------------------------
 
-function _kw_func_relative_fontsize( context, key, value )
-    device_size = _fontsize_relative( value, context.dev_bbox, context.draw.bbox )
-    set( context.draw, key, device_size )
-end
-
-function _kw_func_relative_size( context, key, value )
-    device_size = _size_relative( value, context.dev_bbox )
-    set( context.draw, key, device_size )
-end
-
-function _kw_func_relative_width( context, key, value )
-    device_width = _size_relative( value/10., context.dev_bbox )
-    set( context.draw, key, device_width )
-end
-
 kw_defaults(x) = HashTable()
 _kw_rename(x) = HashTable{String,String}()
-_kw_func = {
-    "fontsize" => _kw_func_relative_fontsize,
-    "linewidth" => _kw_func_relative_width,
-    "symbolsize" => _kw_func_relative_size,
-}
 
 function kw_init( self::HasStyle, args...)
     # jeez, what a mess...
@@ -3195,23 +3241,5 @@ end
 kw_get(self::HasStyle, key) = kw_get(self, key, nothing)
 function kw_get( self::HasStyle, key, notfound )
     return get(getattr(self,"style"), key, notfound)
-end
-
-function kw_predraw( self::HasStyle, context )
-    save_state(context.draw)
-    if hasattr(self, "style")
-        for (key, value) in getattr(self, "style")
-            if has(_kw_func, key)
-                method = _kw_func[key]
-                method( context, key, value )
-            else
-                set(context.draw, key, value)
-            end
-        end
-    end
-end
-
-function kw_postdraw( self::HasStyle, context )
-    restore_state(context.draw)
 end
 

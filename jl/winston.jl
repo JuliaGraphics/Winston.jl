@@ -604,12 +604,6 @@ function kw_init( self::RenderObject, args...)
     for (k,v) in kw_defaults(self)
         self.style[k] = v
     end
-    #if hasattr(self, "kw_defaults")
-    #    for (k,v) in getattr(self, "kw_defaults")
-    #        sty[k] = v
-    #    end
-    #end
-    #setattr(self, "style", sty)
     for (key, value) in args2hashtable(args...)
         self.style[key] = value
     end
@@ -654,7 +648,7 @@ type LabelsObject <: RenderObject
 end
 
 kw_defaults(::LabelsObject) = {
-    "textangle" => 0,
+    "textangle"     => 0,
     "texthalign"    => "center",
     "textvalign"    => "center",
 }
@@ -763,21 +757,6 @@ function draw( self::SymbolObject, context )
     symbol( context.draw, self.pos )
 end
 
-type TextObject <: RenderObject
-    style::RenderStyle
-    pos
-    str
-
-    function TextObject( pos, str, args... )
-        @assert str != nothing
-        self = new(RenderStyle())
-        kw_init(self, args...)
-        self.pos = pos
-        self.str = str
-        self
-    end
-end
-
 type SymbolsObject <: RenderObject
     style::RenderStyle
     x
@@ -809,8 +788,23 @@ function draw( self::SymbolsObject, context::PlotContext )
     symbols( context.draw, self.x, self.y )
 end
 
+type TextObject <: RenderObject
+    style::RenderStyle
+    pos
+    str
+
+    function TextObject( pos, str, args... )
+        @assert str != nothing
+        self = new(RenderStyle())
+        kw_init(self, args...)
+        self.pos = pos
+        self.str = str
+        self
+    end
+end
+
 kw_defaults(::TextObject) = {
-    "textangle" => 0,
+    "textangle"     => 0,
     "texthalign"    => "center",
     "textvalign"    => "center",
 }
@@ -1593,8 +1587,8 @@ function _make_ticklabels( self::HalfAxis, context, pos, labels )
     halign, valign = _align(self)
 
     style = HashTable{String,Any}()
-    style["halign"] = halign
-    style["valign"] = valign
+    style["texthalign"] = halign
+    style["textvalign"] = valign
     for (k,v) in getattr(self, "ticklabels_style")
         style[k] = v
     end

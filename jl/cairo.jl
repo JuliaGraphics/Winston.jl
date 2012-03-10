@@ -9,6 +9,8 @@ _jl_libcairo = dlopen("libcairo")
 type CairoSurface
     ptr::Ptr{Void}
     kind::Symbol
+    width::Float64
+    height::Float64
 
     function CairoSurface(ptr::Ptr{Void}, kind::Symbol)
         self = new(ptr, kind)
@@ -32,13 +34,18 @@ function CairoRGBSurface(w::Integer, h::Integer)
         Ptr{Void}, (Int32,Int32,Int32), 1, w, h)
     surface = CairoSurface(ptr, :rgb)
     @assert status(surface) == 0
+    surface.width = w
+    surface.height = h
     surface
 end
 
 function CairoPDFSurface(filename::String, w_pts::Real, h_pts::Real)
     ptr = ccall(dlsym(_jl_libcairo,:cairo_pdf_surface_create), Ptr{Void},
         (Ptr{Uint8},Float64,Float64), cstring(filename), w_pts, h_pts)
-    CairoSurface(ptr, :pdf)
+    surface = CairoSurface(ptr, :pdf)
+    surface.width = w_pts
+    surface.height = h_pts
+    surface
 end
 
 function write_to_png(surface::CairoSurface, filename::String)
@@ -105,6 +112,7 @@ end
 
 @_CTX_FUNC_D set_line_width cairo_set_line_width
 @_CTX_FUNC_D set_font_size cairo_set_font_size
+@_CTX_FUNC_D rotate cairo_rotate
 
 macro _CTX_FUNC_DD(NAME, FUNCTION)
     quote
@@ -114,9 +122,15 @@ macro _CTX_FUNC_DD(NAME, FUNCTION)
     end
 end
 
-@_CTX_FUNC_DD move cairo_move_to
-@_CTX_FUNC_DD lineto cairo_line_to
-@_CTX_FUNC_DD linetorel cairo_rel_line_to
+@_CTX_FUNC_DD _move cairo_move_to
+@_CTX_FUNC_DD _lineto cairo_line_to
+@_CTX_FUNC_DD _rel_move_to cairo_rel_move_to
+@_CTX_FUNC_DD _linetorel cairo_rel_line_to
+
+move(ctx::CairoContext, x, y) = _move(ctx, x, ctx.surface.height-y)
+lineto(ctx::CairoContext, x, y) = _lineto(ctx, x, ctx.surface.height-y)
+rel_move_to(ctx::CairoContext, x, y) = _rel_move_to(ctx, x, -y)
+linetorel(ctx::CairoContext, x, y) = _linetorel(ctx, x, -y)
 
 macro _CTX_FUNC_DDD(NAME, FUNCTION)
     quote
@@ -144,10 +158,6 @@ function set_font_face(ctx::CairoContext, name::String)
         Void, (Ptr{Void},Ptr{Uint8},Int32,Int32), ctx.ptr, cstring(name), 0, 0);
 end
 
-function set_string_angle(ctx::CairoContext, angle::Real)
-    # TBD
-end
-
 function space(ctx::CairoContext, x0::Real, y0::Real, x1::Real, y1::Real)
     #cairo_pdf_suface_set_size()
 end
@@ -158,22 +168,41 @@ function clear(ctx::CairoContext)
     set_source_rgb(ctx, 0.,0.,0.)
 end
 
-function label(ctx::CairoContext, i0::Integer, i1::Integer, s::String)
+function text_extents(ctx::CairoContext, s::String)
+    extents = zeros(Float64, 6)
+    ccall(dlsym(_jl_libcairo,:cairo_text_extents), Void,
+        (Ptr{Void},Ptr{Uint8},Ptr{Float64}), ctx.ptr, cstring(s), extents)
+    extents
+end
+
+function label(ctx::CairoContext, halign::String, valign::String, s::String, angle::Real)
+    extents = text_extents(ctx, s)
+
+    _xxx = {
+        "center"    => 0.5,
+        "left"      => 0.,
+        "right"     => 1.,
+        "top"       => 1.,
+        "bottom"    => 0.,
+    }
+    dx = -_xxx[halign]*extents[3]
+    dy = -_xxx[valign]*extents[4]
+    save(ctx)
+    rotate(ctx, -angle*pi/180.)
+    rel_move_to(ctx, dx, dy)
     ccall(dlsym(_jl_libcairo,:cairo_show_text), Void,
         (Ptr{Void},Ptr{Uint8}), ctx.ptr, cstring(s))
+    restore(ctx)
 end
 
 function label_width(ctx::CairoContext, s::String)
-    extents = zeros(Float64, 6)
-    ccall(dlsym(_jl_libcairo,:cairo_text_extents), Void, 
-        (Ptr{Void},Ptr{Uint8},Ptr{Float64}), ctx.ptr, cstring(s), extents)
+    extents = text_extents(ctx, s)
     extents[3]
 end
 
 function line(ctx::CairoContext, x0::Real, y0::Real, x1::Real, y1::Real)
     move(ctx, x0, y0)
     lineto(ctx, x1, y1)
-    set_source_rgb(ctx, 0., 0., 0.) # wtf?
     stroke(ctx)
 end
 
@@ -255,7 +284,6 @@ function color_to_rgb(color::String)
 end
 
 function _set_color( ctx::CairoContext, color )
-    println("_set_color ",color)
     (r,g,b) = color_to_rgb( color )
     set_source_rgb( ctx, r, g, b )
 end
@@ -338,7 +366,7 @@ __pl_style_func = {
     "filltype"  => set_fill_type,
     "fontface"  => set_font_face,
     "fontsize"  => set_font_size,
-    "textangle" => set_string_angle,
+    #"textangle" => set_string_angle,
 }
 
 function set( self::CairoRenderer, key, value )
@@ -487,22 +515,12 @@ end
 
 # text commands
 
-__pl_text_align = {
-   "center"    => int('c'),
-   "baseline"  => int('x'),
-   "left"      => int('l'),
-   "right"     => int('r'),
-   "top"       => int('t'),
-   "bottom"    => int('b'),
-}
-
 function text( self::CairoRenderer, p, str )
     hstr = get( self.state, "texthalign", "center" )
     vstr = get( self.state, "textvalign", "center" )
-    hnum = __pl_text_align[hstr]
-    vnum = __pl_text_align[vstr]
+    angle = get( self.state, "textangle", 0. )
     move( self.ctx, p[1], p[2] )
-    label( self.ctx, hnum, vnum, str )
+    label( self.ctx, hstr, vstr, str, angle )
 end
 
 function textwidth( self::CairoRenderer, str )

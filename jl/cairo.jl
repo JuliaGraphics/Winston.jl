@@ -122,15 +122,15 @@ macro _CTX_FUNC_DD(NAME, FUNCTION)
     end
 end
 
-@_CTX_FUNC_DD _move cairo_move_to
-@_CTX_FUNC_DD _lineto cairo_line_to
+@_CTX_FUNC_DD _line_to cairo_line_to
+@_CTX_FUNC_DD _move_to cairo_move_to
+@_CTX_FUNC_DD _rel_line_to cairo_rel_line_to
 @_CTX_FUNC_DD _rel_move_to cairo_rel_move_to
-@_CTX_FUNC_DD _linetorel cairo_rel_line_to
 
-move(ctx::CairoContext, x, y) = _move(ctx, x, ctx.surface.height-y)
-lineto(ctx::CairoContext, x, y) = _lineto(ctx, x, ctx.surface.height-y)
+move_to(ctx::CairoContext, x, y) = _move_to(ctx, x, ctx.surface.height-y)
+line_to(ctx::CairoContext, x, y) = _line_to(ctx, x, ctx.surface.height-y)
+rel_line_to(ctx::CairoContext, x, y) = _rel_line_to(ctx, x, -y)
 rel_move_to(ctx::CairoContext, x, y) = _rel_move_to(ctx, x, -y)
-linetorel(ctx::CairoContext, x, y) = _linetorel(ctx, x, -y)
 
 macro _CTX_FUNC_DDD(NAME, FUNCTION)
     quote
@@ -202,8 +202,8 @@ function label_width(ctx::CairoContext, s::String)
 end
 
 function line(ctx::CairoContext, x0::Real, y0::Real, x1::Real, y1::Real)
-    move(ctx, x0, y0)
-    lineto(ctx, x1, y1)
+    move_to(ctx, x0, y0)
+    line_to(ctx, x1, y1)
     stroke(ctx)
 end
 
@@ -389,15 +389,15 @@ end
 ## drawing commands
 
 function move(self::CairoRenderer, p)
-    move( self.ctx, p[1], p[2] )
+    move_to( self.ctx, p[1], p[2] )
 end
 
 function lineto( self::CairoRenderer, p )
-    lineto( self.ctx, p[1], p[2] )
+    line_to( self.ctx, p[1], p[2] )
 end
 
 function linetorel( self::CairoRenderer, p )
-    linetorel( self.ctx, p[1], p[2] )
+    rel_line_to( self.ctx, p[1], p[2] )
 end
 
 function line( self::CairoRenderer, p, q )
@@ -493,9 +493,9 @@ function curve( self::CairoRenderer, x::Vector, y::Vector )
         return
     end
     new_path(self.ctx)
-    move(self.ctx, x[1], y[1])
+    move_to(self.ctx, x[1], y[1])
     for i = 2:n
-        lineto( self.ctx, x[i], y[i] )
+        line_to( self.ctx, x[i], y[i] )
     end
     stroke(self.ctx)
 end
@@ -515,7 +515,7 @@ function text( self::CairoRenderer, p, str )
     hstr = get( self.state, "texthalign", "center" )
     vstr = get( self.state, "textvalign", "center" )
     angle = get( self.state, "textangle", 0. )
-    move( self.ctx, p[1], p[2] )
+    move_to( self.ctx, p[1], p[2] )
     label( self.ctx, hstr, vstr, str, angle )
 end
 

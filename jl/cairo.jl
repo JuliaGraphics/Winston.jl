@@ -152,6 +152,7 @@ macro _CTX_FUNC_DDDD(NAME, FUNCTION)
 end
 
 @_CTX_FUNC_DDDD set_source_rgba cairo_set_source_rgba
+@_CTX_FUNC_DDDD rectangle cairo_rectangle
 
 function set_font_face(ctx::CairoContext, name::String)
     ccall(dlsym(_jl_libcairo,:cairo_select_font_face),
@@ -209,28 +210,18 @@ end
 function end_page(ctx::CairoContext)
 end
 
+function set_clip_rect(ctx::CairoContext, cr)
+    x = cr[1]
+    y = ctx.surface.height - cr[4]
+    width = cr[2] - cr[1]
+    height = cr[4] - cr[3]
+    rectangle(ctx, x, y, width, height)
+    clip(ctx)
+    new_path(ctx)
+end
+
 # -----------------------------------------------------------------------------
 
-function curve(pl::CairoContext, x::Vector, y::Vector)
-    n = min(length(x), length(y))
-    if n <= 0
-        return
-    end
- 
-    new_path(pl)
-    move( pl, x[1], y[1] )
-    for i = 2:n
-        lineto( pl, x[i], y[i] )
-    end
-    stroke(pl)
-end
-
-function clipped_curve(pl::CairoContext, x::Vector, y::Vector, xmin, xmax, ymin, ymax)
-    save(pl)
-    #clip(pl) # XXX
-    curve(pl, x, y)
-    restore(pl)
-end
 
 type RendererState
     current::HashTable
@@ -366,6 +357,7 @@ __pl_style_func = {
     "filltype"  => set_fill_type,
     "fontface"  => set_font_face,
     "fontsize"  => set_font_size,
+    "cliprect"  => set_clip_rect,
     #"textangle" => set_string_angle,
 }
 
@@ -409,14 +401,14 @@ function linetorel( self::CairoRenderer, p )
 end
 
 function line( self::CairoRenderer, p, q )
-    cr = get( self, "cliprect" )
-    if cr == nothing
+    #cr = get( self, "cliprect" )
+    #if cr == nothing
         line( self.ctx, p[1], p[2], q[1], q[2] )
-    else
-        clipped_line( self.ctx, 
-            cr[1], cr[2], cr[3], cr[4], 
-            p[1], p[2], q[1], q[2] )
-    end
+    #else
+        #clipped_line( self.ctx, 
+        #    cr[1], cr[2], cr[3], cr[4], 
+        #    p[1], p[2], q[1], q[2] )
+    #end
 end
 
 function rect( self::CairoRenderer, p, q )
@@ -485,23 +477,27 @@ function symbols( self::CairoRenderer, x, y )
         kind = __pl_symbol_type[type_str]
     end
 
-    cr = get( self, "cliprect" )
-    if cr == nothing
-        symbols( self.ctx, x, y, kind, size )
-    else
-        clipped_symbols( self.ctx, x, y, kind, size,
-            cr[1], cr[2], cr[3], cr[4] )
-    end
+    symbols( self.ctx, x, y, kind, size )
+#    cr = get( self, "cliprect" )
+#    if cr == nothing
+#        symbols( self.ctx, x, y, kind, size )
+#    else
+#        clipped_symbols( self.ctx, x, y, kind, size,
+#            cr[1], cr[2], cr[3], cr[4] )
+#    end
 end
 
-function curve( self::CairoRenderer, x, y )
-    cr = get( self, "cliprect" )
-    if cr == nothing
-        curve( self.ctx, x, y )
-    else
-        clipped_curve( self.ctx, x, y,
-            cr[1], cr[2], cr[3], cr[4] )
+function curve( self::CairoRenderer, x::Vector, y::Vector )
+    n = min(length(x), length(y))
+    if n <= 0
+        return
     end
+    new_path(self.ctx)
+    move(self.ctx, x[1], y[1])
+    for i = 2:n
+        lineto( self.ctx, x[i], y[i] )
+    end
+    stroke(self.ctx)
 end
 
 function polygon( self::CairoRenderer, points::Vector )

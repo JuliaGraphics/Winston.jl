@@ -547,12 +547,6 @@ type PlotContext
     PlotContext(device, dev, data) = PlotContext(device, dev, data, false, false)
 end
 
-function do_clip( self::PlotContext )
-    xr = xrange(self.dev_bbox)
-    yr = yrange(self.dev_bbox)
-    set(self.draw, "cliprect", (xr[1], xr[2], yr[1], yr[2]) )
-end
-
 function _kw_func_relative_fontsize( context::PlotContext, key, value )
     device_size = _fontsize_relative( value, context.dev_bbox, context.draw.bbox )
     set( context.draw, key, device_size )
@@ -1728,7 +1722,9 @@ function render( self::PlotComposite, context )
     make(self, context)
     push_style(context, getattr(self,"style"))
     if !self.dont_clip
-        do_clip(context)
+        xr = xrange(context.dev_bbox)
+        yr = yrange(context.dev_bbox)
+        set(context.draw, "cliprect", (xr[1], xr[2], yr[1], yr[2]) )
     end
     for obj in self.components
         render(obj, context)

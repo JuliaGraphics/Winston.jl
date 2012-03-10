@@ -159,6 +159,11 @@ function set_font_face(ctx::CairoContext, name::String)
         Void, (Ptr{Void},Ptr{Uint8},Int32,Int32), ctx.ptr, cstring(name), 0, 0);
 end
 
+function set_dash(ctx::CairoContext, dashes::Vector{Float64})
+    ccall(dlsym(_jl_libcairo,:cairo_set_dash), Void,
+        (Ptr{Void},Ptr{Float64},Int32,Float64), ctx.ptr, dashes, length(dashes), 0.)
+end
+
 function space(ctx::CairoContext, x0::Real, y0::Real, x1::Real, y1::Real)
     #cairo_pdf_suface_set_size()
 end
@@ -194,17 +199,6 @@ function label(ctx::CairoContext, halign::String, valign::String, s::String, ang
     ccall(dlsym(_jl_libcairo,:cairo_show_text), Void,
         (Ptr{Void},Ptr{Uint8}), ctx.ptr, cstring(s))
     restore(ctx)
-end
-
-function label_width(ctx::CairoContext, s::String)
-    extents = text_extents(ctx, s)
-    extents[3]
-end
-
-function line(ctx::CairoContext, x0::Real, y0::Real, x1::Real, y1::Real)
-    move_to(ctx, x0, y0)
-    line_to(ctx, x1, y1)
-    stroke(ctx)
 end
 
 function end_page(ctx::CairoContext)
@@ -282,14 +276,24 @@ end
 const _set_fill_color = _set_color
 const _set_pen_color = _set_color
 
-function _set_line_type( pl::CairoContext, typ )
-    const _pl_line_type = {
+function _set_line_type(ctx::CairoContext, nick::String)
+    const nick2name = {
        "dot"       => "dotted",
        "dash"      => "shortdashed",
        "dashed"    => "shortdashed",
     }
-    pl_type = get(_pl_line_type, typ, typ)
-    set_line_type( pl, pl_type )
+    const name2dashes = {
+        "dotted"          => [1.,3.],
+        "dotdashed"       => [1.,3.,4.,4.],
+        "longdashed"      => [6.,6.],
+        "shortdashed"     => [4.,4.],
+        "dotdotdashed"    => [1.,3.,1.,3.,4.,4.],
+        "dotdotdotdashed" => [1.,3.,1.,3.,1.,3.,4.,4.],
+    }
+    name = get(nick2name, nick, nick)
+    if has(name2dashes, name)
+        set_dash(ctx, name2dashes[name])
+    end
 end
 
 type CairoRenderer <: Renderer
@@ -358,7 +362,6 @@ __pl_style_func = {
     "fontface"  => set_font_face,
     "fontsize"  => set_font_size,
     "cliprect"  => set_clip_rect,
-    #"textangle" => set_string_angle,
 }
 
 function set( self::CairoRenderer, key, value )
@@ -401,14 +404,9 @@ function linetorel( self::CairoRenderer, p )
 end
 
 function line( self::CairoRenderer, p, q )
-    #cr = get( self, "cliprect" )
-    #if cr == nothing
-        line( self.ctx, p[1], p[2], q[1], q[2] )
-    #else
-        #clipped_line( self.ctx, 
-        #    cr[1], cr[2], cr[3], cr[4], 
-        #    p[1], p[2], q[1], q[2] )
-    #end
+    move_to(self.ctx, p[1], p[2])
+    line_to(self.ctx, q[1], q[2])
+    stroke(self.ctx)
 end
 
 function rect( self::CairoRenderer, p, q )
@@ -478,13 +476,6 @@ function symbols( self::CairoRenderer, x, y )
     end
 
     symbols( self.ctx, x, y, kind, size )
-#    cr = get( self, "cliprect" )
-#    if cr == nothing
-#        symbols( self.ctx, x, y, kind, size )
-#    else
-#        clipped_symbols( self.ctx, x, y, kind, size,
-#            cr[1], cr[2], cr[3], cr[4] )
-#    end
 end
 
 function curve( self::CairoRenderer, x::Vector, y::Vector )
@@ -520,11 +511,14 @@ function text( self::CairoRenderer, p, str )
 end
 
 function textwidth( self::CairoRenderer, str )
-    return label_width( self.ctx, str )
+    extents = text_extents(self.ctx, str)
+    extents[3]
 end
 
 function textheight( self::CairoRenderer, str )
-    return get( self.state, "fontsize" ) ## XXX: kludge?
+    #extents = text_extents(self.ctx, str)
+    #extents[4] # XXX:plot layout doesn't converge
+    get( self.state, "fontsize" ) ## XXX: kludge?
 end
 
 function ImageRenderer(kind, width, height, filename)

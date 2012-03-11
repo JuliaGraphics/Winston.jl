@@ -1,7 +1,4 @@
 
-abstract Canvas2D
-abstract Renderer
-
 _jl_libcairo = dlopen("libcairo")
 
 # -----------------------------------------------------------------------------
@@ -34,9 +31,15 @@ function status(surface::CairoSurface)
         Int32, (Ptr{Void},), surface.ptr)
 end
 
+const CAIRO_FORMAT_ARGB32 = 0
+const CAIRO_FORMAT_RGB24 = 1
+const CAIRO_FORMAT_A8 = 2
+const CAIRO_FORMAT_A1 = 3
+const CAIRO_FORMAT_RGB16_565 = 4
+
 function CairoRGBSurface(w::Integer, h::Integer)
     ptr = ccall(dlsym(_jl_libcairo,:cairo_image_surface_create),
-        Ptr{Void}, (Int32,Int32,Int32), 1, w, h)
+        Ptr{Void}, (Int32,Int32,Int32), CAIRO_FORMAT_RGB24, w, h)
     surface = CairoSurface(ptr, :rgb)
     @assert status(surface) == 0
     surface.width = w
@@ -60,7 +63,7 @@ end
 
 # -----------------------------------------------------------------------------
 
-type CairoContext <: Canvas2D
+type CairoContext
     ptr::Ptr{Void}
     surface::CairoSurface
 
@@ -157,6 +160,20 @@ end
 @_CTX_FUNC_DDDD set_source_rgba cairo_set_source_rgba
 @_CTX_FUNC_DDDD rectangle cairo_rectangle
 
+macro _CTX_FUNC_DDDDD(NAME, FUNCTION)
+    quote
+        ($NAME)(ctx::CairoContext, d0::Real, d1::Real, d2::Real, d3::Real, d4::Real) =
+            ccall(dlsym(_jl_libcairo,$string(FUNCTION)), Void,
+                (Ptr{Void},Float64,Float64,Float64,Float64,Float64),
+                ctx.ptr, d0, d1, d2, d3, d4)
+    end
+end
+
+@_CTX_FUNC_DDDDD _arc cairo_arc
+
+circle(ctx::CairoContext, x::Real, y::Real, r::Real) =
+    _arc(ctx, x, ctx.surface.height-y, r, 0., 2pi)
+
 function set_font_face(ctx::CairoContext, name::String)
     ccall(dlsym(_jl_libcairo,:cairo_select_font_face),
         Void, (Ptr{Void},Ptr{Uint8},Int32,Int32), ctx.ptr, cstring(name), 0, 0);
@@ -250,7 +267,7 @@ function color_to_rgb( hextriplet::Integer )
 end
 
 function color_to_rgb(color::String)
-    # XXX:fixme
+    # XXX:TODO
     if color == "red"
         return (1.,0.,0.)
     elseif color == "blue"
@@ -272,6 +289,7 @@ function _set_line_type(ctx::CairoContext, nick::String)
        "dash"      => "shortdashed",
        "dashed"    => "shortdashed",
     }
+    # XXX:should be scaled by linewidth
     const name2dashes = {
         "dotted"          => [1.,3.],
         "dotdashed"       => [1.,3.,4.,4.],
@@ -286,12 +304,12 @@ function _set_line_type(ctx::CairoContext, nick::String)
     end
 end
 
+abstract Renderer
+
 type CairoRenderer <: Renderer
-    ctx :: CairoContext
-    #surface :: CairoSurface
+    ctx::CairoContext
     state::RendererState
     on_close::Function
-    reuse::Bool
     lowerleft
     upperright
     bbox
@@ -299,9 +317,7 @@ type CairoRenderer <: Renderer
     function CairoRenderer(surface)
         ctx = CairoContext(surface)
         self = new(ctx)
-        self.state = RendererState()
         self.on_close = () -> nothing
-        self.reuse = false
         self.lowerleft = (0,0)
         self.bbox = nothing
         self
@@ -468,13 +484,13 @@ function symbols( self::CairoRenderer, x, y )
     DEFAULT_SYMBOL_SIZE = 0.01
     type_str = get(self.state, "symboltype", DEFAULT_SYMBOL_TYPE )
     size = get(self.state, "symbolsize", DEFAULT_SYMBOL_SIZE )
-    if strlen(type_str) == 1
-        kind = int(type_str[1])
-    else
-        kind = __pl_symbol_type[type_str]
-    end
 
-    symbols( self.ctx, x, y, kind, size )
+    new_path(self.ctx)
+    for i = 1:min(length(x),length(y))
+        # XXX:TODO
+        circle(self.ctx, x[i], y[i], size/2.)
+        stroke(self.ctx)
+    end
 end
 
 function curve( self::CairoRenderer, x::Vector, y::Vector )

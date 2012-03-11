@@ -19,6 +19,11 @@ type CairoSurface
     end
 end
 
+function finish(surface::CairoSurface)
+    ccall(dlsym(_jl_libcairo,:cairo_surface_finish),
+        Void, (Ptr{Void},), surface.ptr)
+end
+
 function destroy(surface::CairoSurface)
     ccall(dlsym(_jl_libcairo,:cairo_surface_destroy),
         Void, (Ptr{Void},), surface.ptr)
@@ -89,8 +94,6 @@ end
 @_CTX_FUNC_V paint cairo_paint
 @_CTX_FUNC_V stroke cairo_stroke
 @_CTX_FUNC_V stroke_preserve cairo_stroke_preserve
-
-const delete = destroy
 
 macro _CTX_FUNC_I(NAME, FUNCTION)
     quote
@@ -164,16 +167,6 @@ function set_dash(ctx::CairoContext, dashes::Vector{Float64})
         (Ptr{Void},Ptr{Float64},Int32,Float64), ctx.ptr, dashes, length(dashes), 0.)
 end
 
-function space(ctx::CairoContext, x0::Real, y0::Real, x1::Real, y1::Real)
-    #cairo_pdf_suface_set_size()
-end
-
-function clear(ctx::CairoContext)
-    set_source_rgb(ctx, 1.,1.,1.)
-    paint(ctx)
-    set_source_rgb(ctx, 0.,0.,0.)
-end
-
 function text_extents(ctx::CairoContext, s::String)
     extents = zeros(Float64, 6)
     ccall(dlsym(_jl_libcairo,:cairo_text_extents), Void,
@@ -199,9 +192,6 @@ function label(ctx::CairoContext, halign::String, valign::String, s::String, ang
     ccall(dlsym(_jl_libcairo,:cairo_show_text), Void,
         (Ptr{Void},Ptr{Uint8}), ctx.ptr, cstring(s))
     restore(ctx)
-end
-
-function end_page(ctx::CairoContext)
 end
 
 function set_clip_rect(ctx::CairoContext, cr)
@@ -297,57 +287,66 @@ function _set_line_type(ctx::CairoContext, nick::String)
 end
 
 type CairoRenderer <: Renderer
-    lowerleft :: (Integer,Integer)
-    upperright :: (Integer,Integer)
-    ctx :: Union(CairoContext,Nothing)
-    surface :: CairoSurface
-    state
-    bbox
+    ctx :: CairoContext
+    #surface :: CairoSurface
+    state::RendererState
+    on_close::Function
     reuse::Bool
+    lowerleft
+    upperright
+    bbox
 
-    function CairoRenderer(ll, ur, kind, parameters, fptr)
-        width = abs(ur[1] - ll[1])
-        height = abs(ur[2] - ll[2])
-        surface = CairoRGBSurface(width, height)
+    function CairoRenderer(surface)
         ctx = CairoContext(surface)
-        new(ll, ur, ctx, surface, nothing, nothing, false)
+        self = new(ctx)
+        self.state = RendererState()
+        self.on_close = () -> nothing
+        self.reuse = false
+        self.lowerleft = (0,0)
+        self.bbox = nothing
+        self
     end
-    CairoRenderer(ll, ur, kind, parameters) =
-        CairoRenderer(ll, ur, kind, parameters, C_NULL)
+end
+
+function PNGRenderer(filename::String, width::Integer, height::Integer)
+    surface = CairoRGBSurface(width, height)
+    r = CairoRenderer(surface)
+    r.upperright = (width,height)
+    r.on_close = () -> write_to_png(surface, filename)
+    set_source_rgb(r.ctx, 1.,1.,1.)
+    paint(r.ctx)
+    set_source_rgb(r.ctx, 0.,0.,0.)
+    r
+end
+
+function _str_size_to_pts( str )
+    m = match(r"([\d.]+)([^\s]+)", str)
+    num_xx = float64(m.captures[1])
+    units = m.captures[2]
+    # convert to postscipt pt = in/72
+    xx2pt = { "in"=>72., "pt"=>1., "mm"=>2.835, "cm"=>28.35 }
+    num_pt = num_xx*xx2pt[units]
+    return num_pt
+end
+
+PDFRenderer(filename::String, w_str::String, h_str::String) =
+    PDFRenderer(filename, _str_size_to_pts(w_str), _str_size_to_pts(h_str))
+
+function PDFRenderer(filename::String, w_pts::Float64, h_pts::Float64)
+    surface = CairoPDFSurface(filename, w_pts, h_pts)
+    r = CairoRenderer(surface)
+    r.upperright = (w_pts,h_pts)
+    r.on_close = () -> show_page(r.ctx)
+    r
 end
 
 function open( self::CairoRenderer )
     self.state = RendererState()
-    #show_page( self.ctx )
-    ll = self.lowerleft
-    ur = self.upperright
-    space( self.ctx, ll[1], ll[2], ur[1], ur[2] )
-    clear( self.ctx )
-end
-
-function clear( self::CairoRenderer )
-    clear( self.ctx )
 end
 
 function close( self::CairoRenderer )
-    if self.ctx != nothing
-        if self.reuse
-            flush(self.ctx)
-        else
-            end_page( self.ctx )
-        end
-    end
-end
-
-function delete( self::CairoRenderer )
-    if self.ctx != nothing
-        if self.reuse
-            flush(self.ctx)
-        else
-            delete( self.ctx )
-            self.ctx = nothing
-        end
-    end
+    self.on_close()
+    finish(self.ctx.surface)
 end
 
 ## state commands
@@ -519,12 +518,5 @@ function textheight( self::CairoRenderer, str )
     #extents = text_extents(self.ctx, str)
     #extents[4] # XXX:plot layout doesn't converge
     get( self.state, "fontsize" ) ## XXX: kludge?
-end
-
-function ImageRenderer(kind, width, height, filename)
-    ll = (0, 0)
-    ur = (width, height)
-    parameters = {"BITMAPSIZE" => "$(width)x$(height)"}
-    CairoRenderer(ll, ur, kind, parameters, filename)
 end
 

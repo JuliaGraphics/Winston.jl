@@ -2506,7 +2506,7 @@ function x11( self::PlotContainer, args...)
     delete(device)
 end
 
-function write_eps( self::PlotContainer, filename::String, args... )
+function write_pdf( self::PlotContainer, filename::String, args... )
     opt = HashTable()
     for (k,v) in config_options("postscript")
         opt[k] = v
@@ -2514,29 +2514,24 @@ function write_eps( self::PlotContainer, filename::String, args... )
     for (k,v) in args2hashtable(args...)
         opt[k] = v
     end
-    f = _fopen( filename, "w" )
-    device = PSRenderer( f, opt )
+    device = PDFRenderer( filename, opt["width"], opt["height"] )
     page_compose( self, device )
-    delete(device)
-    _fclose( f )
 end
 
-function write_img( self::PlotContainer, filename::String, kind::String, width::Int, height::Int )
-    device = ImageRenderer( kind, width, height, filename )
+function write_png( self::PlotContainer, filename::String, width::Int, height::Int )
+    device = PNGRenderer( filename, width, height )
     page_compose( self, device )
-    write_to_png( device.ctx.surface, filename)
-    delete(device)
 end
 
 function file( self::PlotContainer, filename::String, args... )
     extn = filename[end-2:end]
-    if extn == "eps"
-        write_eps(self, filename, args...)
-    elseif extn == "png" || extn == "svg"
+    if extn == "pdf"
+        write_pdf(self, filename, args...)
+    elseif extn == "png"
         opts = args2hashtable(args...)
         width = has(opts,"width") ? opts["width"] : config_value("window","width")
         height = has(opts,"height") ? opts["height"] : config_value("window","height")
-        write_img(self, filename, extn, width, height)
+        write_png(self, filename, width, height)
     else
         error("I can't export .$extn, sorry.")
     end

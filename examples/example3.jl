@@ -1,6 +1,7 @@
 #!/usr/bin/env julia
 
 load("winston.jl")
+import Winston.*
 
 x = linspace( 0, 3pi, 30)
 y = sin(x)
@@ -21,6 +22,5 @@ t2 = Table( 2, 1 )
 t2[1,1] = t1
 t2[2,1] = p
 
-x11(t2)
 #file(t2, "example3.eps")
-#file(t2, "example3.png")
+file(t2, "example3.png")

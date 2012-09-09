@@ -1,6 +1,7 @@
 #!/usr/bin/env julia
 
 load("winston.jl")
+import Winston.*
 
 x = linspace( pi, 3pi, 60 )
 c = cos(x)
@@ -28,6 +29,5 @@ setattr( p.y2, "ticklabels", [ "-1", "-1/2", "0", "1/2", "1" ] )
 add( p, Curve(x, c, "type", "dash") )
 add( p, Curve(x, s) )
 
-x11(p)
 #file(p, "example6.eps")
-#file(p, "example6.png")
+file(p, "example6.png")

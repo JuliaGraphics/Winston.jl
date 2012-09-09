@@ -3,6 +3,7 @@ Winston : 2d vector plotting for Julia
 ======================================
 
     load("winston.jl")
+    import Winston.*
 
     x = [-pi:0.2:pi]
     y = sin(x)
@@ -10,24 +11,16 @@ Winston : 2d vector plotting for Julia
     p = FramedPlot()
     add(p, Curve(x, y))
 
-    x11(p)
     file(p, "winston.eps")
 
 Install
 -------
 
-Winston uses the GNU libplot library as its graphical backend:
+Winston is distributed with Julia, and uses Cairo as its
+graphical backend:
 
-* Fedora: `yum install plotutils`
-* OS X (Homebrew): `brew install plotutils`
-* Ubuntu: `aptitude install plotutils`
-* Source: <http://www.gnu.org/software/plotutils/>
-
-Then, add
-
-    push(LOAD_PATH, "/path/to/winston/jl")
-
-to your `~/.juliarc`.
+* OS X (macports): `port install cairo pango`
+* Ubuntu: `aptitude install libcairo2 libpango1.0-0`
 
 Documentation
 -------------

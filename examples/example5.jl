@@ -1,6 +1,7 @@
 #!/usr/bin/env julia
 
 load("winston.jl")
+import Winston.*
  
 x = linspace( 0., 2pi, 30 )
 y = sin(x)
@@ -19,6 +20,5 @@ add( a[1,2], Curve(x, .50*y) )
 add( a[2,1], Curve(x, .75*y) )
 add( a[2,2], Curve(x, y) )
 
-x11(a)
 #file(a, "example5.eps")
-#file(a, "example5.png")
+file(a, "example5.png")

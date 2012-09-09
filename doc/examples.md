@@ -6,6 +6,7 @@ Example 1
 
 ``` julia
 load("winston.jl")
+import Winston.*
 
 x = linspace( 0, 3pi, 100 )
 c = cos(x)
@@ -21,7 +22,7 @@ add(p, FillBetween(x, c, x, s) )
 add(p, Curve(x, c, "color", "red") )
 add(p, Curve(x, s, "color", "blue") )
 
-x11(p)
+file(p, "example1.png")
 ```
 
 Example 2
@@ -31,6 +32,7 @@ Example 2
 
 ``` julia
 load("winston.jl")
+import Winston.*
 
 p = FramedPlot()
 setattr(p, "xrange", (0,100))
@@ -55,7 +57,7 @@ setattr(s, "label", "slope")
 l = Legend( .1, .9, {a,b,s} )
 
 add( p, s, a, b, l )
-x11(p)
+file(p, "example2.png")
 ```
 
 Example 3
@@ -65,6 +67,7 @@ Example 3
 
 ``` julia
 load("winston.jl")
+import Winston.*
 
 x = linspace( 0, 3pi, 30)
 y = sin(x)
@@ -85,7 +88,7 @@ t2 = Table( 2, 1 )
 t2[1,1] = t1
 t2[2,1] = p
 
-x11(t2)
+file(t2, "example3.png")
 ```
 
 Example 4
@@ -95,6 +98,7 @@ Example 4
 
 ``` julia
 load("winston.jl")
+import Winston.*
 
 x = linspace(0., 2pi, 40)
 s = sin(x)
@@ -115,7 +119,7 @@ add( p, SymmetricErrorBarsY(x, s, 0.2*ones(length(x))) )
 add( p, Points(x, s, "color", "red") )
 add( p, PlotInset((.6,.6), (.95,.95), inset) )
 
-x11(p)
+file(p, "example4.png")
 ```
 
 Example 5
@@ -125,6 +129,7 @@ Example 5
 
 ``` julia
 load("winston.jl")
+import Winston.*
 
 x = linspace( 0., 2pi, 30 )
 y = sin(x)
@@ -143,7 +148,7 @@ add( a[1,2], Curve(x, .50*y) )
 add( a[2,1], Curve(x, .75*y) )
 add( a[2,2], Curve(x, y) )
 
-x11(a)
+file(a, "example5.png")
 ```
 
 Example 6
@@ -153,6 +158,7 @@ Example 6
 
 ``` julia
 load("winston.jl")
+import Winston.*
 
 x = linspace( pi, 3pi, 60 )
 c = cos(x)
@@ -179,5 +185,5 @@ setattr( p.y2, "ticklabels", [ "-1", "-1/2", "0", "1/2", "1" ] )
 
 add( p, Curve(x, c, "type", "dash") )
 add( p, Curve(x, s) )
-x11(p)
+file(p, "example6.png")
 ```

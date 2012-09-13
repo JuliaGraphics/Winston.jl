@@ -75,7 +75,8 @@ This object represents a framed plot, where the axes surround the
 plotting region, instead of intersecting it. You build a plot by adding
 components::
 
-    p = FramedPlot() add( p, component... )
+    p = FramedPlot()
+    add( p, component... )
 
 Components are rendered in the order they're added.
 
@@ -257,10 +258,9 @@ Circle( x, y, r )  Circles( x, y, r )
 
 Draw circles centered at ``(x,y)`` with radius ``r``.
 
-Curve( x, y )
-^^^^^^^^^^^^^
+.. function:: Curve(x, y)
 
-Draw lines connecting ``(x[i],y[i])`` to ``(x[i+1],y[i+1])``.
+    Draw lines connecting ``(x[i],y[i])`` to ``(x[i+1],y[i+1])``.
 
 Ellipse( x, y, rx, ry, angle )  Ellipses( x, y, rx, ry, angle )
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

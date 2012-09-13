@@ -32,27 +32,23 @@ PlotContainer
 Methods
 ~~~~~~~
 
-``file( container, filename, options... )``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. function:: file(container, filename, options...)
 
-Save container to a file. Valid filename extensions are ``"eps"``,
-``"png"``, and ``"svg"``.
+    Save container to a file. Valid filename extensions are ``"eps"``,
+    ``"png"``, and ``"svg"``.
 
-``getattr( container, key [, notfound] )``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. function:: getattr(container, key [, notfound])
 
-Returns the value of the attribute named ``key`` if found, otherwise
-``notfound``.
+    Returns the value of the attribute named ``key`` if found, otherwise
+    ``notfound``.
 
-``setattr( container, key, val )``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. function:: setattr(container, key, val)
 
-Sets the attribute named ``key`` to ``val``.
+    Sets the attribute named ``key`` to ``val``.
 
-``x11( container )``
-^^^^^^^^^^^^^^^^^^^^
+.. function:: x11(container)
 
-Plot the container in an X window.
+    Plot the container in an X window.
 
 Attributes
 ~~~~~~~~~~
@@ -77,8 +73,11 @@ FramedPlot() <: PlotContainer
 
 This object represents a framed plot, where the axes surround the
 plotting region, instead of intersecting it. You build a plot by adding
-components: ``p = FramedPlot() add( p, component... )`` Components are
-rendered in the order they're added.
+components::
+
+    p = FramedPlot() add( p, component... )
+
+Components are rendered in the order they're added.
 
 Basic Attributes
 ~~~~~~~~~~~~~~~~
@@ -107,10 +106,12 @@ Axis Attributes
 Each side of the frame is an independent axis object: ``p.x1`` (bottom),
 ``p.y1`` (left), ``p.x2`` (top), and ``p.y2`` (right). The axis
 attributes below apply to each of these objects. So for example, to
-label the right side of the frame, you would say:
-``setattr( p.y2, "label", "something" )`` The label, log, and range
-attributes are the same as the ones above. For instance, when you set
-``p.xlog`` you're actually setting ``p.x1.log``.
+label the right side of the frame, you would say::
+
+    setattr( p.y2, "label", "something" )
+
+The label, log, and range attributes are the same as the ones above. For
+instance, when you set ``p.xlog`` you're actually setting ``p.x1.log``.
 
 +----------------------+--------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | draw\_axis           | Bool                           | If false the spine, ticks, and subticks are not drawn; otherwise it has no effect.                                                                                                                       |
@@ -165,25 +166,44 @@ attributes are the same as the ones above. For instance, when you set
 +----------------------+--------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 
-So let's say you wanted to color all the ticks red. You could write:
-``julia # XXX:doesn't work yet p.x1.ticks_style["color"] = "red" p.x2.ticks_style["color"] = "red" p.y1.ticks_style["color"] = "red" p.y2.ticks_style["color"] = "red"``
+So let's say you wanted to color all the ticks red. You could write::
+
+    # XXX:doesn't work yet
+    p.x1.ticks_style["color"] = "red"
+    p.x2.ticks_style["color"] = "red"
+    p.y1.ticks_style["color"] = "red"
+    p.y2.ticks_style["color"] = "red"
+
 but it's tedious, and hazardous for your hands. ``FramedPlot`` provides
 a mechanism for manipulating groups of axes, through the use of the
-following pseudo-attributes:
-``frame          ==>     .x1, .x2, .y1, .y2 frame1         ==>     .x1, .y1 frame2         ==>     .x2, .y2 x              ==>     .x1, .x2 y              ==>     .y1, .y2``
-which lets you write
-``julia # XXX:doesn't work yet p.frame.ticks_style["color"] = "red"``
+following pseudo-attributes::
+
+    frame          ==>     .x1, .x2, .y1, .y2
+    frame1         ==>     .x1, .y1
+    frame2         ==>     .x2, .y2
+    x              ==>     .x1, .x2
+    y              ==>     .y1, .y2
+
+which lets you write::
+
+    # XXX:doesn't work yet
+    p.frame.ticks_style["color"] = "red"
+
 instead.
 
 FramedArray( nrows, ncols ) <: PlotContainer
 --------------------------------------------
 
 Use this container if you want to plot an array of similar plots. To add
-a component to a specific cell, use
-``julia add( a[i,j], component... )`` where ``a`` is a ``FramedArray``
-object, ``i`` is the row number, and ``j`` is the column number. You can
-also add a component to all the cells at once using:
-``julia add( a, component... )``
+a component to a specific cell, use::
+
+    julia add( a[i,j], component... )
+
+where ``a`` is a ``FramedArray`` object, ``i`` is the row number, and ``j``
+is the column number. You can also add a component to all the cells at once
+using::
+
+    julia add( a, component... )
 
 Attributes: (in addition to the basic ``FramedPlot`` ones)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -253,87 +253,84 @@ Components named ``Data*`` take data coordinates, while ``Plot*``
 objects take plot coordinates, where the lower-left corner of the plot
 is at ``(0,0)`` and the upper-right corner is at ``(1,1)``.
 
-Circle( x, y, r )  Circles( x, y, r )
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. function:: Circle( x, y, r )
+              Circles( x, y, r )
 
-Draw circles centered at ``(x,y)`` with radius ``r``.
+    Draw circles centered at ``(x,y)`` with radius ``r``.
 
 .. function:: Curve(x, y)
 
     Draw lines connecting ``(x[i],y[i])`` to ``(x[i+1],y[i+1])``.
 
-Ellipse( x, y, rx, ry, angle )  Ellipses( x, y, rx, ry, angle )
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. function:: Ellipse( x, y, rx, ry, angle )
+              Ellipses( x, y, rx, ry, angle )
 
-Draw ellipses centered at ``(x,y)``, with x-radius ``rx``, y-radius
-``ry``, and rotated counterclockwise by ``angle``.
+    Draw ellipses centered at ``(x,y)``, with x-radius ``rx``, y-radius
+    ``ry``, and rotated counterclockwise by ``angle``.
 
-ErrorBarsX( y, xerr\_lo, xerr\_hi )  ErrorBarsY( x, yerr\_lo, yerr\_hi )
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. function:: ErrorBarsX( y, xerr\_lo, xerr\_hi )
+              ErrorBarsY( x, yerr\_lo, yerr\_hi )
 
-Draw [XY] error bars. Specifically, the bars extend from
-``(xerr_lo[i],y[i])`` to ``(xerr_hi[i],y[i])`` for ``ErrorBarsX``, and
-``(x[i],yerr_lo[i])`` to ``(x[i],yerr_hi[i])`` for ``ErrorBarsY``.
+    Draw [XY] error bars. Specifically, the bars extend from
+    ``(xerr_lo[i],y[i])`` to ``(xerr_hi[i],y[i])`` for ``ErrorBarsX``, and
+    ``(x[i],yerr_lo[i])`` to ``(x[i],yerr_hi[i])`` for ``ErrorBarsY``.
 
-FillAbove( x, y )  FillBelow( x, y )
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. function:: FillAbove( x, y )
+              FillBelow( x, y )
 
-``FillAbove/Below`` fills the region bounded below/above, respectively,
-by the curve ``{x,y}``.
+    ``FillAbove/Below`` fills the region bounded below/above, respectively,
+    by the curve ``{x,y}``.
 
-FillBetween( xA, yA, xB, yB )
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. function:: FillBetween( xA, yA, xB, yB )
 
-Fill the region bounded by the curves ``{xA,yA}`` and ``{xB,yB}``.
+    Fill the region bounded by the curves ``{xA,yA}`` and ``{xB,yB}``.
 
-LineX( x )  LineY( y )
-^^^^^^^^^^^^^^^^^^^^^
+.. function:: LineX(x)
+              LineY(y)
 
-Draw a line of constant [xy].
+    Draw a line of constant [xy].
 
-Point( x, y )  Points( x, y )
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. function:: Point( x, y )
+              Points( x, y )
 
-Draw symbols at the set of points ``(x,y)``.
+    Draw symbols at the set of points ``(x,y)``.
 
-Slope( slope, p )
-^^^^^^^^^^^^^^^^^
+.. function:: Slope( slope, p )
 
-Draw the line ``y = p[2] + slope*(x - p[1])``.
+    Draw the line ``y = p[2] + slope*(x - p[1])``.
 
-SymmetricErrorBarsX( x, y, err )  SymmetricErrorBarsY( x, y, err )
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. function:: SymmetricErrorBarsX( x, y, err )
+              SymmetricErrorBarsY( x, y, err )
 
-Draw error bars extending from ``(x[i]-err[i],y[i])`` to
-``(x[i]+err[i],y[i])`` for ``SymmetricErrorBarsX``, and
-``(x[i],y[i]-err[i])`` to ``(x[i],y[i]+err[i])`` for
-``SymmetricErrorBarsY``.
+    Draw error bars extending from ``(x[i]-err[i],y[i])`` to
+    ``(x[i]+err[i],y[i])`` for ``SymmetricErrorBarsX``, and
+    ``(x[i],y[i]-err[i])`` to ``(x[i],y[i]+err[i])`` for
+    ``SymmetricErrorBarsY``.
 
-DataBox( p, q ) *[aka Box]*  PlotBox( p, q )
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. function:: DataBox( p, q )
+              PlotBox( p, q )
 
-Draws the rectangle defined by points ``p`` and ``q``.
+    Draws the rectangle defined by points ``p`` and ``q``.
 
-DataInset( p, q, container )  PlotInset( p, q, container ) *[aka Inset]*
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. function:: DataInset( p, q, container )
+              PlotInset( p, q, container )
 
-Draws ``container`` in the rectangle defined by points ``p`` and ``q``.
+    Draws ``container`` in the rectangle defined by points ``p`` and ``q``.
 
-DataLabel( x, y, "label" ) *[aka Label]*  PlotLabel( x, y, "label" )
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. function:: DataLabel( x, y, "label" )
+              PlotLabel( x, y, "label" )
 
-Write the text ``string`` at the point ``(x,y)``. Alignment is governed
-by ``halign`` and ``valign``.
+    Write the text ``string`` at the point ``(x,y)``. Alignment is governed
+    by ``halign`` and ``valign``.
 
-DataLine( p, q ) *[aka Line]*  PlotLine( p, q )
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. function:: DataLine( p, q )
+              PlotLine( p, q )
 
-Draws a line connecting points ``p`` and ``q``.
+    Draws a line connecting points ``p`` and ``q``.
 
-Legend( x, y, components )
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. function:: Legend( x, y, components )
 
-TBD. See example 2.
+    TBD. See example 2.
 
 Style
 -----

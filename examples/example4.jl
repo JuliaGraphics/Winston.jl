@@ -1,7 +1,7 @@
 #!/usr/bin/env julia
 
 load("winston.jl")
-import Winston.*
+using Winston
 
 x = linspace(0., 2pi, 40)
 s = sin(x)

@@ -1,7 +1,7 @@
 #!/usr/bin/env julia
 
 load("winston.jl")
-import Winston.*
+using Winston
 
 p = FramedPlot()
 setattr(p, "xrange", (0,100))

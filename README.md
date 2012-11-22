@@ -32,8 +32,7 @@ graphical backend:
 Documentation
 -------------
 
-* [Examples](https://github.com/nolta/winston/wiki/Examples)
-* [Reference](https://github.com/nolta/winston/wiki/Reference)
+* [Examples](https://github.com/nolta/Winston.jl/blob/master/doc/examples.md)
 
 Status
 ------

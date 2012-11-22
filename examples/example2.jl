@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 
-load("winston.jl")
+load("Winston")
 using Winston
 
 p = FramedPlot()

@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 
-load("winston.jl")
+load("Winston")
 using Winston
 
 x = linspace( pi, 3pi, 60 )

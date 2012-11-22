@@ -1,9 +1,9 @@
 
-Winston : 2d vector plotting for Julia
-======================================
+Winston: 2D Plotting for Julia
+==============================
 
-    load("winston.jl")
-    import Winston.*
+    require("Winston")
+    using Winston
 
     x = [-pi:0.2:pi]
     y = sin(x)
@@ -13,8 +13,15 @@ Winston : 2d vector plotting for Julia
 
     file(p, "winston.eps")
 
-Install
--------
+Installation
+------------
+
+    julia> load("pkg.jl")
+
+    julia> Pkg.init()
+    ...
+
+    julia> Pkg.add("Winston")
 
 Winston is distributed with Julia, and uses Cairo as its
 graphical backend:

@@ -1,14 +1,47 @@
 require("Color")
+require("Tk")
 require("Winston")
 
 module Plot
 
 using Base
 using Winston
+import Cairo
 import Color
+import Tk
 
 export imagesc, plot, semilogx, semilogy, loglog
 export file
+
+import Base.show
+export show
+
+function TkRenderer(name, w, h)
+    win = Tk.Window(name, w, h)
+    c = Tk.Canvas(win)
+    Tk.pack(c)
+    cr = Tk.cairo_context(c)
+    Cairo.set_source_rgb(cr, 1, 1, 1)
+    Cairo.paint(cr)
+    r = Cairo.CairoRenderer(Tk.cairo_surface(c))
+    r.upperright = (w,h)
+    r.on_close = () -> Tk.reveal(c)
+    r
+end
+
+function tk(self::PlotContainer, args...)
+    opts = Winston.args2dict(args...)
+    width = has(opts,"width") ? opts["width"] : Winston.config_value("window","width")
+    height = has(opts,"height") ? opts["height"] : Winston.config_value("window","height")
+    reuse_window = isinteractive() && Winston.config_value("window","reuse")
+    device = TkRenderer( "Julia", width, height )
+    Winston.page_compose( self, device ) # false
+end
+
+function show(io::IO, p::PlotContainer)
+    tk(p)
+    print("<plot>")
+end
 
 function plot(args...)
     p = FramedPlot()
@@ -148,5 +181,6 @@ function imagesc{T<:Real}(xrange::Interval, yrange::Interval, data::Array{T,2}, 
 end
 
 imagesc(xrange, yrange, data) = imagesc(xrange, yrange, data, (min(data),max(data)))
+imagesc(data) = ((h, w) = size(data); imagesc((0,w), (0,h), data))
 
 end # module

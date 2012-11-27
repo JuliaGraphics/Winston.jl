@@ -140,7 +140,12 @@ function _plot(p::FramedPlot, args...)
             y = shift(args)
             style = [ "linestyle" => "solid" ] # TODO:cycle colors
             if length(args) > 0 && typeof(args[1]) <: String
-                style = _parse_style(shift(args))
+                a = shift(args)
+                if a == "xlabel" || a == "ylabel"
+                    setattr(p, a, shift(args))
+                else
+                    style = _parse_style(a)
+                end
             end
             if has(style, "linestyle")
                 add(p, Curve(x, y, style))

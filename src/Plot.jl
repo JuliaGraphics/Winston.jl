@@ -35,7 +35,7 @@ function tk(self::PlotContainer, args...)
     height = has(opts,"height") ? opts["height"] : Winston.config_value("window","height")
     reuse_window = isinteractive() && Winston.config_value("window","reuse")
     device = TkRenderer( "Julia", width, height )
-    Winston.page_compose( self, device ) # false
+    Winston.page_compose( self, device, false )
 end
 
 function show(io::IO, p::PlotContainer)

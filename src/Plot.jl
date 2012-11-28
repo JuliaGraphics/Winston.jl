@@ -141,7 +141,7 @@ function _plot(p::FramedPlot, args...)
             style = [ "linestyle" => "solid" ] # TODO:cycle colors
             if length(args) > 0 && typeof(args[1]) <: String
                 a = shift(args)
-                if a == "xlabel" || a == "ylabel"
+                if a == "xlabel" || a == "ylabel" || a == "title"
                     setattr(p, a, shift(args))
                 else
                     style = _parse_style(a)

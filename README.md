@@ -16,18 +16,29 @@ Winston: 2D Plotting for Julia
 Installation
 ------------
 
+### Step 1: install dependencies
+
+Winston requires cairo, pango, & tk to be installed.
+
+OS X (MacPorts):
+
+    $ sudo port install cairo +x11
+    $ sudo port install pango +x11
+    $ sudo port install tk +x11
+
+Ubuntu:
+
+    $ aptitude install libcairo2 libpango1.0-0 tk-dev
+
+### Step 2: build Tk wrapper
+
+    $ cd julia
+    $ make -C deps install-tk-wrapper
+
+### Step 3: install package
+
     julia> load("pkg.jl")
-
-    julia> Pkg.init()
-    ...
-
     julia> Pkg.add("Winston")
-
-Winston is distributed with Julia, and uses Cairo as its
-graphical backend:
-
-* OS X (macports): `port install cairo pango`
-* Ubuntu: `aptitude install libcairo2 libpango1.0-0`
 
 Documentation
 -------------

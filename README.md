@@ -26,6 +26,11 @@ OS X (MacPorts):
     $ sudo port install pango +x11
     $ sudo port install tk +x11
 
+OS X (Homebrew):
+
+    $ brew tap homebrew/dupes
+    $ brew install cairo pango tk
+
 Ubuntu:
 
     $ aptitude install libcairo2 libpango1.0-0 tk-dev

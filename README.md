@@ -25,6 +25,7 @@ OS X (MacPorts):
     $ sudo port install cairo +x11
     $ sudo port install pango +x11
     $ sudo port install tk +x11
+    $ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/local/lib
 
 OS X (Homebrew):
 

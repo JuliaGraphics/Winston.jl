@@ -13,8 +13,7 @@ import Tk
 export imagesc, plot, semilogx, semilogy, loglog
 export file
 
-import Base.show
-export show
+import Base.repl_show
 
 function TkRenderer(name, w, h)
     win = Tk.Window(name, w, h)
@@ -38,7 +37,7 @@ function tk(self::PlotContainer, args...)
     Winston.page_compose( self, device, false )
 end
 
-function show(io::IO, p::PlotContainer)
+function repl_show(io::IO, p::PlotContainer)
     tk(p)
     print("<plot>")
 end

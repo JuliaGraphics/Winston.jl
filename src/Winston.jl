@@ -1150,15 +1150,25 @@ function _format_ticklabel( x, range )
     if x == 0
         return "0"
     end
-    a, b = _magform( x )
+    neg, digits, b = Base.Grisu.grisu(x, Base.Grisu.SHORTEST, int32(0))
+    b -= 1
     if abs(b) > 4
-        if a == 1.
-            return "10^{$b}"
-        elseif a == -1.
-            return "-10^{$b}"
-        else
-            return I"$a\times 10^{$b}"
+        s = memio(1, false)
+        if neg write(s, '-') end
+        if digits != [0x31]
+            write(s, char(digits[1]))
+            if length(digits) > 1
+                write(s, '.')
+                for i = 2:length(digits)
+                    write(s, char(digits[i]))
+                end
+            end
+            write(s, L"\times ")
         end
+        write(s, "10^{")
+        write(s, dec(b))
+        write(s, '}')
+        return takebuf_string(s)
     end
     if range < 1e-6
         a, b = _magform( range )

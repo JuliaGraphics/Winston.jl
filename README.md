@@ -29,10 +29,9 @@ OS X (MacPorts):
 
 OS X (Homebrew):
 
-**Homebrew tk is broken -- we recommend using macports.**
-
     $ brew tap homebrew/dupes
     $ brew install cairo pango tk
+    $ export LD_LIBRARY_PATH=/usr/local/lib:/opt/X11/lib:$LD_LIBRARY_PATH
 
 Note: installing tk with the `--enable-aqua` option appears to break Winston.
 Also, installation can be tricky if both Apple's X11.app and XQuartz are

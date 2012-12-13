@@ -2492,6 +2492,16 @@ function write_pdf( self::PlotContainer, filename::String, width, height )
     page_compose( self, device )
 end
 
+function write_multipage_pdf( plots::Vector, filename::String, width, height )
+    device = PDFRenderer( filename, width, height )
+    device.on_close = () -> nothing  ## otherwise, appends blank page
+    for plt in plots
+        page_compose( plt, device, false )
+        show_page( device.ctx )
+    end
+    close(device)  # possible error on access without this
+end
+
 function write_png( self::PlotContainer, filename::String, width::Int, height::Int )
     device = PNGRenderer( filename, width, height )
     page_compose( self, device )
@@ -2514,6 +2524,19 @@ function file( self::PlotContainer, filename::String, args... )
         write_png(self, filename, width, height)
     else
         error("I can't export .$extn, sorry.")
+    end
+end
+
+function file( plots::Vector, filename::String, args... )
+    # plots::Vector{PlotContainer}
+    extn = filename[end-2:end]
+    opts = args2dict(args...)
+    if extn == "pdf"
+        width = has(opts,"width") ? opts["width"] : config_value("pdf","width")
+        height = has(opts,"height") ? opts["height"] : config_value("pdf","height")
+        write_multipage_pdf(plots, filename, width, height)
+    else
+        error("I can't export multiple pages to .$extn, sorry.")
     end
 end
 

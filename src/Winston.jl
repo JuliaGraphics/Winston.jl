@@ -1151,6 +1151,14 @@ function _format_ticklabel( x, range )
         return "0"
     end
     neg, digits, b = Base.Grisu.grisu(x, Base.Grisu.SHORTEST, int32(0))
+    if length(digits) > 5
+        neg, digits, b = Base.Grisu.grisu(x, Base.Grisu.PRECISION, int32(6))
+        n = length(digits)
+        while digits[n] == '0'
+            n -= 1
+        end
+        digits = digits[1:n]
+    end
     b -= 1
     if abs(b) > 4
         s = memio(1, false)

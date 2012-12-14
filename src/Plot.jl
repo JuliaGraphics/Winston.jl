@@ -173,7 +173,7 @@ function data2rgb{T<:Real}(data::Array{T,2}, limits::Interval, colormap)
     for i = 1:numel(data)
         idx = iceil(ncolors*(data[i] - limits[1])/(limits[2] - limits[1]))
         if idx < 1 idx = 1 end
-        if idx > ncolors idx = ncol end
+        if idx > ncolors idx = ncolors end
         img[i] = colormap[idx]
     end
     img

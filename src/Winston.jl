@@ -2386,7 +2386,7 @@ end
 # PlotContainer ---------------------------------------------------------------
 
 function show(io::IO, self::PlotContainer)
-    print(io,typeof(self),"()")
+    print(io, typeof(self))
 end
 
 function interior( self::PlotContainer, device::Renderer, exterior_bbox::BoundingBox )
@@ -2450,7 +2450,7 @@ end
 
 function compose( self::PlotContainer, device::Renderer, region::BoundingBox )
     if isempty(self)
-        throw( "empty container" )
+        error("empty container")
     end
     ext_bbox = copy(region)
     if hasattr(self, "title")

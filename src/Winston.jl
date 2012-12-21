@@ -8,7 +8,7 @@ using Cairo
 using Inifile
 
 import Base.ref, Base.assign, Base.+, Base.-, Base.add, Base.isempty,
-       Base.copy
+       Base.copy, Base.(*), Base.(/)
 
 export PlotContainer
 export Curve, FillAbove, FillBelow, FillBetween, Histogram, Image, Legend,
@@ -134,12 +134,12 @@ function args2dict(args...)
     opts
 end
 
-function _draw_text(device, p, str, args...)
+function _draw_text(device, x::Real, y::Real, str::String, args...)
     save_state(device)
     for (key,val) in args2dict(args...)
         set( device, key, val )
     end
-    text( device, p, str )
+    text(device, x, y, str)
     restore_state(device)
 end
 
@@ -152,241 +152,7 @@ function _first_not_none( args... )
     return nothing
 end
 
-# BoundingBox -----------------------------------------------------------------
-
-type Point{T}
-    x::T
-    y::T
-end
-
-(+){T}(a::Point{T}, b::Point{T}) = Point{T}(a.x + b.x, a.y + b.y)
-(-){T}(a::Point{T}, b::Point{T}) = Point{T}(a.x - b.x, a.y - b.y)
-
-#
-# python1.5 legacy code -- scheduled for demolition
-#
-
-function pt_add( u, v )
-    return (u[1] + v[1], u[2] + v[2])
-end
-
-function pt_sub( u, v )
-    return (u[1] - v[1], u[2] - v[2])
-end
-
-function pt_mul( a, u )
-    return (a * u[1], a * u[2])
-end
-
-function pt_rot( u, angle )
-    c = cos(angle)
-    s = sin(angle)
-    return (c*u[1] - s*u[2], s*u[1] + c*u[2])
-end
-
-function pt_len( u )
-    return hypot( u[1], u[2] )
-end
-
-function pt_angle( u )
-    return atan2( u[2], u[1] )
-end
-
-function pt_unit( u )
-    r = pt_len(u)
-    return (u[1]/r, u[2]/r)
-end
-
-function python_min(x, y)
-    # in python, min(number,None) = None
-    if isequal(x,nothing) || isequal(y,nothing)
-        return nothing
-    end
-    min(x,y)
-end
-
-function pt_min( a, b )
-    if isequal(a,nothing)
-        return b
-    elseif isequal(b,nothing)
-        return a
-    else
-        return python_min(a[1],b[1]), python_min(a[2],b[2])
-    end
-end
-
-function python_max(x, y)
-    # in python, max(number,None) = number
-    if isequal(x,nothing)
-        return y
-    elseif isequal(y,nothing)
-        return x
-    end
-    max(x,y)
-end
-
-function pt_max( a, b )
-    if isequal(a,nothing)
-        return b
-    elseif isequal(b,nothing)
-        return a
-    end
-    return python_max(a[1],b[1]), python_max(a[2],b[2])
-end
-
-type BoundingBox
-    p0
-    p1
-
-    function BoundingBox(args...)
-        if length(args) > 0
-            p0 = reduce( pt_min, args )
-            p1 = reduce( pt_max, args )
-            new(p0, p1)
-        else
-            new(nothing, nothing)
-        end
-    end
-end
-
-copy(bb::BoundingBox) = BoundingBox(bb.p0, bb.p1)
-
-function is_null( self::BoundingBox )
-    return is(self.p0,nothing) || is(self.p1,nothing)
-end
-
-function width( self::BoundingBox )
-    if is_null(self)
-        return nothing
-    else
-        return abs( self.p0[1] - self.p1[1] )
-    end
-end
-
-function height( self::BoundingBox )
-    if is_null(self)
-        return nothing
-    else
-        return abs( self.p0[2] - self.p1[2] )
-    end
-end
-
-function diagonal( self::BoundingBox )
-    if is_null(self)
-        return nothing
-    else
-        return hypot( width(self), height(self) )
-    end
-end
-
-function aspect_ratio( self::BoundingBox )
-    if is_null(self)
-        return nothing
-    else
-        return height(self)/width(self)
-    end
-end
-
-function xrange( self::BoundingBox )
-    if is_null(self)
-        return nothing
-    else
-        return self.p0[1], self.p1[1]
-    end
-end
-
-function yrange( self::BoundingBox )
-    if is_null(self)
-        return nothing
-    else
-        return self.p0[2], self.p1[2]
-    end
-end
-
-function lowerleft( self::BoundingBox )
-    if is_null(self)
-        return nothing
-    else
-        return self.p0
-    end
-end
-
-function upperleft( self::BoundingBox )
-    if is_null(self)
-        return nothing
-    else
-        return self.p0[1], self.p1[2]
-    end
-end
-
-function upperright( self::BoundingBox )
-    if is_null(self)
-        return nothing
-    else
-        return self.p1
-    end
-end
-
-function lowerright( self::BoundingBox )
-    if is_null(self)
-        return nothing
-    else
-        return self.p1[1], self.p0[2]
-    end
-end
-
-function center( self::BoundingBox )
-    x = xrange(self)
-    y = yrange(self)
-    return (x[1]+x[2])/2., (y[1]+y[2])/2.
-end
-
-function union( self::BoundingBox, other )
-    self.p0 = pt_min( self.p0, other.p0 )
-    self.p1 = pt_max( self.p1, other.p1 )
-end
-
-function deform( self::BoundingBox, dt, db, dl, dr )
-    self.p0 = pt_sub( self.p0, (dl,db) )
-    self.p1 = pt_add( self.p1, (dr,dt) )
-end
-
-function shift( self::BoundingBox, dp )
-    self.p0 = pt_add( self.p0, dp )
-    self.p1 = pt_add( self.p1, dp )
-end
-
-function expand( self::BoundingBox, factor )
-    dp = pt_mul( factor/2., (width(self), height(self)) )
-    self.p0 = pt_sub( self.p0, dp )
-    self.p1 = pt_add( self.p1, dp )
-end
-
-function rotate( self::BoundingBox, angle, p )
-    a = pt_add(pt_rot(pt_sub( lowerleft(self), p), angle), p)
-    b = pt_add(pt_rot(pt_sub(lowerright(self), p), angle), p)
-    c = pt_add(pt_rot(pt_sub( upperleft(self), p), angle), p)
-    d = pt_add(pt_rot(pt_sub(upperright(self), p), angle), p)
-    self.p0 = pt_min( a, pt_min( b, pt_min( c, d ) ) )
-    self.p1 = pt_max( a, pt_max( b, pt_max( c, d ) ) )
-end
-
-function make_aspect_ratio( self::BoundingBox, ratio )
-    if ratio < aspect_ratio(self)
-        dh = height(self) - ratio * width(self)
-        self.p0 = self.p0[1], self.p0[2] + dh/2
-        self.p1 = self.p1[1], self.p1[2] - dh/2
-    else
-        dw = width(self) - height(self) / ratio
-        self.p0 = self.p0[1] + dw/2, self.p0[2]
-        self.p1 = self.p1[1] - dw/2, self.p1[2]
-    end
-end
-
-function contains( self::BoundingBox, q )
-    self.p0[1] <= q[1] && q[1] <= self.p1[1] &&
-    self.p0[2] <= q[2] && q[2] <= self.p1[2]
-end
+load("Winston/src/boundingbox.jl")
 
 # relative size ---------------------------------------------------------------
 
@@ -417,16 +183,21 @@ function AffineTransformation(x0, x1, y0, y1, dest::BoundingBox)
     sx = width(dest) / (x1 - x0)
     sy = height(dest) / (y1 - y0)
     p = lowerleft(dest)
-    tx = p[1] - sx * x0
-    ty = p[2] - sy * y0
+    tx = p.x - sx * x0
+    ty = p.y - sy * y0
     t = [tx, ty]
     m = diagm([sx, sy])
     AffineTransformation(t, m)
 end
 
 function project(self::AffineTransformation, x::Real, y::Real)
-    self.m*[x,y] + self.t
+    #self.m*[x,y] + self.t
+    u = self.t[1] + self.m[1,1] * x + self.m[1,2] * y
+    v = self.t[2] + self.m[2,1] * x + self.m[2,2] * y
+    u, v
 end
+
+project(proj::Projection, p::Point) = Point(project(proj, p.x, p.y)...)
 
 function project(self::AffineTransformation, x::Vector, y::Vector)
     p = self.t[1] + self.m[1,1] * x + self.m[1,2] * y
@@ -591,8 +362,8 @@ end
 
 type LabelsObject <: RenderObject
     style::RenderStyle
-    points
-    labels
+    points::AbstractVector
+    labels::AbstractVector
 
     function LabelsObject( points, labels, args... )
         self = new(RenderStyle(), points, labels)
@@ -615,8 +386,8 @@ _kw_rename(::LabelsObject) = [
     "valign"    => "textvalign",
 ]
 
-__halign_offset = [ "right"=>(-1,0), "center"=>(-.5,.5), "left"=>(0,1) ]
-__valign_offset = [ "top"=>(-1,0), "center"=>(-.5,.5), "bottom"=>(0,1) ]
+__halign_offset = [ "right"=>Vec2(-1,0), "center"=>Vec2(-.5,.5), "left"=>Vec2(0,1) ]
+__valign_offset = [ "top"=>Vec2(-1,0), "center"=>Vec2(-.5,.5), "bottom"=>Vec2(0,1) ]
 
 function boundingbox( self::LabelsObject, context )
     bb = BoundingBox()
@@ -634,14 +405,14 @@ function boundingbox( self::LabelsObject, context )
         pos = self.points[i]
         width = textwidth(context.draw, self.labels[i] )
 
-        p = pos[1] + width * ho[1], pos[2] + height * vo[1]
-        q = pos[1] + width * ho[2], pos[2] + height * vo[2]
+        p = pos[1] + width * ho.x, pos[2] + height * vo.x
+        q = pos[1] + width * ho.y, pos[2] + height * vo.y
 
         bb_label = BoundingBox( p, q )
         if angle != 0
-            rotate( bb_label, angle, pos )
+            bb_label = rotate(bb_label, angle, pos)
         end
-        union( bb, bb_label )
+        bb += bb_label
     end
 
     pop_style(context)
@@ -650,7 +421,8 @@ end
 
 function draw( self::LabelsObject, context )
     for i in 1:length(self.labels)
-        text( context.draw, self.points[i], self.labels[i] )
+        p = self.points[i]
+        text(context.draw, p[1], p[2], self.labels[i])
     end
 end
 
@@ -682,12 +454,11 @@ end
 
 type SymbolObject <: RenderObject
     style::RenderStyle
-    pos
+    pos::Point
 
     function SymbolObject( pos, args... )
-        self = new(RenderStyle())
+        self = new(RenderStyle(), pos)
         kw_init( self, args... )
-        self.pos = pos
         self
     end
 end
@@ -702,14 +473,14 @@ function boundingbox( self::SymbolObject, context )
     symbolsize = get( context.draw, "symbolsize" )
     pop_style(context)
 
-    dp = symbolsize/2, symbolsize/2
-    p = pt_sub( self.pos, dp )
-    q = pt_add( self.pos, dp )
-    return BoundingBox( p, q )
+    x = self.pos.x
+    y = self.pos.y
+    d = 0.5*symbolsize
+    return BoundingBox(x-d, x+d, y-d, y+d)
 end
 
 function draw( self::SymbolObject, context )
-    symbol( context.draw, self.pos )
+    symbol(context.draw, self.pos.x, self.pos.y)
 end
 
 type SymbolsObject <: RenderObject
@@ -745,15 +516,12 @@ end
 
 type TextObject <: RenderObject
     style::RenderStyle
-    pos
-    str
+    pos::Point
+    str::String
 
-    function TextObject( pos, str, args... )
-        @assert !is(str,nothing)
-        self = new(RenderStyle())
+    function TextObject(pos, str, args... )
+        self = new(RenderStyle(), pos, str)
         kw_init(self, args...)
-        self.pos = pos
-        self.str = str
         self
     end
 end
@@ -781,31 +549,31 @@ function boundingbox( self::TextObject, context::PlotContext )
     height = textheight( context.draw, self.str )
     pop_style(context)
 
-    hvec = pt_mul( width, __halign_offset[halign] )
-    vvec = pt_mul( height, __valign_offset[valign] )
+    hvec = width * __halign_offset[halign]
+    vvec = height * __valign_offset[valign]
 
-    p = self.pos[1] + hvec[1], self.pos[2] + vvec[1]
-    q = self.pos[1] + hvec[2], self.pos[2] + vvec[2]
+    p = self.pos.x + hvec.x, self.pos.y + vvec.x
+    q = self.pos.x + hvec.y, self.pos.y + vvec.y
 
     bb = BoundingBox( p, q )
-    rotate( bb, angle, self.pos )
+    bb = rotate(bb, angle, self.pos)
     return bb
 end
 
 function draw( self::TextObject, context::PlotContext )
-    #context.draw.rect( bb.lowerleft(), bb.upperright() )
-    text( context.draw, self.pos, self.str )
+    text(context.draw, self.pos.x, self.pos.y, self.str)
 end
 
-function LineTextObject( p, q, str, offset, args... )
+function LineTextObject(p::Point, q::Point, str, offset, args...)
     #kw_init(self, args...)
     #self.str = str
 
-    midpoint = pt_mul( 0.5, pt_add(p, q) )
-    direction = pt_unit( pt_sub(q, p) )
-    angle = pt_angle( direction )
-    direction = pt_rot( direction, pi/2 )
-    pos = pt_add( midpoint, pt_mul(offset, direction) )
+    midpoint = 0.5*(p + q)
+    direction = q - p
+    direction /= norm(direction)
+    angle = atan2(direction.y, direction.x)
+    direction = rotate(direction, pi/2)
+    pos = midpoint + offset*direction
 
     kw = [ "textangle" => angle * 180./pi,
            "texthalign" => "center" ]
@@ -819,8 +587,8 @@ end
 
 type PathObject <: RenderObject
     style::RenderStyle
-    x
-    y
+    x::AbstractVector
+    y::AbstractVector
 
     function PathObject( x, y, args... )
         self = new(RenderStyle())
@@ -850,7 +618,7 @@ end
 
 type PolygonObject <: RenderObject
     style::RenderStyle
-    points
+    points::AbstractArray
 
     function PolygonObject( points, args...)
         self = new(RenderStyle())
@@ -890,10 +658,10 @@ function boundingbox(self::ImageObject, context)
 end
 
 function draw(self::ImageObject, context)
-    x, y = lowerleft(self.bbox)
+    ll = lowerleft(self.bbox)
     w = width(self.bbox)
     h = height(self.bbox)
-    image(context.draw, self.img, x, y, w, h)
+    image(context.draw, self.img, ll.x, ll.y, w, h)
 end
 
 # defaults
@@ -950,14 +718,13 @@ function make( self::Legend, context::PlotContext )
 
     halign = kw_get( self, "texthalign" )
     if halign == "left"
-        text_pos = pt_add( (key_width/2+key_hsep,0), key_pos )
+        text_pos = Point(key_pos[1]+key_width/2+key_hsep, key_pos[2])
     else
-        text_pos = pt_add( (-key_width/2-key_hsep,0), key_pos )
+        text_pos = Point(key_pos[1]-key_width/2-key_hsep, key_pos[2])
     end
-    bbox = BoundingBox( (-key_width/2,-key_height/2),
-            (key_width/2,key_height/2) )
-    shift( bbox, key_pos )
-    dp = 0., -(key_vsep + key_height)
+    bbox = BoundingBox(key_pos[1]-key_width/2, key_pos[1]+key_width/2,
+                       key_pos[2]-key_height/2, key_pos[2]+key_height/2)
+    dp = Vec2(0., -(key_vsep + key_height))
 
     objs = {}
     for comp in self.components
@@ -965,8 +732,8 @@ function make( self::Legend, context::PlotContext )
         t = TextObject( text_pos, s, getattr(self,"style") )
         push(objs, t)
         push(objs, make_key(comp,bbox))
-        text_pos = pt_add( text_pos, dp )
-        shift( bbox, dp )
+        text_pos = text_pos + dp
+        bbox = shift(bbox, dp.x, dp.y)
     end
     objs
 end
@@ -1118,8 +885,8 @@ type PlotInset <: _Inset
 end
 
 function boundingbox( self::PlotInset, context::PlotContext )
-    p = project( context.plot_geom, lowerleft(self.plot_limits)... )
-    q = project( context.plot_geom, upperright(self.plot_limits)... )
+    p = project(context.plot_geom, lowerleft(self.plot_limits))
+    q = project(context.plot_geom, upperright(self.plot_limits))
     return BoundingBox( p, q )
 end
 
@@ -1292,7 +1059,7 @@ end
 function boundingbox( self::_Group, context )
     bb = BoundingBox()
     for obj in self.objs
-        union( bb, boundingbox(obj, context) )
+        bb += boundingbox(obj, context)
     end
     return bb
 end
@@ -1676,7 +1443,7 @@ end
 function limits( self::PlotComposite )
     bb = BoundingBox()
     for obj in self.components
-        union( bb, limits(obj) )
+        bb += limits(obj)
     end
     return bb
 end
@@ -1688,7 +1455,7 @@ function boundingbox( self::PlotComposite, context )
     make(self, context)
     bb = BoundingBox()
     for obj in self.components
-        union( bb, boundingbox(obj,context) )
+        bb += boundingbox(obj,context)
     end
     return bb
 end
@@ -1913,14 +1680,12 @@ function exterior( self::FramedPlot, device::Renderer, region::BoundingBox )
     bb = copy(region)
 
     context1 = _context1( self, device, region )
-    bb1 = boundingbox(self.x1, context1)
-    union(bb, bb1)
-    bb2 = boundingbox(self.y1, context1)
-    union(bb, bb2)
+    bb += boundingbox(self.x1, context1) +
+          boundingbox(self.y1, context1)
 
     context2 = _context2( self, device, region )
-    union(bb, boundingbox(self.x2, context2) )
-    union(bb, boundingbox(self.y2, context2) )
+    bb += boundingbox(self.x2, context2) +
+          boundingbox(self.y2, context2)
 
     return bb
 end
@@ -1959,7 +1724,7 @@ type _Grid
         cp = _size_relative( cellpadding, bbox )
         cs = _size_relative( cellspacing, bbox )
 
-        self.origin = pt_add( lowerleft(bbox), (cp,cp) )
+        self.origin = lowerleft(bbox) + Point(cp,cp)
         self.step_x = (w + cs)/ncols
         self.step_y = (h + cs)/nrows
         self.cell_dimen = (self.step_x - cs - 2*cp,
@@ -1970,9 +1735,8 @@ end
 
 function cellbb(self::_Grid, i::Int, j::Int)
     ii = self.nrows - i 
-    p = pt_add( self.origin, ((j-1)*self.step_x,ii*self.step_y) )
-    q = pt_add( p, self.cell_dimen )
-    return BoundingBox( p, q )
+    p = self.origin + Point((j-1)*self.step_x, ii*self.step_y)
+    return BoundingBox(p.x, p.x+self.cell_dimen[1], p.y, p.y + self.cell_dimen[2])
 end
 
 type Table <: PlotContainer
@@ -2015,7 +1779,7 @@ function exterior( self::Table, device::Renderer, intbbox::BoundingBox )
             for j = 1:self.cols
                 obj = self.content[i,j]
                 subregion = cellbb(g, i, j)
-                union( ext, exterior(obj, device, subregion) )
+                ext += exterior(obj, device, subregion)
             end
         end
     end
@@ -2185,7 +1949,7 @@ function _limits_uniform( self )
     lmts = BoundingBox()
     for i in 1:self.nrows, j=1:self.ncols
         obj = self.content[i,j]
-        union( lmts, limits(obj) )
+        lmts += limits(obj)
     end
     return lmts
 end
@@ -2224,8 +1988,7 @@ function _frames_bbox( self::FramedArray, device, interior )
         if j == 1
             axislabels[3] = 1
         end
-        union( bb, _frame_bbox(obj, device, subregion, 
-                limits, axislabels) )
+        bb += _frame_bbox(obj, device, subregion, limits, axislabels)
     end
 
     return bb
@@ -2240,10 +2003,10 @@ function exterior( self::FramedArray, device::Renderer, int_bbox::BoundingBox )
     margin = labeloffset + labelsize
 
     if !is(getattr(self,"xlabel"),nothing)
-        deform( bb, 0, margin, 0, 0 )
+        bb = deform(bb, 0, margin, 0, 0)
     end
     if !is(getattr(self,"ylabel"),nothing)
-        deform( bb, 0, 0, margin, 0 )
+        bb = deform(bb, 0, 0, margin, 0)
     end
 
     return bb
@@ -2289,17 +2052,17 @@ function _labels_draw( self::FramedArray, device::Renderer, int_bbox::BoundingBo
     set( device, "fontsize", labelsize )
     set( device, "texthalign", "center" )
     if !is(getattr(self,"xlabel"),nothing)
-        x = center(int_bbox)[1]
-        y = yrange(bb)[1] - labeloffset
+        x = center(int_bbox).x
+        y = ymin(bb) - labeloffset
         set( device, "textvalign", "top" )
-        text( device, (x,y), getattr(self,"xlabel") )
+        text(device, x, y, getattr(self,"xlabel"))
     end
     if !is(getattr(self,"ylabel"),nothing)
-        x = xrange(bb)[1] - labeloffset
-        y = center(int_bbox)[2]
+        x = xmin(bb) - labeloffset
+        y = center(int_bbox).y
         set( device, "textangle", 90. )
         set( device, "textvalign", "bottom" )
-        text( device, (x,y), getattr(self,"ylabel") )
+        text(device, x, y, getattr(self,"ylabel"))
     end
     restore_state(device)
 end
@@ -2398,28 +2161,28 @@ function interior( self::PlotContainer, device::Renderer, exterior_bbox::Boundin
     for i in 1:10
         bb = exterior( self, device, interior_bbox )
 
-        dll = pt_sub( lowerleft(exterior_bbox), lowerleft(bb) )
-        dur = pt_sub( upperright(exterior_bbox), upperright(bb) )
+        dll = lowerleft(exterior_bbox) - lowerleft(bb)
+        dur = upperright(exterior_bbox) - upperright(bb)
 
-        sll = pt_len(dll) / region_diagonal
-        sur = pt_len(dur) / region_diagonal
+        sll = norm(dll) / region_diagonal
+        sur = norm(dur) / region_diagonal
 
         if sll < TOL && sur < TOL
             # XXX:fixme
             ar = getattr(self, "aspect_ratio")
             if !is(ar,nothing)
-                make_aspect_ratio(interior_bbox, ar)
+                interior_bbox = make_aspect_ratio(interior_bbox, ar)
             end
             return interior_bbox
         end
 
         scale = diagonal(interior_bbox) / diagonal(bb)
-        dll = pt_mul( scale, dll )
-        dur = pt_mul( scale, dur )
+        dll = scale * dll
+        dur = scale * dur
 
         interior_bbox = BoundingBox(
-            pt_add(lowerleft(interior_bbox), dll),
-            pt_add(upperright(interior_bbox), dur) )
+            lowerleft(interior_bbox) + dll,
+            upperright(interior_bbox) + dur)
     end
 
     println("warning: sub-optimal solution for plot")
@@ -2434,8 +2197,8 @@ function compose_interior( self::PlotContainer, device::Renderer, int_bbox::Boun
     if hasattr(self, "title")
         offset = _size_relative( getattr(self, "title_offset"), int_bbox)
         ext_bbox = exterior( self, device, int_bbox )
-        x = center(int_bbox)[1]
-        y = yrange(ext_bbox)[2] + offset
+        x = center(int_bbox).x
+        y = ymax(ext_bbox) + offset
         style = Dict()
         for (k,v) in getattr(self, "title_style")
             style[k] = v
@@ -2444,7 +2207,7 @@ function compose_interior( self::PlotContainer, device::Renderer, int_bbox::Boun
             getattr(self,"title_style")["fontsize"], int_bbox, device.bbox )
         style["texthalign"] = "center"
         style["textvalign"] = "bottom"
-        _draw_text( device, (x,y), getattr(self,"title"), style )
+        _draw_text(device, x, y, getattr(self,"title"), style)
     end
 end
 
@@ -2457,7 +2220,7 @@ function compose( self::PlotContainer, device::Renderer, region::BoundingBox )
         offset = _size_relative( getattr(self,"title_offset"), ext_bbox )
         fontsize = _fontsize_relative( 
             getattr(self,"title_style")["fontsize"], ext_bbox, device.bbox )
-        deform( ext_bbox, -offset-fontsize, 0, 0, 0 )
+        ext_bbox = deform(ext_bbox, -offset-fontsize, 0, 0, 0)
     end
     int_bbox = interior( self, device, ext_bbox )
     compose_interior( self, device, int_bbox )
@@ -2472,7 +2235,7 @@ function page_compose( self::PlotContainer, device::Renderer, close_after )
     for (key,val) in config_options("defaults")
         set( device, key, val )
     end
-    expand( bb, -getattr(self, "page_margin") )
+    bb *= 1 - getattr(self, "page_margin")
     compose( self, device, bb )
     if close_after
         close(device)
@@ -2583,10 +2346,9 @@ _kw_rename(::LineComponent) = [
 ]
 
 function make_key( self::LineComponent, bbox::BoundingBox )
-    xr = xrange(bbox)
-    y = center(bbox)[2]
-    p = xr[1], y
-    q = xr[2], y
+    y = center(bbox).y
+    p = xmin(bbox), y
+    q = xmax(bbox), y
     return LineObject( p, q, getattr(self,"style") )
 end
 
@@ -2661,7 +2423,7 @@ function make( self::Slope, context::PlotContext )
     #m = filter( context.data_bbox.contains, l )
     m = {}
     for el in l
-        if contains(context.data_bbox, el)
+        if contains(context.data_bbox, el[1], el[2])
             push(m, el)
         end
     end
@@ -2744,7 +2506,7 @@ type LineX <: LineComponent
 end
 
 function limits( self::LineX )
-    return BoundingBox( (self.x,nothing), (self.x,nothing) )
+    return BoundingBox(self.x, self.x, NaN, NaN)
 end
 
 function make( self::LineX, context::PlotContext )
@@ -2768,7 +2530,7 @@ type LineY <: LineComponent
 end
 
 function limits( self::LineY )
-    return BoundingBox( (nothing,self.y), (nothing,self.y) )
+    return BoundingBox(NaN, NaN, self.y, self.y)
 end
 
 function make( self::LineY, context::PlotContext )
@@ -2838,8 +2600,8 @@ _kw_rename(::LabelComponent) = [
 
 type DataLabel <: LabelComponent
     attr::PlotAttributes
-    pos
-    str
+    pos::Point
+    str::String
 
     function DataLabel( x, y, str, args... )
         self = new(Dict())
@@ -2852,28 +2614,28 @@ type DataLabel <: LabelComponent
 end
 
 function make( self::DataLabel, context )
-    pos = project( context.geom, self.pos )
-    t = TextObject(pos, self.str, getattr(self, "style") )
+    x,y = project(context.geom, self.pos)
+    t = TextObject(Point(x,y), self.str, getattr(self, "style") )
     [ t ]
 end
 
 type PlotLabel <: LabelComponent
     attr::PlotAttributes
-    pos
-    str
+    pos::Point
+    str::String
 
     function PlotLabel( x, y, str, args... )
         self = new(Dict())
         conf_setattr(self)
         kw_init(self, args...)
-        self.pos = x, y
+        self.pos = Point(x, y)
         self.str = str
         self
     end
 end
 
 function make( self::PlotLabel, context )
-    pos = project(context.plot_geom, self.pos... )
+    pos = project(context.plot_geom, self.pos)
     t = TextObject(pos, self.str, getattr(self, "style"))
     [ t ]
 end
@@ -3163,7 +2925,7 @@ function boundingbox( self::PlotComponent, context::PlotContext )
     bb = BoundingBox()
     for obj in objs
         x = boundingbox(obj, context)
-        union( bb, x )
+        bb += x
     end
     return bb
 end

@@ -1186,7 +1186,7 @@ function _format_ticklabel( x, range )
     ends_with(s, ".0") ? s[1:end-2] : s
 end
 
-range(a::Int, b::Int) = (a <= b) ? (a:b) : (a:-1:b)
+range(a::Integer, b::Integer) = (a <= b) ? (a:b) : (a:-1:b)
 
 _ticklist_linear( lo, hi, sep ) = _ticklist_linear( lo, hi, sep, 0. )
 function _ticklist_linear( lo, hi, sep, origin )

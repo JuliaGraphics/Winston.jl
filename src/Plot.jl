@@ -12,7 +12,7 @@ import Color
 export imagesc, plot, semilogx, semilogy, loglog
 export file
 
-load("Winston/src/tk.jl")
+include(find_in_path("Winston/src/tk.jl"))
 
 function plot(args...)
     p = FramedPlot()

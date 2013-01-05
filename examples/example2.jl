@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 
-load("Winston")
+require("Winston")
 using Winston
 
 p = FramedPlot()

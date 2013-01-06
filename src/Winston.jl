@@ -41,9 +41,9 @@ type WinstonConfig
         # read global config
         local fn
         for dir in LOAD_PATH
-            fn = file_path(dir, "Winston.ini")
+            fn = joinpath(dir, "Winston.ini")
             if isfile(fn) break end
-            fn = file_path(dir, "Winston/src/Winston.ini")
+            fn = joinpath(dir, "Winston/src/Winston.ini")
             if isfile(fn) break end
         end
         read(inifile, fn)

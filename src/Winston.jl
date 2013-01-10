@@ -730,8 +730,8 @@ function make(self::Legend, context::PlotContext)
     for comp in self.components
         s = getattr(comp, "label", "")
         t = TextObject(text_pos, s, getattr(self,"style"))
-        push(objs, t)
-        push(objs, make_key(comp,bbox))
+        push!(objs, t)
+        push!(objs, make_key(comp,bbox))
         text_pos = text_pos + dp
         bbox = shift(bbox, dp.x, dp.y)
     end
@@ -780,9 +780,9 @@ function make(self::ErrorBarsX, context)
         l0 = LineObject(p, q)
         l1 = LineObject((p[1],p[2]-l), (p[1],p[2]+l))
         l2 = LineObject((q[1],q[2]-l), (q[1],q[2]+l))
-        push(objs, l0)
-        push(objs, l1)
-        push(objs, l2)
+        push!(objs, l0)
+        push!(objs, l1)
+        push!(objs, l2)
     end
     objs
 end
@@ -819,9 +819,9 @@ function make(self::ErrorBarsY, context)
         l0 = LineObject(p, q)
         l1 = LineObject((p[1]-l,p[2]), (p[1]+l,p[2]))
         l2 = LineObject((q[1]-l,q[2]), (q[1]+l,q[2]))
-        push(objs, l0)
-        push(objs, l1)
-        push(objs, l2)
+        push!(objs, l0)
+        push!(objs, l1)
+        push!(objs, l2)
     end
     objs
 end
@@ -1037,7 +1037,7 @@ function _subticks_log(lim, ticks, num)
             for j in 1:9
                 z = j * 10.0^i
                 if lim[1] <= z && z <= lim[2]
-                    push(minor_ticks, z)
+                    push!(minor_ticks, z)
                 end
             end
         end
@@ -1159,7 +1159,7 @@ function _make_grid(self::HalfAxisX, context, ticks)
     end
     objs = {}
     for tick in ticks
-        push(objs, LineX(tick,getattr(self, "grid_style")))
+        push!(objs, LineX(tick,getattr(self, "grid_style")))
     end
     objs
 end
@@ -1257,7 +1257,7 @@ function _make_grid(self::HalfAxisY, context, ticks)
     end
     objs = {}
     for tick in ticks
-        push(objs, LineY(tick,getattr(self,"grid_style")))
+        push!(objs, LineY(tick,getattr(self,"grid_style")))
     end
     objs
 end
@@ -1378,30 +1378,30 @@ function make(self::HalfAxis, context)
 
     if getattr(self, "draw_axis")
         if (!is(draw_subticks,nothing) && draw_subticks) || implicit_draw_subticks
-            push(objs, _make_ticks(self, context, subticks,
+            push!(objs, _make_ticks(self, context, subticks,
                 getattr(self, "subticks_size"),
                 getattr(self, "subticks_style")))
         end
 
         if draw_ticks
-            push(objs, _make_ticks(self, context, ticks,
+            push!(objs, _make_ticks(self, context, ticks,
                 getattr(self, "ticks_size"),
                 getattr(self, "ticks_style")))
         end
 
         if getattr(self, "draw_spine")
-            push(objs, _make_spine(self, context))
+            push!(objs, _make_spine(self, context))
         end
     end
 
     if (!is(draw_ticklabels,nothing) && draw_ticklabels) || implicit_draw_ticklabels
-        push(objs, _make_ticklabels(self, context, ticks, ticklabels))
+        push!(objs, _make_ticklabels(self, context, ticks, ticklabels))
     end
 
     # has to be made last
     if hasattr(self, "label")
         if !is(getattr(self, "label"),nothing) # XXX:remove
-            push(objs, BoxLabel(
+            push!(objs, BoxLabel(
                 _Group(objs),
                 getattr(self, "label"),
                 _side(self),
@@ -1428,7 +1428,7 @@ end
 
 function add(self::PlotComposite, args...)
     for arg in args
-        push(self.components, arg)
+        push!(self.components, arg)
     end
 end
 
@@ -2377,7 +2377,7 @@ function make(self::Curve, context)
     objs = {}
     for seg in segs
         x, y = project(context.geom, seg[1], seg[2])
-        push(objs, PathObject(x, y))
+        push!(objs, PathObject(x, y))
     end
     objs
 end
@@ -2424,7 +2424,7 @@ function make(self::Slope, context::PlotContext)
     m = {}
     for el in l
         if contains(context.data_bbox, el[1], el[2])
-            push(m, el)
+            push!(m, el)
         end
     end
     #sort!(m)
@@ -2432,7 +2432,7 @@ function make(self::Slope, context::PlotContext)
     if length(m) > 1
         a = project(context.geom, m[1]...)
         b = project(context.geom, m[end]...)
-        push(objs, LineObject(a, b))
+        push!(objs, LineObject(a, b))
     end
     objs
 end
@@ -2471,22 +2471,22 @@ function make(self::Histogram, context::PlotContext)
     x = Float64[]
     y = Float64[]
     if drop_to_zero
-        push(x, self.x0)
-        push(y, 0)
+        push!(x, self.x0)
+        push!(y, 0)
     end
     for i in 0:nval-1
         xi = self.x0 + i * self.binsize
         yi = self.values[i+1]
         #x.extend([xi, xi + self.binsize])
         #y.extend([yi, yi])
-        push(x, xi)
-        push(x, xi + self.binsize)
-        push(y, yi)
-        push(y, yi)
+        push!(x, xi)
+        push!(x, xi + self.binsize)
+        push!(y, yi)
+        push!(y, yi)
     end
     if drop_to_zero
-        push(x, self.x0 + nval*self.binsize)
-        push(y, 0)
+        push!(x, self.x0 + nval*self.binsize)
+        push!(y, 0)
     end
     u, v = project(context.geom, x, y)
     [ PathObject(u, v) ]
@@ -2743,8 +2743,8 @@ end
 function make(self::FillBelow, context)
     coords = map(context.geom, self.x, self.y)
     min_y = yrange(context.data_bbox)[0]
-    push(coords, project(context.geom, self.x[-1], min_y))
-    push(coords, project(context.geom, self.x[0], min_y))
+    push!(coords, project(context.geom, self.x[-1], min_y))
+    push!(coords, project(context.geom, self.x[0], min_y))
     [ PolygonObject(coords) ]
 end
 
@@ -2966,7 +2966,7 @@ end
 function iniattr(self::HasAttr, args...)
     types = {typeof(self)}
     while super(types[end]) != Any
-        push(types, super(types[end]))
+        push!(types, super(types[end]))
     end
     for t in reverse(types)
         name = string(t)

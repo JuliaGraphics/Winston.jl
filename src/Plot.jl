@@ -1,11 +1,9 @@
 require("Color")
 require("Tk")
-require("Winston")
 
-module Plot
+#module Plot
 
-using Base
-using Winston
+#using Winston
 import Cairo
 import Color
 
@@ -168,4 +166,4 @@ end
 imagesc(xrange, yrange, data) = imagesc(xrange, yrange, data, (min(data),max(data)))
 imagesc(data) = ((h, w) = size(data); imagesc((0,w), (0,h), data))
 
-end # module
+#end # module

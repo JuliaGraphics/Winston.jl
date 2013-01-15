@@ -3,7 +3,6 @@ require("IniFile")
 
 module Winston
 
-using Base
 using Cairo
 using Inifile
 
@@ -3021,5 +3020,7 @@ kw_get(self::HasStyle, key) = kw_get(self, key, nothing)
 function kw_get(self::HasStyle, key, notfound)
     return get(getattr(self,"style"), key, notfound)
 end
+
+include("Plot.jl")
 
 end # module

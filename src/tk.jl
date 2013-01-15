@@ -1,10 +1,15 @@
 import Tk
 import Base.repl_show
 
-function TkRenderer(name, w, h)
+TkRenderer(name, w, h) = TkRenderer(name, w, h, nothing)
+function TkRenderer(name, w, h, closecb)
     win = Tk.Window(name, w, h)
     c = Tk.Canvas(win)
     Tk.pack(c)
+    if !is(closecb,nothing)
+        ccb = Tk.tcl_callback(closecb)
+        Tk.tcl_eval("bind $(win.path) <Destroy> $ccb")
+    end
     r = Cairo.CairoRenderer(Tk.cairo_surface(c))
     r.upperright = (w,h)
     r.on_open = () -> (cr = Tk.cairo_context(c); Cairo.set_source_rgb(cr, 1, 1, 1); Cairo.paint(cr))
@@ -22,7 +27,8 @@ function tk(self::PlotContainer, args...)
     reuse_window = isinteractive() #&& Winston.config_value("window","reuse")
     device = _saved_tk_renderer
     if device === nothing || !reuse_window
-        device = TkRenderer("Julia", width, height)
+        device = TkRenderer("Julia", width, height,
+                            (x...)->(_saved_tk_renderer=nothing))
         _saved_tk_renderer = device
     end
     Winston.page_compose(self, device, !reuse_window)

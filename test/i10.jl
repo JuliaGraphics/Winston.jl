@@ -1,5 +1,4 @@
-require("Winston/src/Plot")
-using Plot
+using Winston
 p = plot(abs(sin(0:.1:10)))
-Plot.setattr(p, "ylog", true)
-Plot.setattr(p, "yrange", (5e-6,0.2))
+setattr(p, "ylog", true)
+setattr(p, "yrange", (5e-6,0.2))

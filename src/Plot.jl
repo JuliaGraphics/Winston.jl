@@ -133,8 +133,8 @@ typealias Interval (Real,Real)
 
 function data2rgb{T<:Real}(data::Array{T,2}, limits::Interval, colormap)
     img = similar(data, Uint32)
-    ncolors = numel(colormap)
-    for i = 1:numel(data)
+    ncolors = length(colormap)
+    for i = 1:length(data)
         idx = iceil(ncolors*(data[i] - limits[1])/(limits[2] - limits[1]))
         if idx < 1 idx = 1 end
         if idx > ncolors idx = ncolors end

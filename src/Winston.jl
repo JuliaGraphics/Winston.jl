@@ -774,7 +774,7 @@ end
 function make(self::ErrorBarsX, context)
     l = _size_relative(getattr(self, "barsize"), context.dev_bbox)
     objs = {}
-    for i = 1:numel(self.y)
+    for i = 1:length(self.y)
         p = context.geom(self.lo[i], self.y[i])
         q = context.geom(self.hi[i], self.y[i])
         l0 = LineObject(p, q)
@@ -813,7 +813,7 @@ end
 function make(self::ErrorBarsY, context)
     objs = {}
     l = _size_relative(getattr(self, "barsize"), context.dev_bbox)
-    for i = 1:numel(self.x)
+    for i = 1:length(self.x)
         p = project(context.geom, self.x[i], self.lo[i])
         q = project(context.geom, self.x[i], self.hi[i])
         l0 = LineObject(p, q)

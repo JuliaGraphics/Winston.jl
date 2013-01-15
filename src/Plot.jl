@@ -102,16 +102,16 @@ function _plot(p::FramedPlot, args...)
         return p
     end
     while length(args) > 0
-        x = shift(args)
+        x = shift!(args)
         if typeof(x) <: String
             # TODO
         else
-            y = shift(args)
+            y = shift!(args)
             style = [ "linestyle" => "solid" ] # TODO:cycle colors
             if length(args) > 0 && typeof(args[1]) <: String
-                a = shift(args)
+                a = shift!(args)
                 if a == "xlabel" || a == "ylabel" || a == "title"
-                    setattr(p, a, shift(args))
+                    setattr(p, a, shift!(args))
                 else
                     style = _parse_style(a)
                 end

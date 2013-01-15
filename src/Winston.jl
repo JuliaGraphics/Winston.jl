@@ -198,7 +198,7 @@ end
 
 project(proj::Projection, p::Point) = Point(project(proj, p.x, p.y)...)
 
-function project(self::AffineTransformation, x::Vector, y::Vector)
+function project(self::AffineTransformation, x::AbstractVector, y::AbstractVector)
     p = self.t[1] + self.m[1,1] * x + self.m[1,2] * y
     q = self.t[2] + self.m[2,1] * x + self.m[2,2] * y
     return p, q

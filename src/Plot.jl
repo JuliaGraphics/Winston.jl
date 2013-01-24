@@ -129,7 +129,7 @@ end
 
 typealias Interval (Real,Real)
 
-function data2rgb{T<:Real}(data::Array{T,2}, limits::Interval, colormap)
+function data2rgb{T<:Real}(data::AbstractArray{T,2}, limits::Interval, colormap)
     img = similar(data, Uint32)
     ncolors = length(colormap)
     for i = 1:length(data)
@@ -154,7 +154,7 @@ JetColormap() = Uint32[ Color.rgb2hex(jetrgb(i/256)...) for i = 1:256 ]
 
 _default_colormap = JetColormap()
 
-function imagesc{T<:Real}(xrange::Interval, yrange::Interval, data::Array{T,2}, clims::Interval)
+function imagesc{T<:Real}(xrange::Interval, yrange::Interval, data::AbstractArray{T,2}, clims::Interval)
     p = FramedPlot()
     setattr(p, "xrange", xrange)
     setattr(p, "yrange", reverse(yrange))

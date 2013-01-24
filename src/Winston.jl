@@ -151,7 +151,7 @@ function _first_not_none(args...)
     return nothing
 end
 
-include(find_in_path("Winston/src/boundingbox.jl"))
+include("boundingbox.jl")
 
 # relative size ---------------------------------------------------------------
 

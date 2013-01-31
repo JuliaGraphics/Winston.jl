@@ -5,7 +5,6 @@ Example 1
 ![Example 1](http://www.cita.utoronto.ca/~nolta/julia/winston/examples/example1.png)
 
 ``` julia
-require("Winston")
 using Winston
 
 x = linspace( 0, 3pi, 100 )
@@ -31,7 +30,6 @@ Example 2
 ![Example 2](http://www.cita.utoronto.ca/~nolta/julia/winston/examples/example2.png)
 
 ``` julia
-require("Winston")
 using Winston
 
 p = FramedPlot()
@@ -66,7 +64,6 @@ Example 3
 ![Example 3](http://www.cita.utoronto.ca/~nolta/julia/winston/examples/example3.png)
 
 ``` julia
-require("Winston")
 using Winston
 
 x = linspace( 0, 3pi, 30)
@@ -97,7 +94,6 @@ Example 4
 ![Example 4](http://www.cita.utoronto.ca/~nolta/julia/winston/examples/example4.png)
 
 ``` julia
-require("Winston")
 using Winston
 
 x = linspace(0., 2pi, 40)
@@ -128,7 +124,6 @@ Example 5
 ![Example 5](http://www.cita.utoronto.ca/~nolta/julia/winston/examples/example5.png)
 
 ``` julia
-require("Winston")
 using Winston
 
 x = linspace( 0., 2pi, 30 )
@@ -157,7 +152,6 @@ Example 6
 ![Example 6](http://www.cita.utoronto.ca/~nolta/julia/winston/examples/example6.png)
 
 ``` julia
-require("Winston")
 using Winston
 
 x = linspace( pi, 3pi, 60 )

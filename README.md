@@ -2,7 +2,6 @@
 Winston: 2D Plotting for Julia
 ==============================
 
-    require("Winston")
     using Winston
 
     x = [-pi:0.2:pi]
@@ -48,7 +47,6 @@ Ubuntu:
 
 ### Step 3: install package
 
-    julia> load("pkg.jl")
     julia> Pkg.add("Winston")
 
 Documentation

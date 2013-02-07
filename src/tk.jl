@@ -35,10 +35,9 @@ function tk(self::PlotContainer, args...)
     if reuse_window
         device.on_close()
     end
+    self
 end
 
 function repl_show(io::IO, p::PlotContainer)
-    tk(p)
     print("<plot>")
 end
-

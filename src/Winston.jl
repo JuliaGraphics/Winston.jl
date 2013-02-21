@@ -159,7 +159,7 @@ function _size_relative(relsize, bbox::BoundingBox)
     w = width(bbox)
     h = height(bbox)
     yardstick = sqrt(8.) * w * h / (w + h)
-    return (relsize/100.) * yardstick
+    return (float(relsize)/100.) * yardstick
 end
 
 function _fontsize_relative(relsize, bbox::BoundingBox, device_bbox::BoundingBox)

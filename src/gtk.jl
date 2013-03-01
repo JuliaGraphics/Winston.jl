@@ -41,7 +41,9 @@ function gtk(self::PlotContainer, args...)
 end
 
 function repl_show(io::IO, p::PlotContainer)
-    gtk(p)
     print("<plot>")
 end
 
+function display(args...)
+    gtk(args...)
+end

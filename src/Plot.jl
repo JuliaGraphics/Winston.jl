@@ -113,7 +113,7 @@ function _plot(p::FramedPlot, args...)
         y = args[1]
         x = 1:length(y)
         add(p, Curve(x,y))
-        return tk(p)
+        return display(p)
     end
     while length(args) > 0
         x = shift!(args)
@@ -138,7 +138,7 @@ function _plot(p::FramedPlot, args...)
             end
         end
     end
-    tk(p)
+    display(p)
 end
 
 typealias Interval (Real,Real)
@@ -174,7 +174,7 @@ function imagesc{T<:Real}(xrange::Interval, yrange::Interval, data::AbstractArra
     setattr(p, "yrange", reverse(yrange))
     img = data2rgb(data, clims, _default_colormap)
     add(p, Image(xrange, reverse(yrange), img))
-    tk(p)
+    display(p)
 end
 
 imagesc(xrange, yrange, data) = imagesc(xrange, yrange, data, (min(data),max(data)))

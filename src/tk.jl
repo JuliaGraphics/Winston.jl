@@ -41,3 +41,7 @@ end
 function repl_show(io::IO, p::PlotContainer)
     print("<plot>")
 end
+
+function display(args...)
+    tk(args...)
+end

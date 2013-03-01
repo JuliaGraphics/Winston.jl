@@ -1,5 +1,13 @@
 require("Color")
-require("Tk")
+
+output_surface = Winston.config_value("default","output_surface")
+output_surface = Base.symbol(lowercase(get(ENV, "WINSTON_OUTPUT", output_surface)))
+if output_surface == :gtk
+    require("Gtk")
+else
+    output_surface = :tk
+    require("Tk")
+end
 
 #module Plot
 
@@ -10,7 +18,13 @@ import Color
 export imagesc, plot, semilogx, semilogy, loglog
 export file
 
-include("tk.jl")
+if output_surface == :gtk
+    include("gtk.jl")
+elseif output_surface == :tk
+    include("tk.jl")
+else
+    assert(false)
+end
 
 function plot(args...)
     p = FramedPlot()

@@ -937,7 +937,7 @@ function _format_ticklabel(x, range)
                     write(s, char(digits[i]))
                 end
             end
-            write(s, L"\times ")
+            write(s, "\\times ")
         end
         write(s, "10^{")
         write(s, dec(b))

@@ -11,7 +11,6 @@ function TkRenderer(name, w, h, closecb)
         Tk.tcl_eval("bind $(win.path) <Destroy> $ccb")
     end
     r = Cairo.CairoRenderer(Tk.cairo_surface(c))
-    r.upperright = (w,h)
     r.on_open = () -> (cr = Tk.cairo_context(c); Cairo.set_source_rgb(cr, 1, 1, 1); Cairo.paint(cr))
     r.on_close = () -> (Tk.reveal(c); Tk.tcl_doevent())
     r

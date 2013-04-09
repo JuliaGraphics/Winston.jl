@@ -9,6 +9,8 @@ using Inifile
 import Base.ref, Base.assign, Base.+, Base.-, Base.add, Base.isempty,
        Base.copy, Base.(*), Base.(/)
 
+import Cairo.width, Cairo.height
+
 export PlotContainer
 export Curve, FillAbove, FillBelow, FillBetween, Histogram, Image, Legend,
     LineX, LineY, PlotInset, PlotLabel, Points, Slope,
@@ -173,16 +175,16 @@ end
 
 function project(self::AffineTransformation, x::Real, y::Real)
     #self.m*[x,y] + self.t
-    u = self.t[1] + self.m[1,1] * x + self.m[1,2] * y
-    v = self.t[2] + self.m[2,1] * x + self.m[2,2] * y
+    u = self.t[1] + self.m[1,1] * x #+ self.m[1,2] * y
+    v = self.t[2] + self.m[2,2] * y #+ self.m[2,1] * x
     u, v
 end
 
 project(proj::Projection, p::Point) = Point(project(proj, p.x, p.y)...)
 
 function project(self::AffineTransformation, x::Vector, y::Vector)
-    p = self.t[1] + self.m[1,1] * x + self.m[1,2] * y
-    q = self.t[2] + self.m[2,1] * x + self.m[2,2] * y
+    p = self.t[1] + self.m[1,1] * x #+ self.m[1,2] * y
+    q = self.t[2] + self.m[2,2] * y #+ self.m[2,1] * x
     return p, q
 end
 
@@ -421,8 +423,8 @@ end
 
 function draw(self::CombObject, context::PlotContext)
     for p in self.points
-        move(context.draw, p.x, p.y)
-        linetorel(context.draw, self.dp.x, self.dp.y)
+        move_to(context.draw, p.x, p.y)
+        rel_line_to(context.draw, self.dp.x, self.dp.y)
     end
     stroke(context.draw)
 end
@@ -2190,16 +2192,20 @@ page_compose(self::PlotContainer, device::Renderer) =
     page_compose(self, device, true)
 function page_compose(self::PlotContainer, device::Renderer, close_after)
     open(device)
-    bb = BoundingBox(device.lowerleft[1], device.upperright[1], device.lowerleft[2], device.upperright[2])
+    bb = BoundingBox(0, width(device), 0, height(device))
     device.bbox = copy(bb)
     for (key,val) in config_options("defaults")
         set(device, key, val)
     end
     bb *= 1 - getattr(self, "page_margin")
+    save(device.ctx)
+    Cairo.scale(device.ctx,1.0,-1.0)
+    Cairo.translate(device.ctx,0.0,-height(device))
     compose(self, device, bb)
     if close_after
         close(device)
     end
+    restore(device.ctx)
 end
 
 function x11(self::PlotContainer, args...)

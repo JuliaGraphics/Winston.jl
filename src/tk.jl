@@ -1,8 +1,7 @@
 import Tk
 import Base.repl_show
 
-TkRenderer(name, w, h) = TkRenderer(name, w, h, nothing)
-function TkRenderer(name, w, h, closecb)
+function drawingwindow(name, w, h, closecb=nothing)
     win = Tk.Window(name, w, h)
     c = Tk.Canvas(win)
     Tk.pack(c)
@@ -10,30 +9,29 @@ function TkRenderer(name, w, h, closecb)
         ccb = Tk.tcl_callback(closecb)
         Tk.tcl_eval("bind $(win.path) <Destroy> $ccb")
     end
-    r = Cairo.CairoRenderer(Tk.cairo_surface(c))
-    r.on_open = () -> (cr = Tk.cairo_context(c); Cairo.set_source_rgb(cr, 1, 1, 1); Cairo.paint(cr))
-    r.on_close = () -> (Tk.reveal(c); Tk.tcl_doevent())
-    r
+    c
 end
 
-_saved_tk_renderer = nothing
+_saved_canvas = nothing
 
 function tk(self::PlotContainer, args...)
-    global _saved_tk_renderer
+    global _saved_canvas
     opts = Winston.args2dict(args...)
     width = has(opts,"width") ? opts["width"] : Winston.config_value("window","width")
     height = has(opts,"height") ? opts["height"] : Winston.config_value("window","height")
     reuse_window = isinteractive() #&& Winston.config_value("window","reuse")
-    device = _saved_tk_renderer
+    device = _saved_canvas
     if device === nothing || !reuse_window
-        device = TkRenderer("Julia", width, height,
-                            (x...)->(_saved_tk_renderer=nothing))
-        _saved_tk_renderer = device
+        device = drawingwindow("Julia", width, height,
+                               (x...)->(_saved_canvas=nothing))
+        _saved_canvas = device
     end
-    Winston.page_compose(self, device, !reuse_window)
-    if reuse_window
-        device.on_close()
-    end
+    cr = Tk.cairo_context(device)
+    Cairo.set_source_rgb(cr, 1, 1, 1)
+    Cairo.paint(cr)
+    Winston.page_compose(self, Tk.cairo_surface(device))
+    Tk.reveal(device)
+    Tk.tcl_doevent()
     self
 end
 

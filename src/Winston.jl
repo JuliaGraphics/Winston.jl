@@ -3,13 +3,11 @@ require("IniFile")
 
 module Winston
 
-using Cairo
+importall Cairo
 using Inifile
 
 import Base.ref, Base.assign, Base.+, Base.-, Base.add, Base.isempty,
-       Base.copy, Base.(*), Base.(/)
-
-import Cairo.width, Cairo.height
+       Base.copy, Base.(*), Base.(/), Base.get, Base.contains
 
 export PlotContainer
 export Curve, FillAbove, FillBelow, FillBetween, Histogram, Image, Legend,
@@ -24,6 +22,8 @@ abstract PlotComponent <: HasStyle
 abstract PlotContainer <: HasAttr
 
 typealias PlotAttributes Associative # TODO: does Associative need {K,V}?
+
+include("renderer.jl")
 
 # config ----------------------------------------------------------------------
 
@@ -257,7 +257,7 @@ type PlotContext
 end
 
 function _kw_func_relative_fontsize(context::PlotContext, key, value)
-    device_size = _fontsize_relative(value, context.dev_bbox, context.draw.bbox)
+    device_size = _fontsize_relative(value, context.dev_bbox, boundingbox(context.draw))
     set(context.draw, key, device_size)
 end
 
@@ -1962,7 +1962,7 @@ function exterior(self::FramedArray, device::Renderer, int_bbox::BoundingBox)
 
     labeloffset = _size_relative(getattr(self,"label_offset"), int_bbox)
     labelsize = _fontsize_relative(
-        getattr(self,"label_size"), int_bbox, device.bbox)
+        getattr(self,"label_size"), int_bbox, boundingbox(device))
     margin = labeloffset + labelsize
 
     if !is(getattr(self,"xlabel"),nothing)
@@ -2009,7 +2009,7 @@ function _labels_draw(self::FramedArray, device::Renderer, int_bbox::BoundingBox
 
     labeloffset = _size_relative(getattr(self,"label_offset"), int_bbox)
     labelsize = _fontsize_relative(
-        getattr(self,"label_size"), int_bbox, device.bbox)
+        getattr(self,"label_size"), int_bbox, boundingbox(device))
 
     save_state(device)
     set(device, "fontsize", labelsize)
@@ -2166,7 +2166,7 @@ function compose_interior(self::PlotContainer, device::Renderer, int_bbox::Bound
             style[k] = v
         end
         style["fontsize"] = _fontsize_relative(
-            getattr(self,"title_style")["fontsize"], int_bbox, device.bbox)
+            getattr(self,"title_style")["fontsize"], int_bbox, boundingbox(device))
         style["texthalign"] = "center"
         style["textvalign"] = "bottom"
         _draw_text(device, x, y, getattr(self,"title"), style)
@@ -2181,19 +2181,20 @@ function compose(self::PlotContainer, device::Renderer, region::BoundingBox)
     if hasattr(self, "title")
         offset = _size_relative(getattr(self,"title_offset"), ext_bbox)
         fontsize = _fontsize_relative(
-            getattr(self,"title_style")["fontsize"], ext_bbox, device.bbox)
+            getattr(self,"title_style")["fontsize"], ext_bbox, boundingbox(device))
         ext_bbox = deform(ext_bbox, -offset-fontsize, 0, 0, 0)
     end
     int_bbox = interior(self, device, ext_bbox)
     compose_interior(self, device, int_bbox)
 end
 
-page_compose(self::PlotContainer, device::Renderer) =
-    page_compose(self, device, true)
-function page_compose(self::PlotContainer, device::Renderer, close_after)
-    open(device)
-    bb = BoundingBox(0, width(device), 0, height(device))
-    device.bbox = copy(bb)
+boundingbox(device::Renderer) = BoundingBox(0, width(device), 0, height(device))
+
+page_compose(self::PlotContainer, device::GraphicsDevice) =
+    page_compose(self, CairoRenderer(device))
+
+function page_compose(self::PlotContainer, device::Renderer)
+    bb = boundingbox(device)
     for (key,val) in config_options("defaults")
         set(device, key, val)
     end
@@ -2202,46 +2203,61 @@ function page_compose(self::PlotContainer, device::Renderer, close_after)
     Cairo.scale(device.ctx,1.0,-1.0)
     Cairo.translate(device.ctx,0.0,-height(device))
     compose(self, device, bb)
-    if close_after
-        close(device)
-    end
     restore(device.ctx)
 end
 
-function x11(self::PlotContainer, args...)
-    println("sorry, not implemented yet")
-    return
-    opts = args2dict(args...)
-    width = has(opts,"width") ? opts["width"] : config_value("window","width")
-    height = has(opts,"height") ? opts["height"] : config_value("window","height")
-    reuse_window = isinteractive() && config_value("window","reuse")
-    device = ScreenRenderer(reuse_window, width, height)
-    page_compose(self, device)
+# function x11(self::PlotContainer, args...)
+#     println("sorry, not implemented yet")
+#     return
+#     opts = args2dict(args...)
+#     width = has(opts,"width") ? opts["width"] : config_value("window","width")
+#     height = has(opts,"height") ? opts["height"] : config_value("window","height")
+#     reuse_window = isinteractive() && config_value("window","reuse")
+#     device = ScreenRenderer(reuse_window, width, height)
+#     page_compose(self, device)
+# end
+
+function write_eps(self::PlotContainer, filename::String, width::String, height::String)
+    write_eps(self, filename, _str_size_to_pts(width), _str_size_to_pts(height))
 end
 
-function write_eps(self::PlotContainer, filename::String, width, height)
-    device = EPSRenderer(filename, width, height)
-    page_compose(self, device)
+function write_eps(self::PlotContainer, filename::String, width::Real, height::Real)
+    surface = CairoEPSSurface(filename, width, height)
+    r = CairoRenderer(surface)
+    page_compose(self, r)
+    show_page(r.ctx)
+    finish(surface)
 end
 
-function write_pdf(self::PlotContainer, filename::String, width, height)
-    device = PDFRenderer(filename, width, height)
-    page_compose(self, device)
+function write_pdf(self::PlotContainer, filename::String, width::String, height::String)
+    write_pdf(self, filename, _str_size_to_pts(width), _str_size_to_pts(height))
+end
+
+function write_pdf(self::PlotContainer, filename::String, width::Real, height::Real)
+    surface = CairoPDFSurface(filename, width, height)
+    r = CairoRenderer(surface)
+    page_compose(self, r)
+    show_page(r.ctx)
+    finish(surface)
 end
 
 function write_multipage_pdf(plots::Vector, filename::String, width, height)
     device = PDFRenderer(filename, width, height)
-    device.on_close = () -> nothing  ## otherwise, appends blank page
     for plt in plots
         page_compose(plt, device, false)
         show_page(device.ctx)
     end
-    close(device)  # possible error on access without this
 end
 
 function write_png(self::PlotContainer, filename::String, width::Int, height::Int)
-    device = PNGRenderer(filename, width, height)
-    page_compose(self, device)
+    surface = CairoRGBSurface(width, height)
+    r = CairoRenderer(surface)
+    set_source_rgb(r.ctx, 1.,1.,1.)
+    paint(r.ctx)
+    set_source_rgb(r.ctx, 0.,0.,0.)
+    page_compose(self, r)
+    write_to_png(surface, filename)
+    finish(surface)
 end
 
 function file(self::PlotContainer, filename::String, args...)
@@ -2282,8 +2298,14 @@ function svg(self::PlotContainer, args...)
     width = has(opts,"width") ? opts["width"] : config_value("window","width")
     height = has(opts,"height") ? opts["height"] : config_value("window","height")
     stream = memio(0, false)
-    device = SVGRenderer(stream, width, height)
-    page_compose(self, device)
+
+    surface = CairoSVGSurface(stream, width, height)
+    r = CairoRenderer(surface)
+
+    page_compose(self, r)
+    show_page(r.ctx)
+    finish(surface)
+
     s = takebuf_string(stream)
     a,b = search(s, "<svg")
     s[a:end]

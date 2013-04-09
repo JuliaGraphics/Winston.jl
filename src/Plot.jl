@@ -168,6 +168,8 @@ JetColormap() = Uint32[ Color.rgb2hex(jetrgb(i/256)...) for i = 1:256 ]
 
 _default_colormap = JetColormap()
 
+GrayColormap() = Uint32[ Color.rgb2hex(i/255,i/255,i/255) for i = 0:255 ]
+
 function imagesc{T<:Real}(xrange::Interval, yrange::Interval, data::AbstractArray{T,2}, clims::Interval)
     p = FramedPlot()
     setattr(p, "xrange", xrange)

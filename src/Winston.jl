@@ -636,7 +636,11 @@ function draw(self::ImageObject, context)
     ll = lowerleft(self.bbox)
     w = width(self.bbox)
     h = height(self.bbox)
-    image(context.draw, self.img, ll.x, ll.y, w, h)
+    if context.geom.yflipped
+        image(context.draw, self.img, ll.x, ll.y+h, w, -h)
+    else
+        image(context.draw, self.img, ll.x, ll.y, w, h)
+    end
 end
 
 # defaults
@@ -1075,7 +1079,7 @@ function _intercept(self::HalfAxisX, context)
         return getattr(self, "intercept")
     end
     limits = context.data_bbox
-    if (getattr(self, "ticklabels_dir") < 0) $ context.geom.yflipped
+    if (getattr(self, "ticklabels_dir") < 0) #$ context.geom.yflipped
         return yrange(limits)[1]
     else
         return yrange(limits)[2]

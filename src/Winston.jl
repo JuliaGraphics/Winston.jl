@@ -21,37 +21,21 @@ abstract HasStyle <: HasAttr
 abstract PlotComponent <: HasStyle
 abstract PlotContainer <: HasAttr
 
-typealias List Array{Any,1}
 typealias PlotAttributes Associative # TODO: does Associative need {K,V}?
-
-macro desc(x)
-    :(println($(string(x))," = ",$(esc(x))))
-end
 
 # config ----------------------------------------------------------------------
 
-type WinstonConfig
-    inifile::IniFile
-
-    function WinstonConfig()
-
-        inifile = IniFile()
-
-        # read global config
-        local fn
-        for dir in LOAD_PATH
-            fn = joinpath(dir, "Winston.ini")
-            if isfile(fn) break end
-            fn = joinpath(dir, "Winston/src/Winston.ini")
-            if isfile(fn) break end
-        end
-        read(inifile, fn)
-
-        new(inifile)
+_winston_config = IniFile()
+begin
+    local fn
+    for dir in LOAD_PATH
+        fn = joinpath(dir, "Winston.ini")
+        if isfile(fn) break end
+        fn = joinpath(dir, "Winston/src/Winston.ini")
+        if isfile(fn) break end
     end
+    read(_winston_config, fn)
 end
-
-_winston_config = WinstonConfig()
 
 function _atox(s::String)
     x = strip(s)
@@ -63,7 +47,7 @@ function _atox(s::String)
         return false
     elseif length(x) > 2 && lowercase(x[1:2]) == "0x"
         try
-            h = parse_hex(x[3:end])
+            h = parseint(x[3:end], 16)
             return h
         end
     elseif x[1] == '{' && x[end] == '}'
@@ -89,20 +73,18 @@ function _atox(s::String)
 end
 
 function config_value(section, option)
-    global _winston_config
-    strval = get(_winston_config.inifile, section, option, nothing)
+    strval = get(_winston_config, section, option, nothing)
     _atox(strval)
 end
 
 function config_options(sec::String)
-    global _winston_config
     opts = Dict()
     if sec == "defaults"
-        for (k,v) in _winston_config.inifile.defaults
+        for (k,v) in _winston_config.defaults
             opts[k] = _atox(v)
         end
-    elseif has_section(_winston_config.inifile, sec)
-        for (k,v) in section(_winston_config.inifile, sec)
+    elseif has_section(_winston_config, sec)
+        for (k,v) in section(_winston_config, sec)
             opts[k] = _atox(v)
         end
     end
@@ -205,15 +187,14 @@ function project(self::AffineTransformation, x::Vector, y::Vector)
 end
 
 project(self::AffineTransformation, x::AbstractArray, y::AbstractArray) =
-    project(self, reshape(x,length(x)), reshape(y,length(y)))
+    project(self, collect(x), collect(y))
 
-function compose(self::AffineTransformation, other::AffineTransformation)
-    self.t = call(other.t[1], other.t[2])
-    self.m = self.m * other.m
-end
+#function compose(self::AffineTransformation, other::AffineTransformation)
+#    self.t = call(other.t[1], other.t[2])
+#    self.m = self.m * other.m
+#end
 
 type PlotGeometry <: Projection
-
     dest_bbox::BoundingBox
     xlog::Bool
     ylog::Bool
@@ -247,18 +228,14 @@ function project(self::PlotGeometry, x, y)
     return project(self.aff, u, v)
 end
 
-function geodesic(self::PlotGeometry, x, y)
-    return [(x, y)]
-end
-
 # PlotContext -------------------------------------------------------------
 
 type PlotContext
     draw
     dev_bbox::BoundingBox
     data_bbox::BoundingBox
-    xlog
-    ylog
+    xlog::Bool
+    ylog::Bool
     geom::Projection
     plot_geom::Projection
 
@@ -292,12 +269,12 @@ function _kw_func_relative_width(context::PlotContext, key, value)
     set(context.draw, key, device_width)
 end
 
+_kw_func = [
+    "fontsize" => _kw_func_relative_fontsize,
+    "linewidth" => _kw_func_relative_width,
+    "symbolsize" => _kw_func_relative_size,
+]
 function push_style(context::PlotContext, style)
-    _kw_func = [
-        "fontsize" => _kw_func_relative_fontsize,
-        "linewidth" => _kw_func_relative_width,
-        "symbolsize" => _kw_func_relative_size,
-    ]
     save_state(context.draw)
     if !is(style,nothing)
         for (key, value) in style
@@ -335,8 +312,8 @@ end
 
 type LineObject <: RenderObject
     style::RenderStyle
-    p
-    q
+    p::Point
+    q::Point
 
     function LineObject(p, q, args...)
         self = new(RenderStyle(), p, q)
@@ -351,18 +328,17 @@ _kw_rename(::LineObject) = [
 ]
 
 function boundingbox(self::LineObject, context)
-    bb = BoundingBox(self.p, self.q)
-    bb
+    BoundingBox(self.p, self.q)
 end
 
 function draw(self::LineObject, context)
-    line(context.draw, self.p, self.q)
+    line(context.draw, self.p.x, self.p.y, self.q.x, self.q.y)
 end
 
 type LabelsObject <: RenderObject
     style::RenderStyle
-    points::AbstractVector
-    labels::AbstractVector
+    points::Vector{Point}
+    labels::Vector
 
     function LabelsObject(points, labels, args...)
         self = new(RenderStyle(), points, labels)
@@ -404,8 +380,8 @@ function boundingbox(self::LabelsObject, context)
         pos = self.points[i]
         width = textwidth(context.draw, self.labels[i])
 
-        p = pos[1] + width * ho.x, pos[2] + height * vo.x
-        q = pos[1] + width * ho.y, pos[2] + height * vo.y
+        p = Point(pos.x + width * ho.x, pos.y + height * vo.x)
+        q = Point(pos.x + width * ho.y, pos.y + height * vo.y)
 
         bb_label = BoundingBox(p, q)
         if angle != 0
@@ -421,13 +397,13 @@ end
 function draw(self::LabelsObject, context)
     for i in 1:length(self.labels)
         p = self.points[i]
-        text(context.draw, p[1], p[2], self.labels[i])
+        text(context.draw, p.x, p.y, self.labels[i])
     end
 end
 
 type CombObject <: RenderObject
     style::RenderStyle
-    points
+    points::Vector{Point}
     dp
 
     function CombObject(points, dp, args...)
@@ -445,8 +421,8 @@ end
 
 function draw(self::CombObject, context::PlotContext)
     for p in self.points
-        move(context.draw, p)
-        linetorel(context.draw, self.dp)
+        move(context.draw, p.x, p.y)
+        linetorel(context.draw, self.dp.x, self.dp.y)
     end
     stroke(context.draw)
 end
@@ -506,7 +482,7 @@ function boundingbox(self::SymbolsObject, context::PlotContext)
     xmax = max(self.x)
     ymin = min(self.y)
     ymax = max(self.y)
-    return BoundingBox((xmin,ymin), (xmax,ymax))
+    return BoundingBox(xmin, xmax, ymin, ymax)
 end
 
 function draw(self::SymbolsObject, context::PlotContext)
@@ -551,10 +527,8 @@ function boundingbox(self::TextObject, context::PlotContext)
     hvec = width * __halign_offset[halign]
     vvec = height * __valign_offset[valign]
 
-    p = self.pos.x + hvec.x, self.pos.y + vvec.x
-    q = self.pos.x + hvec.y, self.pos.y + vvec.y
-
-    bb = BoundingBox(p, q)
+    bb = BoundingBox(self.pos.x + hvec.x, self.pos.x + hvec.y,
+                     self.pos.y + vvec.x, self.pos.y + vvec.y)
     bb = rotate(bb, angle, self.pos)
     return bb
 end
@@ -586,8 +560,8 @@ end
 
 type PathObject <: RenderObject
     style::RenderStyle
-    x::AbstractVector
-    y::AbstractVector
+    x::Vector{Float64}
+    y::Vector{Float64}
 
     function PathObject(x, y, args...)
         self = new(RenderStyle())
@@ -608,7 +582,7 @@ function boundingbox(self::PathObject, context)
     xmax = max(self.x)
     ymin = min(self.y)
     ymax = max(self.y)
-    return BoundingBox((xmin,ymin), (xmax,ymax))
+    return BoundingBox(xmin, xmax, ymin, ymax)
 end
 
 function draw(self::PathObject, context)
@@ -617,7 +591,7 @@ end
 
 type PolygonObject <: RenderObject
     style::RenderStyle
-    points::AbstractArray
+    points::Vector{Point}
 
     function PolygonObject(points, args...)
         self = new(RenderStyle())
@@ -765,20 +739,21 @@ type ErrorBarsX <: ErrorBar
 end
 
 function limits(self::ErrorBarsX)
-    p = min(min(self.lo), min(self.hi)), min(self.y)
-    q = max(max(self.lo), max(self.hi)), max(self.y)
-    return BoundingBox(p, q)
+    return BoundingBox(min(min(self.lo), min(self.hi)),
+                       max(max(self.lo), max(self.hi)),
+                       min(self.y),
+                       max(self.y))
 end
 
 function make(self::ErrorBarsX, context)
     l = _size_relative(getattr(self, "barsize"), context.dev_bbox)
     objs = {}
     for i = 1:length(self.y)
-        p = context.geom(self.lo[i], self.y[i])
-        q = context.geom(self.hi[i], self.y[i])
-        l0 = LineObject(p, q)
-        l1 = LineObject((p[1],p[2]-l), (p[1],p[2]+l))
-        l2 = LineObject((q[1],q[2]-l), (q[1],q[2]+l))
+        p = project(context.geom, self.lo[i], self.y[i])
+        q = project(context.geom, self.hi[i], self.y[i])
+        l0 = LineObject(Point(p[1],p[2]), Point(q[1],q[2]))
+        l1 = LineObject(Point(p[1],p[2]-l), Point(p[1],p[2]+l))
+        l2 = LineObject(Point(q[1],q[2]-l), Point(q[1],q[2]+l))
         push!(objs, l0)
         push!(objs, l1)
         push!(objs, l2)
@@ -804,9 +779,10 @@ type ErrorBarsY <: ErrorBar
 end
 
 function limits(self::ErrorBarsY)
-    p = min(self.x), min(min(self.lo), min(self.hi))
-    q = max(self.x), max(max(self.lo), max(self.hi))
-    return BoundingBox(p, q)
+    return BoundingBox(min(self.x),
+                       max(self.x),
+                       min(min(self.lo), min(self.hi)),
+                       max(max(self.lo), max(self.hi)))
 end
 
 function make(self::ErrorBarsY, context)
@@ -815,9 +791,9 @@ function make(self::ErrorBarsY, context)
     for i = 1:length(self.x)
         p = project(context.geom, self.x[i], self.lo[i])
         q = project(context.geom, self.x[i], self.hi[i])
-        l0 = LineObject(p, q)
-        l1 = LineObject((p[1]-l,p[2]), (p[1]+l,p[2]))
-        l2 = LineObject((q[1]-l,q[2]), (q[1]+l,q[2]))
+        l0 = LineObject(Point(p[1],p[2]), Point(q[1],q[2]))
+        l1 = LineObject(Point(p[1]-l,p[2]), Point(p[1]+l,p[2]))
+        l2 = LineObject(Point(q[1]-l,q[2]), Point(q[1]+l,q[2]))
         push!(objs, l0)
         push!(objs, l1)
         push!(objs, l2)
@@ -841,25 +817,16 @@ end
 
 abstract _Inset
 
-function __init__(self, p, q, plot)
-    self.plot_limits = BoundingBox(p, q)
-    self.plot = plot
-end
-
 function render(self::_Inset, context::PlotContext)
     region = boundingbox(self, context)
     compose_interior(self.plot, context.draw, region)
 end
 
 type DataInset <: _Inset
-    plot_limits
+    plot_limits::BoundingBox
     plot::PlotContainer
-    function DataInset(p, q, plot)
-        self = new()
-        self.plot_limits = BoundingBox(p, q)
-        self.plot = plot
-        self
-    end
+    DataInset(p::Point, q::Point, plot) = new(BoundingBox(p, q), plot)
+    DataInset(p::Tuple, q::Tuple, plot) = DataInset(Point(p...), Point(q...), plot)
 end
 
 function boundingbox(self::DataInset, context::PlotContext)
@@ -873,14 +840,10 @@ function limits(self::DataInset)
 end
 
 type PlotInset <: _Inset
-    plot_limits
+    plot_limits::BoundingBox
     plot::PlotContainer
-    function PlotInset(p, q, plot)
-        self = new()
-        self.plot_limits = BoundingBox(p, q)
-        self.plot = plot
-        self
-    end
+    PlotInset(p::Point, q::Point, plot) = new(BoundingBox(p, q), plot)
+    PlotInset(p::Tuple, q::Tuple, plot) = PlotInset(Point(p...), Point(q...), plot)
 end
 
 function boundingbox(self::PlotInset, context::PlotContext)
@@ -890,7 +853,7 @@ function boundingbox(self::PlotInset, context::PlotContext)
 end
 
 function limits(self::PlotInset)
-    return BoundingBox()
+    return copy(self.plot_limits)
 end
 
 # HalfAxis --------------------------------------------------------------------
@@ -949,7 +912,7 @@ function _format_ticklabel(x, range)
         return "%.*f" % (abs(b),x)
     end
     s = sprint(showcompact, x)
-    ends_with(s, ".0") ? s[1:end-2] : s
+    endswith(s, ".0") ? s[1:end-2] : s
 end
 
 range(a::Integer, b::Integer) = (a <= b) ? (a:b) : (a:-1:b)
@@ -1090,11 +1053,11 @@ _pos(self::HalfAxisX, context::PlotContext, a) = _pos(self, context, a, 0.)
 function _pos(self::HalfAxisX, context::PlotContext, a, db)
     intcpt = _intercept(self, context)
     p = project(context.geom, a, intcpt)
-    return p[1], p[2] + db
+    return Point(p[1], p[2] + db)
 end
 
 function _dpos(self::HalfAxisX, d)
-    return 0., d
+    return Point(0., d)
 end
 
 function _align(self::HalfAxisX)
@@ -1187,11 +1150,11 @@ end
 _pos(self::HalfAxisY, context, a) = _pos(self, context, a, 0.)
 function _pos(self::HalfAxisY, context, a, db)
     p = project(context.geom, _intercept(self, context), a)
-    return p[1] + db, p[2]
+    return Point(p[1] + db, p[2])
 end
 
 function _dpos(self::HalfAxisY, d)
-    return d, 0.
+    return Point(d, 0.)
 end
 
 function _align(self::HalfAxisY)
@@ -1318,8 +1281,8 @@ function _make_ticklabels(self::HalfAxis, context, pos, labels)
         offset = offset + _size_relative(
             getattr(self, "ticks_size"), context.dev_bbox)
     end
-    # XXX:why did square brackets stop working?
-    labelpos = { _pos(self, context, pos[i], dir*offset) for i=1:length(labels) }
+
+    labelpos = Point[ _pos(self, context, pos[i], dir*offset) for i=1:length(labels) ]
 
     halign, valign = _align(self)
 
@@ -1347,15 +1310,15 @@ function _make_ticks(self::HalfAxis, context, ticks, size, style)
 
     dir = getattr(self, "tickdir") * getattr(self, "ticklabels_dir")
     ticklen = _dpos(self, dir * _size_relative(size, context.dev_bbox))
-    # XXX:why did square brackets stop working?
-    tickpos = { _pos(self, context, tick) for tick in ticks }
+
+    tickpos = Point[ _pos(self, context, tick) for tick in ticks ]
 
     CombObject(tickpos, ticklen, style)
 end
 
 function make(self::HalfAxis, context)
     if getattr(self, "draw_nothing")
-        return []
+        return {}
     end
 
     ticks = _ticks(self, context)
@@ -1415,7 +1378,7 @@ end
 
 type PlotComposite <: HasStyle
     attr::Dict
-    components::List
+    components::Vector{Any}
     dont_clip::Bool
 
     function PlotComposite(args...)
@@ -1517,10 +1480,9 @@ function _limits_axis(content_range, gutter, user_range, is_log)
 end
 
 function _limits(content_bbox::BoundingBox, gutter, xlog, ylog, xr0, yr0)
-
     xr = _limits_axis(xrange(content_bbox), gutter, xr0, xlog)
     yr = _limits_axis(yrange(content_bbox), gutter, yr0, ylog)
-    return BoundingBox((xr[1],yr[1]), (xr[2],yr[2]))
+    return BoundingBox(xr[1], xr[2], yr[1], yr[2])
 end
 
 # FramedPlot ------------------------------------------------------------------
@@ -1656,7 +1618,7 @@ function _context1(self::FramedPlot, device::Renderer, region::BoundingBox)
     l1 = limits(self.content1)
     xr = _limits_axis(xrange(l1), gutter, getattr(self.x1,"range"), xlog)
     yr = _limits_axis(yrange(l1), gutter, getattr(self.y1,"range"), ylog)
-    lims = BoundingBox((xr[1],yr[1]), (xr[2],yr[2]))
+    lims = BoundingBox(xr[1], xr[2], yr[1], yr[2])
     proj = PlotGeometry(xr..., yr..., region, xlog, ylog)
     return PlotContext(device, region, lims, proj, xlog, ylog)
 end
@@ -1670,7 +1632,7 @@ function _context2(self::FramedPlot, device::Renderer, region::BoundingBox)
     yr = _first_not_none(getattr(self.y2, "range"), getattr(self.y1, "range"))
     xr = _limits_axis(xrange(l2), gutter, xr, xlog)
     yr = _limits_axis(yrange(l2), gutter, yr, ylog)
-    lims = BoundingBox((xr[1],yr[1]), (xr[2],yr[2]))
+    lims = BoundingBox(xr[1], xr[2], yr[1], yr[2])
     proj = PlotGeometry(xr..., yr..., region, xlog, ylog)
     return PlotContext(device, region, lims, proj, xlog, ylog)
 end
@@ -1707,8 +1669,8 @@ end
 # Table ------------------------------------------------------------------------
 
 type _Grid
-    nrows
-    ncols
+    nrows::Int
+    ncols::Int
     origin
     step_x
     step_y
@@ -1828,8 +1790,8 @@ end
 
 function limits(self::Plot)
     return _limits(limits(self.content), getattr(self,"gutter"),
-        getattr(self,"xlog"), getattr(self,"ylog"),
-        getattr(self,"xrange"), getattr(self,"yrange"))
+                   getattr(self,"xlog"), getattr(self,"ylog"),
+                   getattr(self,"xrange"), getattr(self,"yrange"))
 end
 
 compose_interior(self::Plot, device::Renderer, region::BoundingBox) =
@@ -1893,9 +1855,9 @@ end
 
 type FramedArray <: PlotContainer
     attr::PlotAttributes
-    nrows
-    ncols
-    content
+    nrows::Int
+    ncols::Int
+    content::Array{Any,2}
 
     function FramedArray(nrows, ncols, args...)
         self = new(Dict())
@@ -1926,7 +1888,7 @@ function setattr(self::FramedArray, name, value)
         "ylog",
         "xrange",
         "yrange",
-   )
+    )
     if has(_attr_distribute, name)
         for i in 1:self.nrows, j=1:self.ncols
             setattr(self.content[i,j], name, value)
@@ -1964,7 +1926,7 @@ function _limits_nonuniform(self::FramedArray, i, j)
         l = limits(self.content[i,k])
         ly = _range_union(yrange(l), ly)
     end
-    return BoundingBox((lx[1],ly[1]), (lx[2],ly[2]))
+    return BoundingBox(lx[1], lx[2], ly[1], ly[2])
 end
 
 function _grid(self::FramedArray, interior)
@@ -2179,9 +2141,8 @@ function interior(self::PlotContainer, device::Renderer, exterior_bbox::Bounding
         dll = scale * dll
         dur = scale * dur
 
-        interior_bbox = BoundingBox(
-            lowerleft(interior_bbox) + dll,
-            upperright(interior_bbox) + dur)
+        interior_bbox = BoundingBox(lowerleft(interior_bbox) + dll,
+                                    upperright(interior_bbox) + dur)
     end
 
     println("warning: sub-optimal solution for plot")
@@ -2229,7 +2190,7 @@ page_compose(self::PlotContainer, device::Renderer) =
     page_compose(self, device, true)
 function page_compose(self::PlotContainer, device::Renderer, close_after)
     open(device)
-    bb = BoundingBox(device.lowerleft, device.upperright)
+    bb = BoundingBox(device.lowerleft[1], device.upperright[1], device.lowerleft[2], device.upperright[2])
     device.bbox = copy(bb)
     for (key,val) in config_options("defaults")
         set(device, key, val)
@@ -2346,8 +2307,8 @@ _kw_rename(::LineComponent) = [
 
 function make_key(self::LineComponent, bbox::BoundingBox)
     y = center(bbox).y
-    p = xmin(bbox), y
-    q = xmax(bbox), y
+    p = Point(xmin(bbox), y)
+    q = Point(xmax(bbox), y)
     return LineObject(p, q, getattr(self,"style"))
 end
 
@@ -2366,18 +2327,13 @@ type Curve <: LineComponent
 end
 
 function limits(self::Curve)
-    p0 = min(self.x), min(self.y)
-    p1 = max(self.x), max(self.y)
-    return BoundingBox(p0, p1)
+    return BoundingBox(min(self.x), max(self.x), min(self.y), max(self.y))
 end
 
 function make(self::Curve, context)
-    segs = geodesic(context.geom, self.x, self.y)
     objs = {}
-    for seg in segs
-        x, y = project(context.geom, seg[1], seg[2])
-        push!(objs, PathObject(x, y))
-    end
+    x, y = project(context.geom, self.x, self.y)
+    push!(objs, PathObject(x, y))
     objs
 end
 
@@ -2411,26 +2367,26 @@ function make(self::Slope, context::PlotContext)
     xr = xrange(context.data_bbox)
     yr = yrange(context.data_bbox)
     if self.slope == 0
-        l = { (xr[1], self.intercept[2]),
-              (xr[2], self.intercept[2]) }
+        l = { Point(xr[1], self.intercept[2]),
+              Point(xr[2], self.intercept[2]) }
     else
-        l = { (xr[1], _y(self, xr[1])),
-              (xr[2], _y(self, xr[2])),
-              (_x(self, yr[1]), yr[1]),
-              (_x(self, yr[2]), yr[2]) }
+        l = { Point(xr[1], _y(self, xr[1])),
+              Point(xr[2], _y(self, xr[2])),
+              Point(_x(self, yr[1]), yr[1]),
+              Point(_x(self, yr[2]), yr[2]) }
     end
     #m = filter(context.data_bbox.contains, l)
     m = {}
     for el in l
-        if contains(context.data_bbox, el[1], el[2])
+        if contains(context.data_bbox, el)
             push!(m, el)
         end
     end
     #sort!(m)
     objs = {}
     if length(m) > 1
-        a = project(context.geom, m[1]...)
-        b = project(context.geom, m[end]...)
+        a = project(context.geom, m[1])
+        b = project(context.geom, m[end])
         push!(objs, LineObject(a, b))
     end
     objs
@@ -2456,11 +2412,11 @@ end
 function limits(self::Histogram)
     nval = length(self.values)
     if getattr(self, "drop_to_zero")
-        p = self.x0, min(0, min(self.values))
+        p = Point(self.x0, min(0, min(self.values)))
     else
-        p = self.x0, min(self.values)
+        p = Point(self.x0, min(self.values))
     end
-    q = self.x0 + nval*self.binsize, max(self.values)
+    q = Point(self.x0 + nval*self.binsize, max(self.values))
     return BoundingBox(p, q)
 end
 
@@ -2510,8 +2466,8 @@ end
 
 function make(self::LineX, context::PlotContext)
     yr = yrange(context.data_bbox)
-    a = project(context.geom, self.x, yr[1])
-    b = project(context.geom, self.x, yr[2])
+    a = project(context.geom, Point(self.x, yr[1]))
+    b = project(context.geom, Point(self.x, yr[2]))
     [ LineObject(a, b) ]
 end
 
@@ -2534,8 +2490,8 @@ end
 
 function make(self::LineY, context::PlotContext)
     xr = xrange(context.data_bbox)
-    a = project(context.geom, xr[1], self.y)
-    b = project(context.geom, xr[2], self.y)
+    a = project(context.geom, Point(xr[1], self.y))
+    b = project(context.geom, Point(xr[2], self.y))
     [ LineObject(a, b) ]
 end
 
@@ -2606,15 +2562,15 @@ type DataLabel <: LabelComponent
         self = new(Dict())
         conf_setattr(self)
         kw_init(self, args...)
-        self.pos = x, y
+        self.pos = Point(x, y)
         self.str = str
         self
     end
 end
 
 function make(self::DataLabel, context)
-    x,y = project(context.geom, self.pos)
-    t = TextObject(Point(x,y), self.str, getattr(self, "style"))
+    xy = project(context.geom, self.pos)
+    t = TextObject(xy, self.str, getattr(self, "style"))
     [ t ]
 end
 
@@ -2705,16 +2661,14 @@ type FillAbove <: FillComponent
 end
 
 function limits(self::FillAbove)
-    p = min(self.x), min(self.y)
-    q = max(self.x), max(self.y)
-    return BoundingBox(p, q)
+    return BoundingBox(min(self.x), max(self.x), min(self.y), max(self.y))
 end
 
 function make(self::FillAbove, context)
-    coords = map(context.geom, self.x, self.y)
-    max_y = context.data_bbox.yrange()[1]
-    coords.append(context.geom(self.x[-1], max_y))
-    coords.append(context.geom(self.x[0], max_y))
+    coords = map((a,b)->project(context.geom,Point(a,b)), self.x, self.y)
+    max_y = ymax(context.data_bbox)
+    push!(coords, project(context.geom, Point(self.x[end], max_y)))
+    push!(coords, project(context.geom, Point(self.x[1], max_y)))
     [ PolygonObject(coords) ]
 end
 
@@ -2734,16 +2688,14 @@ type FillBelow <: FillComponent
 end
 
 function limits(self::FillBelow)
-    p = min(self.x), min(self.y)
-    q = max(self.x), max(self.y)
-    return BoundingBox(p, q)
+    return BoundingBox(min(self.x), max(self.x), min(self.y), max(self.y))
 end
 
 function make(self::FillBelow, context)
-    coords = map(context.geom, self.x, self.y)
-    min_y = yrange(context.data_bbox)[0]
-    push!(coords, project(context.geom, self.x[-1], min_y))
-    push!(coords, project(context.geom, self.x[0], min_y))
+    coords = map((a,b)->project(context.geom,Point(a,b)), self.x, self.y)
+    min_y = ymin(context.data_bbox)
+    push!(coords, project(context.geom, Point(self.x[end], min_y)))
+    push!(coords, project(context.geom, Point(self.x[1], min_y)))
     [ PolygonObject(coords) ]
 end
 
@@ -2771,13 +2723,13 @@ function limits(self::FillBetween)
     max_x = max(max(self.x1), max(self.x2))
     min_y = min(min(self.y1), min(self.y2))
     max_y = max(max(self.y1), max(self.y2))
-    return BoundingBox((min_x,min_y), (max_x,max_y))
+    return BoundingBox(min_x, max_x, min_y, max_y)
 end
 
 function make(self::FillBetween, context)
     x = [self.x1, reverse(self.x2)]
     y = [self.y1, reverse(self.y2)]
-    coords = map((a,b) -> project(context.geom,a,b), x, y)
+    coords = map((a,b) -> project(context.geom,Point(a,b)), x, y)
     [ PolygonObject(coords) ]
 end
 
@@ -2808,14 +2760,12 @@ type Image <: ImageComponent
 end
 
 function limits(self::Image)
-    p = self.x, self.y
-    q = self.x+self.w, self.y+self.h
-    return BoundingBox(p, q)
+    return BoundingBox(self.x, self.x+self.w, self.y, self.y+self.h)
 end
 
 function make(self::Image, context)
-    a = project(context.geom, self.x, self.y)
-    b = project(context.geom, self.x+self.w, self.y+self.h)
+    a = project(context.geom, Point(self.x, self.y))
+    b = project(context.geom, Point(self.x+self.w, self.y+self.h))
     bbox = BoundingBox(a, b)
     [ ImageObject(self.img, bbox) ]
 end
@@ -2855,9 +2805,7 @@ kw_defaults(::SymbolDataComponent) = [
 ]
 
 function limits(self::SymbolDataComponent)
-    p = min(self.x), min(self.y)
-    q = max(self.x), max(self.y)
-    return BoundingBox(p, q)
+    return BoundingBox(min(self.x), max(self.x), min(self.y), max(self.y))
 end
 
 function make(self::SymbolDataComponent, context::PlotContext)
@@ -2892,9 +2840,7 @@ kw_defaults(::ColoredPoints) = [
 ]
 
 function limits(self::ColoredPoints)
-    p = min(self.x), min(self.y)
-    q = max(self.x), max(self.y)
-    return BoundingBox(p, q)
+    return BoundingBox(min(self.x), max(self.x), min(self.y), max(self.y))
 end
 
 function make(self::ColoredPoints, context::PlotContext)

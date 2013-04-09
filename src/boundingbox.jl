@@ -48,19 +48,6 @@ function BoundingBox(points::Point...)
     return BoundingBox(xmin, xmax, ymin, ymax)
 end
 
-# deprecated
-function BoundingBox(args...)
-    pt_min = (a, b) -> (min(a[1],b[1]), min(a[2],b[2]))
-    pt_max = (a, b) -> (max(a[1],b[1]), max(a[2],b[2]))
-    if length(args) > 0
-        p = reduce(pt_min, args)
-        q = reduce(pt_max, args)
-        return BoundingBox(float(p[1]),float(q[1]),float(p[2]),float(q[2]))
-    else
-        return BoundingBox(NaN, NaN, NaN, NaN)
-    end
-end
-
 copy(bb::BoundingBox) = BoundingBox(bb.xmin, bb.xmax, bb.ymin, bb.ymax)
 
 width(bb::BoundingBox) = bb.xmax - bb.xmin

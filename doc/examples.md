@@ -14,8 +14,8 @@ s = sin(x)
 p = FramedPlot()
 setattr(p, "title", "title!")
 
-setattr(p, "xlabel", L"\Sigma x^2_i")
-setattr(p, "ylabel", L"\Theta_i")
+setattr(p, "xlabel", "\\Sigma x^2_i")
+setattr(p, "ylabel", "\\Theta_i")
 
 add(p, FillBetween(x, c, x, s) )
 add(p, Curve(x, c, "color", "red") )

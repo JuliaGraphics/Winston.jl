@@ -1,8 +1,7 @@
 import GTK
 import Base.repl_show
 
-GTKRenderer(name, w, h) = GTKRenderer(name, w, h, nothing)
-function GTKRenderer(name, w, h, closecb)
+function GTKdrawingwindow(name, w, h, closecb=nothing)
     win = GTK.Window(name, w, h)
     c = GTK.Canvas(win)
     #Tk.pack(c)
@@ -10,10 +9,7 @@ function GTKRenderer(name, w, h, closecb)
     #    ccb = Tk.tcl_callback(closecb)
     #    Tk.tcl_eval("bind $(win.path) <Destroy> $ccb")
     #end
-    r = Cairo.CairoRenderer(GTK.cairo_surface(c))
-    r.on_open = () -> (cr = GTK.cairo_context(c); Cairo.set_source_rgb(cr, 1, 1, 1); Cairo.paint(cr))
-    r.on_close = () -> (GTK.reveal(c); GTK.gtk_doevent())
-    r, win
+    GTK.cairo_surface(c), win
 end
 
 _saved_gtk_renderer = nothing
@@ -28,15 +24,12 @@ function gtk(self::PlotContainer, args...)
     device = _saved_gtk_renderer
     win = _saved_gtk_win
     if device === nothing || win == nothing || !reuse_window || win.destroyed
-        device, win = GTKRenderer("Julia", width, height,
-                            (x...)->(_saved_gtk_renderer=nothing))
+        device, win = GTKdrawingwindow("Julia", width, height,
+                                       (x...)->(_saved_gtk_renderer=nothing))
         _saved_gtk_renderer = device
         _saved_gtk_win = win
     end
     Winston.page_compose(self, device, !reuse_window)
-    if reuse_window
-        device.on_close()
-    end
 end
 
 function repl_show(io::IO, p::PlotContainer)

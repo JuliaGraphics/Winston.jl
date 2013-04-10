@@ -1,4 +1,3 @@
-require("Cairo")
 require("IniFile")
 
 module Winston
@@ -6,7 +5,7 @@ module Winston
 importall Cairo
 using Inifile
 
-import Base.ref, Base.assign, Base.+, Base.-, Base.add, Base.isempty,
+import Base.getindex, Base.setindex!, Base.+, Base.-, Base.add, Base.isempty,
        Base.copy, Base.(*), Base.(/), Base.get, Base.contains
 
 export PlotContainer
@@ -1724,11 +1723,11 @@ type Table <: PlotContainer
     end
 end
 
-function ref(self::Table, row::Int, col::Int)
+function getindex(self::Table, row::Int, col::Int)
     return self.content[row,col]
 end
 
-function assign(self::Table, obj::PlotContainer, row::Int, col::Int)
+function setindex!(self::Table, obj::PlotContainer, row::Int, col::Int)
     self.content[row,col] = obj
     self.modified = true # XXX:fixme
 end
@@ -1880,7 +1879,7 @@ type FramedArray <: PlotContainer
     end
 end
 
-function ref(self::FramedArray, row::Int, col::Int)
+function getindex(self::FramedArray, row::Int, col::Int)
     return self.content[row,col]
 end
 

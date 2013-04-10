@@ -4,7 +4,7 @@ import Base.repl_show
 function drawingwindow(name, w, h, closecb=nothing)
     win = Tk.Window(name, w, h)
     c = Tk.Canvas(win)
-    Tk.pack(c)
+    Tk.pack(c, {:expand => true, :fill => "both"})
     if !is(closecb,nothing)
         ccb = Tk.tcl_callback(closecb)
         Tk.tcl_eval("bind $(win.path) <Destroy> $ccb")
@@ -26,12 +26,15 @@ function tk(self::PlotContainer, args...)
                                (x...)->(_saved_canvas=nothing))
         _saved_canvas = device
     end
-    cr = Tk.cairo_context(device)
-    Cairo.set_source_rgb(cr, 1, 1, 1)
-    Cairo.paint(cr)
-    Winston.page_compose(self, Tk.cairo_surface(device))
-    Tk.reveal(device)
-    Tk.tcl_doevent()
+    device.redraw = function (_)
+        cr = Tk.cairo_context(device)
+        Cairo.set_source_rgb(cr, 1, 1, 1)
+        Cairo.paint(cr)
+        Winston.page_compose(self, Tk.cairo_surface(device))
+        Tk.reveal(device)
+        Tk.tcl_doevent()
+    end
+    device.redraw(device)
     self
 end
 

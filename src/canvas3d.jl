@@ -1,5 +1,6 @@
 using Tk
 using Cairo
+using Color
 
 type Canvas3D
     win::Canvas
@@ -20,6 +21,7 @@ type Canvas3D
     ymax::Float64
     zmin::Float64
     zmax::Float64
+    models::Vector{Any}
     
     function Canvas3D(win; xmin=0, xmax=Tk.width(win)-1, ymin=0, ymax=Tk.height(win)-1,
                       zmin=-10, zmax=10)
@@ -28,6 +30,7 @@ type Canvas3D
         this.ymin = ymin; this.ymax = ymax
         this.zmin = zmin; this.zmax = zmax
         this.ctm = eye(3)
+        this.models = {}
 
         configure(this)
         win.mouse.button1press = (c,x,y)->canvas3d_mousedown(this,x,y)
@@ -65,8 +68,12 @@ function configure(this::Canvas3D)
     this
 end
 
-function project(this::Canvas3D, v)
+function project(this::Canvas3D, v::AbstractVector)
     this.sctm * (v-this.center) + this.wincenter
+end
+
+function project(this::Canvas3D, v::AbstractMatrix)
+    bsxfun(+, this.sctm * bsxfun(-,v,this.center), this.wincenter)
 end
 
 function polygon(gc, verts::Matrix, idx::Vector)
@@ -99,6 +106,9 @@ function draw(gc, this::Canvas3D)
     stroke(gc)
 
     # draw contents here
+    for m in this.models
+        draw(gc, this, m)
+    end
 
     polygon(gc, bv, edges[3])
     polygon(gc, bv, edges[4])
@@ -124,7 +134,7 @@ qrotate(w, qv, v) = v - 2*cross(cross(qv, v) - w.*v, qv)
 
 # project window point x,y onto a sphere of radius r and center cx,cy
 function sphereproject(r, cx, cy, x, y)
-    q = [cx-x, cy-y, 0]
+    q = [x-cx, y-cy, 0]
     sph = r^2 - q[1]^2 - q[2]^2
     if sph < 0
         q *= r
@@ -160,11 +170,77 @@ function canvas3d_button1motion(this::Canvas3D, x, y)
     draw(cairo_context(this.win), this)
 end
 
-function demo()
-    w = Window("3d", 320, 300)
+# connectivity of m x n grid
+function grid_polygons(m,n)
+    E = {}
+    for k in 0:n-2, j in 0:m-2
+        z = k*m+j+1
+        push!(E, [z, z+1, z+m+1, z+m])
+    end
+    E
+end
+
+# evaluate a surface over ranges of u,v parameters, giving a 3xN vertex matrix
+function evalsurface(xf, yf, zf, ur, vr)
+    X = Float64[ xf(u,v) for u in ur, v in vr ]
+    Y = Float64[ yf(u,v) for u in ur, v in vr ]
+    Z = Float64[ zf(u,v) for u in ur, v in vr ]
+    N = length(ur)*length(vr)
+    [reshape(X, 1, N)
+     reshape(Y, 1, N)
+     reshape(Z, 1, N)]
+end
+
+type Polygons3D
+    V::Matrix{Float64}
+    P
+    colors
+end
+
+function draw(gc, c::Canvas3D, this::Polygons3D)
+    v = project(c, this.V)
+    z = Base.Sort.sortpermby(this.P, p->v[3,p[1]])  # z sort
+    set_line_width(gc, 0.5)
+    for n in z
+        polygon(gc, v, this.P[n])
+        c = this.colors[n]
+        set_source_rgb(gc, c.r, c.g, c.b)
+        fill_preserve(gc)
+        set_source_rgb(gc, 0, 0, 0)
+        stroke(gc)
+    end
+end
+
+function surf(xf, yf, zf, ur, vr; coloring=false)
+    V = evalsurface(xf, yf, zf, ur, vr)
+    P = grid_polygons(length(ur), length(vr))
+    if coloring === false
+        colors = [ RGB(1,1,1) for i=1:length(P) ]
+    else
+        colors = [ coloring(V[1,p[1]], V[2,p[1]], V[3,p[1]]) for p in P ]
+    end
+    Polygons3D(V, P, colors)
+end
+
+function plot3d(objs...; xmin=0,xmax=319,ymin=0,ymax=319,zmin=0,zmax=319)
+    w = Window("3d plot", 320, 320)
     c = Canvas(w)
     pack(c, {:expand => true, :fill => "both"})
-    c3d = Canvas3D(c, zmin=0, zmax=300)
+    c3d = Canvas3D(c, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax,
+                   zmin=zmin, zmax=zmax)
+    for o in objs
+        push!(c3d.models, o)
+    end
     c.redraw(c)
     c3d
 end
+
+# sphere demo
+plot3d(surf((u,v)->cos(v*pi)*sin(u),
+            (u,v)->-cos(v*pi)*cos(u),
+            (u,v)->sin(v*pi),
+            0:(2pi/29):2pi, -.5:(1/17):.5,
+            coloring = (x,y,z)->RGB((x-y+1)/3+.3,
+                                    (z-y+1)/3+.3,
+                                    z/1.5+.3)),
+       xmin=-1, xmax=1, ymin=-1, ymax=1, zmin=-1, zmax=1)

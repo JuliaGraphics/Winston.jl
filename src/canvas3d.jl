@@ -49,10 +49,10 @@ cube_verts(x0, x1, y0, y1, z0, z1) =
      z0 z0 z0 z0 z1 z1 z1 z1]
 
 function configure(this::Canvas3D)
-    scalem = [0.577 * (Tk.width(this.win)-1)/(this.xmax - this.xmin),
-              0.577 * (Tk.height(this.win)-1)/(this.ymax - this.ymin),
-              0]
-    scalem[3] = 0.5(scalem[1]+scalem[2])
+    WW, WH = Tk.width(this.win), Tk.height(this.win)
+    scalem = [0.5774 * WW/(this.xmax - this.xmin),
+              0.5774 * WH/(this.ymax - this.ymin),
+              0.5774 * min(WW,WH)/(this.zmax - this.zmin)]
     this.scalem = scalem
     this.sctm = diagmm(this.ctm, scalem)
 
@@ -61,8 +61,8 @@ function configure(this::Canvas3D)
                    (this.zmax+this.zmin)/2]
     this.boxv = cube_verts(this.xmin, this.xmax, this.ymin, this.ymax,
                            this.zmin, this.zmax)
-    this.GW = Tk.width(this.win)/2
-    this.GH = Tk.height(this.win)/2
+    this.GW = WW/2
+    this.GH = WH/2
     this.r = min(this.GW,this.GH)
     this.wincenter = [this.GW, this.GH, 0]
     this
@@ -145,18 +145,17 @@ function sphereproject(r, cx, cy, x, y)
 end
 
 function canvas3d_button1motion(this::Canvas3D, x, y)
-    r = this.r
     GW = this.GW
     GH = this.GH
-    q0 = sphereproject(r, GW, GH, this.lastx, this.lasty)
-    q1 = sphereproject(r, GW, GH, x, y)
+    q0 = sphereproject(this.r, GW, GH, this.lastx, this.lasty)
+    q1 = sphereproject(this.r, GW, GH, x, y)
 
     this.lastx = x
     this.lasty = y
     
     ictm = this.ctm'
-    xx, yy, zz = ictm * cross(q0,q1)
-    w, r = rotation(xx, yy, zz,
+    rx, ry, rz = ictm * cross(q0,q1)
+    w, r = rotation(rx, ry, rz,
                     2acos(dot(q0,q1) / (norm(q0)*norm(q1))))
 
     (any(isnan,r)||isnan(w)) && return
@@ -174,8 +173,8 @@ end
 function grid_polygons(m,n)
     E = {}
     for k in 0:n-2, j in 0:m-2
-        z = k*m+j+1
-        push!(E, [z, z+1, z+m+1, z+m])
+        i = k*m+j+1
+        push!(E, [i, i+1, i+m+1, i+m])
     end
     E
 end

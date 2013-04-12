@@ -11,7 +11,7 @@ end
 
 #using Winston
 import Cairo
-import Color
+using Color
 
 export imagesc, plot, semilogx, semilogy, loglog
 export file
@@ -159,14 +159,14 @@ function jetrgb(x)
     r = min(fourValue - 1.5, -fourValue + 4.5)
     g = min(fourValue - 0.5, -fourValue + 3.5)
     b = min(fourValue + 0.5, -fourValue + 2.5)
-    clamp(r,0.,1.), clamp(g,0.,1.), clamp(b,0.,1.)
+    RGB(clamp(r,0.,1.), clamp(g,0.,1.), clamp(b,0.,1.))
 end
 
-JetColormap() = Uint32[ Color.rgb2hex(jetrgb(i/256)...) for i = 1:256 ]
+JetColormap() = Uint32[ convert(RGB24,jetrgb(i/256)) for i = 1:256 ]
 
 _default_colormap = JetColormap()
 
-GrayColormap() = Uint32[ Color.rgb2hex(i/255,i/255,i/255) for i = 0:255 ]
+GrayColormap() = Uint32[ convert(RGB24,RGB(i/255,i/255,i/255)) for i = 0:255 ]
 
 function imagesc{T<:Real}(xrange::Interval, yrange::Interval, data::AbstractArray{T,2}, clims::Interval)
     p = FramedPlot()

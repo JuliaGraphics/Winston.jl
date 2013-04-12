@@ -59,6 +59,11 @@ end
 
 ## state commands
 
+color_to_rgb(i::Integer) = convert(RGB, RGB24(unsigned(i)))
+color_to_rgb(s::String) = color(s)
+
+set_color(ctx::CairoContext, color) = set_source_rgb(ctx, color_to_rgb(color))
+
 const __pl_style_func = [
     "color"     => set_color,
     "linecolor" => set_color,
@@ -127,7 +132,7 @@ ellipse(self::CairoRenderer, px, py, rx, ry, angle) =
 arc(self::CairoRenderer, cx, cy, px, py, qx, qy) =
     arc(self.ctx, cx, cy, px, py, qx, qy)
 
-const symbol_funcs = [
+const symbol_funcs = {
     "asterisk" => (c, x, y, r) -> (
         move_to(c, x, y+r);
         line_to(c, x, y-r);
@@ -187,7 +192,7 @@ const symbol_funcs = [
         line_to(c, x+0.5r, y-0.866r);
         close_path(c)
     ),
-]
+}
 
 function symbol(self::CairoRenderer, x::Real, y::Real)
     symbols(self, [x], [y])

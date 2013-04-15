@@ -1,6 +1,6 @@
 using Tk
-using Cairo
 using Color
+using Base.Graphics
 
 type Canvas3D
     win::Canvas
@@ -23,7 +23,7 @@ type Canvas3D
     zmax::Float64
     models::Vector{Any}
     
-    function Canvas3D(win; xmin=0, xmax=Tk.width(win)-1, ymin=0, ymax=Tk.height(win)-1,
+    function Canvas3D(win; xmin=0, xmax=width(win)-1, ymin=0, ymax=height(win)-1,
                       zmin=-10, zmax=10)
         this = new(win)
         this.xmin = xmin; this.xmax = xmax
@@ -37,7 +37,7 @@ type Canvas3D
         win.mouse.button1motion = (c,x,y)->canvas3d_button1motion(this,x,y)
         win.redraw = function (c)
             configure(this)
-            draw(cairo_context(this.win), this)
+            draw(getgc(this.win), this)
         end
         this
     end
@@ -49,7 +49,7 @@ cube_verts(x0, x1, y0, y1, z0, z1) =
      z0 z0 z0 z0 z1 z1 z1 z1]
 
 function configure(this::Canvas3D)
-    WW, WH = Tk.width(this.win), Tk.height(this.win)
+    WW, WH = width(this.win), height(this.win)
     scalem = [0.5774 * WW/(this.xmax - this.xmin),
               0.5774 * WH/(this.ymax - this.ymin),
               0.5774 * min(WW,WH)/(this.zmax - this.zmin)]
@@ -74,15 +74,6 @@ end
 
 function project(this::Canvas3D, v::AbstractMatrix)
     bsxfun(+, this.sctm * bsxfun(-,v,this.center), this.wincenter)
-end
-
-function polygon(gc, verts::Matrix, idx::Vector)
-    move_to(gc, verts[1,idx[1]], verts[2,idx[1]])
-    for i=2:length(idx)
-        n = idx[i]
-        line_to(gc, verts[1,n], verts[2,n])
-    end
-    close_path(gc)
 end
 
 const cube4sides = {[1,5,6,2], [2,6,7,3], [3,7,8,4], [4,8,5,1]}
@@ -166,7 +157,7 @@ function canvas3d_button1motion(this::Canvas3D, x, y)
     this.ctm = [xv yv zv]'
     this.sctm = diagmm(this.ctm, this.scalem)
 
-    draw(cairo_context(this.win), this)
+    draw(getgc(this.win), this)
 end
 
 # connectivity of m x n grid

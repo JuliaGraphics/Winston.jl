@@ -27,7 +27,7 @@ function tk(self::PlotContainer, args...)
         _saved_canvas = device
     end
     device.redraw = function (_)
-        cr = Tk.cairo_context(device)
+        cr = Tk.getgc(device)
         Cairo.set_source_rgb(cr, 1, 1, 1)
         Cairo.paint(cr)
         Winston.page_compose(self, Tk.cairo_surface(device))

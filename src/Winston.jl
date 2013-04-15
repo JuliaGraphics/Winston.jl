@@ -3,6 +3,7 @@ require("IniFile")
 module Winston
 
 importall Cairo
+importall Base.Graphics
 using Inifile
 
 import Base.getindex, Base.setindex!, Base.+, Base.-, Base.add, Base.isempty,
@@ -134,7 +135,12 @@ function _first_not_none(args...)
     return nothing
 end
 
-include("boundingbox.jl")
+# NOTE: these are not standard, since where a coordinate falls on the screen
+# depends on the current transformation.
+lowerleft(bb::BoundingBox) = Point(bb.xmin, bb.ymin)
+upperleft(bb::BoundingBox) = Point(bb.xmin, bb.ymax)
+lowerright(bb::BoundingBox) = Point(bb.xmax, bb.ymin)
+upperright(bb::BoundingBox) = Point(bb.xmax, bb.ymax)
 
 # relative size ---------------------------------------------------------------
 
@@ -841,7 +847,7 @@ function boundingbox(self::DataInset, context::PlotContext)
 end
 
 function limits(self::DataInset)
-    return copy(self.plot_limits)
+    return self.plot_limits
 end
 
 type PlotInset <: _Inset
@@ -858,7 +864,7 @@ function boundingbox(self::PlotInset, context::PlotContext)
 end
 
 function limits(self::PlotInset)
-    return copy(self.plot_limits)
+    return self.plot_limits
 end
 
 # HalfAxis --------------------------------------------------------------------
@@ -1431,9 +1437,7 @@ function render(self::PlotComposite, context)
     make(self, context)
     push_style(context, getattr(self,"style"))
     if !self.dont_clip
-        xr = xrange(context.dev_bbox)
-        yr = yrange(context.dev_bbox)
-        set(context.draw, "cliprect", (xr[1], xr[2], yr[1], yr[2]))
+        set(context.draw, "cliprect", context.dev_bbox)
     end
     for obj in self.components
         render(obj, context)
@@ -1643,7 +1647,7 @@ function _context2(self::FramedPlot, device::Renderer, region::BoundingBox)
 end
 
 function exterior(self::FramedPlot, device::Renderer, region::BoundingBox)
-    bb = copy(region)
+    bb = region
 
     context1 = _context1(self, device, region)
     bb += boundingbox(self.x1, context1) +
@@ -1735,7 +1739,7 @@ end
 isempty(self::Table) = !self.modified
 
 function exterior(self::Table, device::Renderer, intbbox::BoundingBox)
-    ext = copy(intbbox)
+    ext = intbbox
 
     if getattr(self, "align_interiors")
         g = _Grid(self.rows, self.cols, intbbox,
@@ -1969,10 +1973,10 @@ function exterior(self::FramedArray, device::Renderer, int_bbox::BoundingBox)
     margin = labeloffset + labelsize
 
     if !is(getattr(self,"xlabel"),nothing)
-        bb = deform(bb, 0, margin, 0, 0)
+        bb = deform(bb, 0, 0, margin, 0)
     end
     if !is(getattr(self,"ylabel"),nothing)
-        bb = deform(bb, 0, 0, margin, 0)
+        bb = deform(bb, margin, 0, 0, 0)
     end
 
     return bb
@@ -2121,7 +2125,7 @@ end
 function interior(self::PlotContainer, device::Renderer, exterior_bbox::BoundingBox)
     TOL = 0.005
 
-    interior_bbox = copy(exterior_bbox)
+    interior_bbox = exterior_bbox
     region_diagonal = diagonal(exterior_bbox)
 
     for i in 1:10
@@ -2137,7 +2141,7 @@ function interior(self::PlotContainer, device::Renderer, exterior_bbox::Bounding
             # XXX:fixme
             ar = getattr(self, "aspect_ratio")
             if !is(ar,nothing)
-                interior_bbox = make_aspect_ratio(interior_bbox, ar)
+                interior_bbox = with_aspect_ratio(interior_bbox, ar)
             end
             return interior_bbox
         end
@@ -2155,7 +2159,7 @@ function interior(self::PlotContainer, device::Renderer, exterior_bbox::Bounding
 end
 
 function exterior(self::PlotContainer, device::Renderer, interior::BoundingBox)
-    return copy(interior)
+    return interior
 end
 
 function compose_interior(self::PlotContainer, device::Renderer, int_bbox::BoundingBox)
@@ -2180,12 +2184,12 @@ function compose(self::PlotContainer, device::Renderer, region::BoundingBox)
     if isempty(self)
         error("empty container")
     end
-    ext_bbox = copy(region)
+    ext_bbox = region
     if hasattr(self, "title")
         offset = _size_relative(getattr(self,"title_offset"), ext_bbox)
         fontsize = _fontsize_relative(
             getattr(self,"title_style")["fontsize"], ext_bbox, boundingbox(device))
-        ext_bbox = deform(ext_bbox, -offset-fontsize, 0, 0, 0)
+        ext_bbox = deform(ext_bbox, 0, 0, 0, -offset-fontsize)
     end
     int_bbox = interior(self, device, ext_bbox)
     compose_interior(self, device, int_bbox)

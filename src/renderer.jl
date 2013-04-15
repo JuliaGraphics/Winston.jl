@@ -64,6 +64,11 @@ color_to_rgb(s::String) = color(s)
 
 set_color(ctx::CairoContext, color) = set_source_rgb(ctx, color_to_rgb(color))
 
+function set_clip_rect(ctx::CairoContext, bb::BoundingBox)
+    rectangle(ctx, xmin(bb), ymin(bb), width(bb), height(bb))
+    clip(ctx)
+end
+
 const __pl_style_func = [
     "color"     => set_color,
     "linecolor" => set_color,
@@ -79,10 +84,10 @@ function set(self::CairoRenderer, key::String, value)
     set(self.state, key, value)
     if key == "fontface"
         fontsize = get(self, "fontsize", 12)
-        set_font_from_string(self.ctx, "$value $(fontsize)px")
+        set_font_face(self.ctx, "$value $(fontsize)px")
     elseif key == "fontsize"
         fontface = get(self, "fontface", "sans-serif")
-        set_font_from_string(self.ctx, "$fontface $(value)px")
+        set_font_face(self.ctx, "$fontface $(value)px")
     elseif has(__pl_style_func, key)
         __pl_style_func[key](self.ctx, value)
     end
@@ -241,11 +246,7 @@ end
 image(r::CairoRenderer, src, x, y, w, h) = image(r.ctx, src, x, y, w, h)
 
 function polygon(self::CairoRenderer, points::Vector)
-    move_to(self, points[1].x, points[1].y)
-    for i in 2:length(points)
-        line_to(self, points[i].x, points[i].y)
-    end
-    close_path(self.ctx)
+    polygon(self.ctx, points)
     fill(self.ctx)
 end
 

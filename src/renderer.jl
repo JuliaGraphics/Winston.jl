@@ -131,9 +131,6 @@ rect(self::CairoRenderer, px, py, qx, qy) = rectangle(self.ctx, px, py, qx-px, q
 
 circle(self::CairoRenderer, px, py, r) = circle(self.ctx, px, py, r)
 
-ellipse(self::CairoRenderer, px, py, rx, ry, angle) =
-    ellipse(self.ctx, px, py, rx, ry, angle)
-
 arc(self::CairoRenderer, cx, cy, px, py, qx, qy) =
     arc(self.ctx, cx, cy, px, py, qx, qy)
 

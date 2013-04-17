@@ -8,7 +8,6 @@ type Canvas3D
     sctm::Matrix{Float64}
     lastx::Int
     lasty::Int
-    r::Float64
     GW::Float64
     GH::Float64
     scalem::Vector{Float64}
@@ -43,16 +42,15 @@ type Canvas3D
     end
 end
 
-cube_verts(x0, x1, y0, y1, z0, z1) =
-    [x0 x1 x1 x0 x0 x1 x1 x0;
-     y0 y0 y1 y1 y0 y0 y1 y1;
-     z0 z0 z0 z0 z1 z1 z1 z1]
+cube_verts(x0, x1, y0, y1, z0, z1) = [x0 x1 x1 x0 x0 x1 x1 x0
+                                      y0 y0 y1 y1 y0 y0 y1 y1
+                                      z0 z0 z0 z0 z1 z1 z1 z1]
 
 function configure(this::Canvas3D)
     WW, WH = width(this.win), height(this.win)
-    scalem = [0.5774 * WW/(this.xmax - this.xmin),
-              0.5774 * WH/(this.ymax - this.ymin),
-              0.5774 * min(WW,WH)/(this.zmax - this.zmin)]
+    scalem = [ 0.5774 * WW/(this.xmax - this.xmin),
+              -0.5774 * WH/(this.ymax - this.ymin),
+               0.5774 * WW/(this.xmax - this.xmin)]
     this.scalem = scalem
     this.sctm = diagmm(this.ctm, scalem)
 
@@ -63,7 +61,6 @@ function configure(this::Canvas3D)
                            this.zmin, this.zmax)
     this.GW = WW/2
     this.GH = WH/2
-    this.r = min(this.GW,this.GH)
     this.wincenter = [this.GW, this.GH, 0]
     this
 end
@@ -135,37 +132,48 @@ function sphereproject(r, cx, cy, x, y)
     q
 end
 
-function canvas3d_button1motion(this::Canvas3D, x, y)
-    GW = this.GW
-    GH = this.GH
-    q0 = sphereproject(this.r, GW, GH, this.lastx, this.lasty)
-    q1 = sphereproject(this.r, GW, GH, x, y)
+# arcball - translate mouse motion into a rotation, as a 3x3 matrix
+# x, y         - new mouse position
+# lastx, lasty - old mouse position
+# W, H         - window width / 2, height / 2
+# ctm          - the current transform matrix (must be orthogonal)
+function arcball(x, y, lastx, lasty, W, H, ctm)
+    r = max(W,H)
+    q0 = sphereproject(r, W, H, lastx, lasty)
+    q1 = sphereproject(r, W, H, x, y)
 
-    this.lastx = x
-    this.lasty = y
-    
-    ictm = this.ctm'
+    ictm = ctm'
     rx, ry, rz = ictm * cross(q0,q1)
-    w, r = rotation(rx, ry, rz,
+    w, v = rotation(rx, ry, rz,
                     2acos(dot(q0,q1) / (norm(q0)*norm(q1))))
 
-    (any(isnan,r)||isnan(w)) && return
+    (any(isnan,v)||isnan(w)) && return ctm
 
-    xv = qrotate(w, r, ictm[:,1]); xv /= norm(xv)
-    yv = qrotate(w, r, ictm[:,2]); yv /= norm(yv)
-    zv = qrotate(w, r, ictm[:,3]); zv /= norm(zv)
-    this.ctm = [xv yv zv]'
+    xv = qrotate(w, v, ictm[:,1]); xv /= norm(xv)
+    yv = qrotate(w, v, ictm[:,2]); yv /= norm(yv)
+    zv = qrotate(w, v, ictm[:,3]); zv /= norm(zv)
+    [xv[1] xv[2] xv[3]
+     yv[1] yv[2] yv[3]
+     zv[1] zv[2] zv[3]]
+end
+
+function canvas3d_button1motion(this::Canvas3D, x, y)
+    this.ctm = arcball(x, y, this.lastx, this.lasty, this.GW, this.GH,
+                       this.ctm)
     this.sctm = diagmm(this.ctm, this.scalem)
-
+    this.lastx = x
+    this.lasty = y
     draw(getgc(this.win), this)
 end
 
 # connectivity of m x n grid
 function grid_polygons(m,n)
-    E = {}
+    E = Vector{Int}[]
     for k in 0:n-2, j in 0:m-2
         i = k*m+j+1
-        push!(E, [i, i+1, i+m+1, i+m])
+        push!(E, [i, i+1, i+m+1, i+m])  # quads
+        #push!(E, [i, i+1, i+m+1])      # triangles
+        #push!(E, [i, i+m+1, i+m])
     end
     E
 end
@@ -183,54 +191,83 @@ end
 
 type Polygons3D
     V::Matrix{Float64}
-    P
+    P::Vector{Vector{Int}}
     colors
+
+    Polygons3D(V, P, colors=[ RGB(1,1,1) for i=1:length(P) ]) =
+        new(V, P, colors)
+    Polygons3D(V, P, coloring::Function) =
+        Polygons3D(V, P,
+                   [ coloring(V[1,p[1]], V[2,p[1]], V[3,p[1]]) for p in P ])
 end
 
 function draw(gc, c::Canvas3D, this::Polygons3D)
     v = project(c, this.V)
-    z = Base.Sort.sortpermby(this.P, p->v[3,p[1]])  # z sort
+    z_ord = Base.Sort.sortpermby(this.P, p->v[3,p[1]])  # z sort
     set_line_width(gc, 0.5)
-    for n in z
-        polygon(gc, v, this.P[n])
-        c = this.colors[n]
-        set_source_rgb(gc, c.r, c.g, c.b)
-        fill_preserve(gc)
-        set_source_rgb(gc, 0, 0, 0)
-        stroke(gc)
+    for n in z_ord
+        p = this.P[n]
+        valid = true
+        for i in p
+            if isnan(v[1,i]) || isnan(v[2,i])
+                valid = false; break
+            end
+        end
+        if valid
+            polygon(gc, v, p)
+            set_source_rgb(gc, this.colors[n])
+            fill_preserve(gc)
+            set_source_rgb(gc, 0, 0, 0)
+            stroke(gc)
+        end
     end
 end
 
-function surf(xf, yf, zf, ur, vr; coloring=false)
+function surf(xf::Function, yf::Function, zf::Function, ur, vr; coloring=false)
     V = evalsurface(xf, yf, zf, ur, vr)
     P = grid_polygons(length(ur), length(vr))
     if coloring === false
-        colors = [ RGB(1,1,1) for i=1:length(P) ]
+        Polygons3D(V, P)
     else
-        colors = [ coloring(V[1,p[1]], V[2,p[1]], V[3,p[1]]) for p in P ]
+        Polygons3D(V, P, coloring)
     end
-    Polygons3D(V, P, colors)
 end
 
-function plot3d(objs...; xmin=0,xmax=319,ymin=0,ymax=319,zmin=0,zmax=319)
+function surf(X::AbstractMatrix, Y::AbstractMatrix, Z::AbstractMatrix)
+    n = length(X)
+    Polygons3D([reshape(X,1,n)
+                reshape(Y,1,n)
+                reshape(Z,1,n)],
+               grid_polygons(size(X,1),size(X,2)))
+end
+
+function plot3d(o::Polygons3D)
     w = Window("3d plot", 320, 320)
     c = Canvas(w)
     pack(c, {:expand => true, :fill => "both"})
+
+    xmin = min(o.V[1,:]); xmax = max(o.V[1,:])
+    ymin = min(o.V[2,:]); ymax = max(o.V[2,:])
+    zmin = min(o.V[3,:]); zmax = max(o.V[3,:])
+
     c3d = Canvas3D(c, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax,
                    zmin=zmin, zmax=zmax)
-    for o in objs
-        push!(c3d.models, o)
-    end
+    push!(c3d.models, o)
     c.redraw(c)
     c3d
 end
 
-# sphere demo
-plot3d(surf((u,v)->cos(v*pi)*sin(u),
-            (u,v)->-cos(v*pi)*cos(u),
-            (u,v)->sin(v*pi),
-            0:(2pi/29):2pi, -.5:(1/17):.5,
-            coloring = (x,y,z)->RGB((x-y+1)/3+.3,
-                                    (z-y+1)/3+.3,
-                                    z/1.5+.3)),
-       xmin=-1, xmax=1, ymin=-1, ymax=1, zmin=-1, zmax=1)
+demo_sphere() =
+    plot3d(surf((u,v)->cos(v*pi)*sin(u),
+                (u,v)->-cos(v*pi)*cos(u),
+                (u,v)->sin(v*pi),
+                0:(2pi/29):2pi, -.5:(1/17):.5,
+                coloring = (x,y,z)->RGB((x-y+1)/3+.3,
+                                        (z-y+1)/3+.3,
+                                        z/1.5+.3)))
+
+demo_sombrero() =
+    plot3d(surf((u,v)->u,
+                (u,v)->sin(hypot(u,v))/hypot(u,v),
+                (u,v)->v,
+                -8:.53:8, -8:.53:8))

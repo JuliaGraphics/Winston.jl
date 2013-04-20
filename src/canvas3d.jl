@@ -122,14 +122,13 @@ qrotate(w, qv, v) = v - 2*cross(cross(qv, v) - w.*v, qv)
 
 # project window point x,y onto a sphere of radius r and center cx,cy
 function sphereproject(r, cx, cy, x, y)
-    q = [x-cx, y-cy, 0]
-    sph = r^2 - q[1]^2 - q[2]^2
+    qx = x-cx; qy = y-cy
+    sph = r^2 - qx^2 - qy^2
     if sph < 0
-        q *= r
+        [r*qx, r*qy, 0]
     else
-        q[3] = sqrt(sph)
+        [qx, qy, sqrt(sph)]
     end
-    q
 end
 
 # arcball - translate mouse motion into a rotation, as a 3x3 matrix
@@ -141,6 +140,10 @@ function arcball(x, y, lastx, lasty, W, H, ctm)
     r = max(W,H)
     q0 = sphereproject(r, W, H, lastx, lasty)
     q1 = sphereproject(r, W, H, x, y)
+
+    if q0 == q1
+        return ctm
+    end
 
     ictm = ctm'
     rx, ry, rz = ictm * cross(q0,q1)

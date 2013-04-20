@@ -7,7 +7,7 @@ importall Base.Graphics
 using Inifile
 
 import Base.getindex, Base.setindex!, Base.+, Base.-, Base.add, Base.isempty,
-       Base.copy, Base.(*), Base.(/), Base.get, Base.contains
+       Base.copy, Base.(*), Base.(/), Base.get
 
 export PlotContainer
 export Curve, FillAbove, FillBelow, FillBetween, Histogram, Image, Legend,
@@ -2410,10 +2410,9 @@ function make(self::Slope, context::PlotContext)
               Point(_x(self, yr[1]), yr[1]),
               Point(_x(self, yr[2]), yr[2]) }
     end
-    #m = filter(context.data_bbox.contains, l)
     m = {}
     for el in l
-        if contains(context.data_bbox, el)
+        if isinside(context.data_bbox, el)
             push!(m, el)
         end
     end

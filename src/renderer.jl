@@ -206,7 +206,7 @@ function symbols(self::CairoRenderer, x, y)
 
     splitname = split(fullname)
     name = pop!(splitname)
-    filled = Base.contains(splitname, "solid") || Base.contains(splitname, "filled")
+    filled = contains(splitname, "solid") || contains(splitname, "filled")
 
     default_symbol_func = (ctx,x,y,r) -> (
         new_sub_path(ctx);

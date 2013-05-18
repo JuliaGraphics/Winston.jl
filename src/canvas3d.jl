@@ -20,23 +20,30 @@ type Canvas3D
     ymax::Float64
     zmin::Float64
     zmax::Float64
-    models::Vector{Any}
+    colorbg::RGB
+    colorcube::RGB
+    models_motion::Vector{Any}
+    models_release::Vector{Any}
     
     function Canvas3D(win; xmin=0, xmax=width(win)-1, ymin=0, ymax=height(win)-1,
-                      zmin=-10, zmax=10)
+                      zmin=-10, zmax=10, colorbg=RGB(1,1,1), colorcube=RGB(0,0,0))
         this = new(win)
         this.xmin = xmin; this.xmax = xmax
         this.ymin = ymin; this.ymax = ymax
         this.zmin = zmin; this.zmax = zmax
         this.ctm = eye(3)
-        this.models = {}
+        this.colorbg = colorbg
+        this.colorcube = colorcube
+        this.models_motion = {}
+        this.models_release = {}
 
         configure(this)
         win.mouse.button1press = (c,x,y)->canvas3d_mousedown(this,x,y)
         win.mouse.button1motion = (c,x,y)->canvas3d_button1motion(this,x,y)
+        win.mouse.button1release = (c,x,y)->canvas3d_button1release(this,x,y)
         win.redraw = function (c)
             configure(this)
-            draw(getgc(this.win), this)
+            draw(getgc(this.win), this, false)
         end
         this
     end
@@ -52,7 +59,7 @@ function configure(this::Canvas3D)
               -0.5774 * WH/(this.ymax - this.ymin),
                0.5774 * WW/(this.xmax - this.xmin)]
     this.scalem = scalem
-    this.sctm = diagmm(this.ctm, scalem)
+    this.sctm = scale(this.ctm, scalem)
 
     this.center = [(this.xmax+this.xmin)/2,
                    (this.ymax+this.ymin)/2,
@@ -75,7 +82,7 @@ end
 
 const cube4sides = {[1,5,6,2], [2,6,7,3], [3,7,8,4], [4,8,5,1]}
 
-function draw(gc, this::Canvas3D)
+function draw(gc, this::Canvas3D, motion::Bool)
     bv = similar(this.boxv)
     for i=1:size(bv,2)
         bv[:,i] = project(this, this.boxv[:,i])
@@ -83,10 +90,10 @@ function draw(gc, this::Canvas3D)
 
     edges = sortby(cube4sides, p->mean(bv[3,:][p]))
 
-    set_source_rgb(gc, 1, 1, 1)
+    set_source_rgb(gc, this.colorbg.r, this.colorbg.g, this.colorbg.b)
     paint(gc)
 
-    set_source_rgb(gc, 0, 0, 0)
+    set_source_rgb(gc, this.colorcube.r, this.colorcube.g, this.colorcube.b)
     set_line_width(gc, 0.6)
 
     polygon(gc, bv, edges[1])
@@ -94,8 +101,14 @@ function draw(gc, this::Canvas3D)
     stroke(gc)
 
     # draw contents here
-    for m in this.models
-        draw(gc, this, m)
+    if motion
+        for m in this.models_motion
+            draw(gc, this, m)
+        end
+    else
+        for m in this.models_release
+            draw(gc, this, m)
+        end
     end
 
     polygon(gc, bv, edges[3])
@@ -160,13 +173,22 @@ function arcball(x, y, lastx, lasty, W, H, ctm)
      zv[1] zv[2] zv[3]]
 end
 
-function canvas3d_button1motion(this::Canvas3D, x, y)
+function canvas3d_mouseupdate(this::Canvas3D, x, y)
     this.ctm = arcball(x, y, this.lastx, this.lasty, this.GW, this.GH,
                        this.ctm)
-    this.sctm = diagmm(this.ctm, this.scalem)
+    this.sctm = scale(this.ctm, this.scalem)
     this.lastx = x
     this.lasty = y
-    draw(getgc(this.win), this)
+end
+
+function canvas3d_button1motion(this::Canvas3D, x, y)
+    canvas3d_mouseupdate(this, x, y)
+    draw(getgc(this.win), this, true)
+end
+
+function canvas3d_button1release(this::Canvas3D, x, y)
+    canvas3d_mouseupdate(this, x, y)
+    draw(getgc(this.win), this, false)
 end
 
 # connectivity of m x n grid
@@ -255,7 +277,8 @@ function plot3d(o::Polygons3D)
 
     c3d = Canvas3D(c, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax,
                    zmin=zmin, zmax=zmax)
-    push!(c3d.models, o)
+    push!(c3d.models_motion, o)
+    push!(c3d.models_release, o)
     c.redraw(c)
     c3d
 end

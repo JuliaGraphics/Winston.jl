@@ -9,7 +9,8 @@ Winston: 2D Plotting for Julia
     p = FramedPlot()
     add(p, Curve(x, y))
 
-    file(p, "winston.eps")
+    Winston.display(p)      # Display the plot on-screen
+    file(p, "winston.eps")  # Save the plot to a file
 
 Installation
 ------------

@@ -75,7 +75,7 @@ function _atox(s::String)
 end
 
 function config_value(section, option)
-    strval = get(_winston_config, section, option, nothing)
+    strval = get(_winston_config, section, option, "nothing")
     _atox(strval)
 end
 
@@ -285,7 +285,7 @@ function push_style(context::PlotContext, style)
     save_state(context.draw)
     if !is(style,nothing)
         for (key, value) in style
-            if has(_kw_func, key)
+            if haskey(_kw_func, key)
                 method = _kw_func[key]
                 method(context, key, value)
             else
@@ -1582,7 +1582,7 @@ _attr_map(fp::FramedPlot) = [
 
 function getattr(self::FramedPlot, name)
     am = _attr_map(self)
-    if has(am, name)
+    if haskey(am, name)
         a,b = get(am, name)
         #obj = self
         #for x in xs[:-1]
@@ -1596,7 +1596,7 @@ end
 
 function setattr(self::FramedPlot, name, value)
     am = _attr_map(self)
-    if has(am, name)
+    if haskey(am, name)
         a,b = am[name]
         #obj = self
         #for x in xs[:-1]
@@ -1898,7 +1898,7 @@ function setattr(self::FramedArray, name, value)
         "xrange",
         "yrange",
     )
-    if has(_attr_distribute, name)
+    if haskey(_attr_distribute, name)
         for i in 1:self.nrows, j=1:self.ncols
             setattr(self.content[i,j], name, value)
         end
@@ -2271,16 +2271,16 @@ function file(self::PlotContainer, filename::String, args...)
     extn = filename[end-2:end]
     opts = args2dict(args...)
     if extn == "eps"
-        width = has(opts,"width") ? opts["width"] : config_value("eps","width")
-        height = has(opts,"height") ? opts["height"] : config_value("eps","height")
+        width = get(opts,"width",config_value("eps","width"))
+        height = get(opts,"height",config_value("eps","height"))
         write_eps(self, filename, width, height)
     elseif extn == "pdf"
-        width = has(opts,"width") ? opts["width"] : config_value("pdf","width")
-        height = has(opts,"height") ? opts["height"] : config_value("pdf","height")
+        width = get(opts,"width",config_value("pdf","width"))
+        height = get(opts,"height",config_value("pdf","height"))
         write_pdf(self, filename, width, height)
     elseif extn == "png"
-        width = has(opts,"width") ? opts["width"] : config_value("window","width")
-        height = has(opts,"height") ? opts["height"] : config_value("window","height")
+        width = get(opts,"width",config_value("window","width"))
+        height = get(opts,"height",config_value("window","height"))
         write_png(self, filename, width, height)
     else
         error("I can't export .$extn, sorry.")
@@ -2292,8 +2292,8 @@ function file(plots::Vector, filename::String, args...)
     extn = filename[end-2:end]
     opts = args2dict(args...)
     if extn == "pdf"
-        width = has(opts,"width") ? opts["width"] : config_value("pdf","width")
-        height = has(opts,"height") ? opts["height"] : config_value("pdf","height")
+        width = get(opts,"width",config_value("pdf","width"))
+        height = get(opts,"height",config_value("pdf","height"))
         write_multipage_pdf(plots, filename, width, height)
     else
         error("I can't export multiple pages to .$extn, sorry.")
@@ -2302,8 +2302,8 @@ end
 
 function svg(self::PlotContainer, args...)
     opts = args2dict(args...)
-    width = has(opts,"width") ? opts["width"] : config_value("window","width")
-    height = has(opts,"height") ? opts["height"] : config_value("window","height")
+    width = get(opts,"width",config_value("window","width"))
+    height = get(opts,"height",config_value("window","height"))
     stream = memio(0, false)
 
     surface = CairoSVGSurface(stream, width, height)
@@ -2924,7 +2924,7 @@ _attr_map(::HasAttr) = Dict()
 
 function hasattr(self::HasAttr, name)
     key = get(_attr_map(self), name, name)
-    return has(self.attr, key)
+    return haskey(self.attr, key)
 end
 
 function getattr(self::HasAttr, name)
@@ -2934,7 +2934,7 @@ end
 
 function getattr(self::HasAttr, name, notfound)
     key = get(_attr_map(self), name, name)
-    return has(self.attr,key) ? self.attr[key] : notfound
+    return haskey(self.attr,key) ? self.attr[key] : notfound
 end
 
 function setattr(self::HasAttr, name, value)

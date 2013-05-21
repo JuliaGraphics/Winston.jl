@@ -85,7 +85,7 @@ function _parse_style(spec::String)
     end
 
     for char in spec
-        if has(chartokens, char)
+        if haskey(chartokens, char)
             for (k,v) in chartokens[char]
                 style[k] = v
             end
@@ -128,10 +128,10 @@ function _plot(p::FramedPlot, args...)
                     style = _parse_style(a)
                 end
             end
-            if has(style, "linestyle")
+            if haskey(style, "linestyle")
                 add(p, Curve(x, y, style))
             end
-            if has(style, "symboltype")
+            if haskey(style, "symboltype")
                 add(p, Points(x, y, style))
             end
         end

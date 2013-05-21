@@ -11,11 +11,11 @@ end
 
 get(self::RendererState, name) = get(self, name, nothing)
 function get(self::RendererState, name, notfound)
-    if has(self.current, name)
+    if haskey(self.current, name)
         return self.current[name]
     end
     for d = self.saved
-        if has(d,name)
+        if haskey(d,name)
             return d[name]
         end
     end
@@ -88,7 +88,7 @@ function set(self::CairoRenderer, key::String, value)
     elseif key == "fontsize"
         fontface = get(self, "fontface", "sans-serif")
         set_font_face(self.ctx, "$fontface $(value)px")
-    elseif has(__pl_style_func, key)
+    elseif haskey(__pl_style_func, key)
         __pl_style_func[key](self.ctx, value)
     end
 end

@@ -1,11 +1,5 @@
 output_surface = Winston.config_value("default","output_surface")
 output_surface = Base.symbol(lowercase(get(ENV, "WINSTON_OUTPUT", output_surface)))
-if output_surface == :gtk
-    require("Gtk")
-else
-    output_surface = :tk
-    require("Tk")
-end
 
 #module Plot
 

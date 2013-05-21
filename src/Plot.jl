@@ -98,6 +98,11 @@ function args2array(args...)
 end
 
 function _plot(p::FramedPlot, args...)
+    p = compose_plot(p, args...)
+    display(p)
+end
+
+function compose_plot(p::FramedPlot, args...)
     args = args2array(args...)
     n = length(args)
     @assert n > 0
@@ -130,7 +135,6 @@ function _plot(p::FramedPlot, args...)
             end
         end
     end
-    display(p)
 end
 
 typealias Interval (Real,Real)

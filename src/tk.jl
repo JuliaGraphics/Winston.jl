@@ -45,3 +45,13 @@ end
 function display(args...)
     tk(args...)
 end
+
+function display(c::Tk.Canvas, pc::PlotContainer)
+    c.redraw = function (_)
+        ctx = Base.Graphics.getgc(c)
+        Base.Graphics.set_source_rgb(ctx, 1, 1, 1)
+        Base.Graphics.paint(ctx)
+        Winston.page_compose(pc, Tk.cairo_surface(c))
+    end
+    c.redraw(c)
+end

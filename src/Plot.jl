@@ -98,7 +98,7 @@ function args2array(args...)
 end
 
 function _plot(p::FramedPlot, args...)
-    p = compose_plot(p, args...)
+    compose_plot(p, args...)
     display(p)
 end
 
@@ -135,6 +135,7 @@ function compose_plot(p::FramedPlot, args...)
             end
         end
     end
+    p
 end
 
 typealias Interval (Real,Real)

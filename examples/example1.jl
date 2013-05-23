@@ -1,6 +1,5 @@
 #!/usr/bin/env julia
 
-require("Winston")
 using Winston
 
 x = linspace( 0, 3pi, 100 )

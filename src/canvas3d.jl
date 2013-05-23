@@ -77,7 +77,7 @@ function project(this::Canvas3D, v::AbstractVector)
 end
 
 function project(this::Canvas3D, v::AbstractMatrix)
-    bsxfun(+, this.sctm * bsxfun(-,v,this.center), this.wincenter)
+    broadcast(+, this.sctm * broadcast(-,v,this.center), this.wincenter)
 end
 
 const cube4sides = {[1,5,6,2], [2,6,7,3], [3,7,8,4], [4,8,5,1]}
@@ -269,7 +269,7 @@ end
 function plot3d(o::Polygons3D)
     w = Window("3d plot", 320, 320)
     c = Canvas(w)
-    pack(c, {:expand => true, :fill => "both"})
+    pack(c, expand = true, fill = "both")
 
     xmin = min(o.V[1,:]); xmax = max(o.V[1,:])
     ymin = min(o.V[2,:]); ymax = max(o.V[2,:])
@@ -279,7 +279,6 @@ function plot3d(o::Polygons3D)
                    zmin=zmin, zmax=zmax)
     push!(c3d.models_motion, o)
     push!(c3d.models_release, o)
-    c.redraw(c)
     c3d
 end
 

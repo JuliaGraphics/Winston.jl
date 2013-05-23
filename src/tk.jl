@@ -4,10 +4,9 @@ import Base.repl_show
 function drawingwindow(name, w, h, closecb=nothing)
     win = Tk.Window(name, w, h)
     c = Tk.Canvas(win, w, h)
-    Tk.pack(c, {:expand => true, :fill => "both"})
+    Tk.pack(c, expand = true, fill = "both")
     if !is(closecb,nothing)
-        ccb = Tk.tcl_callback(closecb)
-        Tk.tcl_eval("bind $(win.path) <Destroy> $ccb")
+        Tk.bind(win, "<Destroy>", closecb)
     end
     c
 end

@@ -31,7 +31,7 @@ function tk(self::PlotContainer, args...)
         Cairo.paint(cr)
         Winston.page_compose(self, Tk.cairo_surface(device))
         Tk.reveal(device)
-        Tk.tcl_doevent()
+        Tk.update()
     end
     device.redraw(device)
     self
@@ -51,6 +51,8 @@ function display(c::Tk.Canvas, pc::PlotContainer)
         Base.Graphics.set_source_rgb(ctx, 1, 1, 1)
         Base.Graphics.paint(ctx)
         Winston.page_compose(pc, Tk.cairo_surface(c))
+        Tk.reveal(c)
+        Tk.update()
     end
     c.redraw(c)
 end

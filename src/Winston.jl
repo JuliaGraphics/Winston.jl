@@ -14,7 +14,7 @@ export Curve, FillAbove, FillBelow, FillBetween, Histogram, Image, Legend,
     LineX, LineY, PlotInset, PlotLabel, Points, Slope,
     SymmetricErrorBarsX, SymmetricErrorBarsY
 export FramedArray, FramedPlot, Table
-export file, setattr, style, svg
+export file, getattr, setattr, style, svg
 
 abstract HasAttr
 abstract HasStyle <: HasAttr
@@ -1583,7 +1583,7 @@ _attr_map(fp::FramedPlot) = [
 function getattr(self::FramedPlot, name)
     am = _attr_map(self)
     if haskey(am, name)
-        a,b = get(am, name)
+        a,b = am[name]
         #obj = self
         #for x in xs[:-1]
         #    obj = getattr(obj, x)

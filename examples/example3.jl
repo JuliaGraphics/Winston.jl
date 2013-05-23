@@ -23,3 +23,5 @@ t2[2,1] = p
 
 #file(t2, "example3.eps")
 file(t2, "example3.png")
+
+p = t2

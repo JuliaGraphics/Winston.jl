@@ -1,3 +1,5 @@
+using Winston
+
 # Each example will save a file. Put the file in a temporary directory,
 # so they don't clutter up whatever directory this is being run from.
 cwd = pwd()

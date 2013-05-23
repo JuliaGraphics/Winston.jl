@@ -90,10 +90,10 @@ function draw(gc, this::Canvas3D, motion::Bool)
 
     edges = sortby(cube4sides, p->mean(bv[3,:][p]))
 
-    set_source_rgb(gc, this.colorbg)
+    set_source(gc, this.colorbg)
     paint(gc)
 
-    set_source_rgb(gc, this.colorcube)
+    set_source(gc, this.colorcube)
     set_line_width(gc, 0.6)
 
     polygon(gc, bv, edges[1])
@@ -240,7 +240,7 @@ function draw(gc, c::Canvas3D, this::Polygons3D)
         end
         if valid
             polygon(gc, v, p)
-            set_source_rgb(gc, this.colors[n])
+            set_source(gc, this.colors[n])
             fill_preserve(gc)
             set_source_rgb(gc, 0, 0, 0)
             stroke(gc)

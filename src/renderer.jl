@@ -62,7 +62,7 @@ end
 color_to_rgb(i::Integer) = convert(RGB, RGB24(unsigned(i)))
 color_to_rgb(s::String) = color(s)
 
-set_color(ctx::CairoContext, color) = set_source_rgb(ctx, color_to_rgb(color))
+set_color(ctx::CairoContext, color) = set_source(ctx, color_to_rgb(color))
 
 function set_clip_rect(ctx::CairoContext, bb::BoundingBox)
     rectangle(ctx, xmin(bb), ymin(bb), width(bb), height(bb))

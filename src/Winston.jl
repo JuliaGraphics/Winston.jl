@@ -30,10 +30,10 @@ include("renderer.jl")
 _winston_config = IniFile()
 begin
     local fn
-    for dir in LOAD_PATH
+    for dir in [".",Pkg.dir(),LOAD_PATH]
         fn = joinpath(dir, "Winston.ini")
         if isfile(fn) break end
-        fn = joinpath(dir, "Winston/src/Winston.ini")
+        fn = joinpath(dir, "Winston", "src", "Winston.ini")
         if isfile(fn) break end
     end
     read(_winston_config, fn)

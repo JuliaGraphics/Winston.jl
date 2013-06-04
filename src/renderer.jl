@@ -29,7 +29,7 @@ end
 
 function restore(self::RendererState)
     self.current = self.saved[1]
-    delete!(self.saved, 1)
+    splice!(self.saved, 1)
 end
 
 abstract Renderer

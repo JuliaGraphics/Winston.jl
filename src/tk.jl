@@ -1,6 +1,8 @@
 import Tk
 import Base.repl_show
 
+using Base.Graphics
+
 function drawingwindow(name, w, h, closecb=nothing)
     win = Tk.Window(name, w, h)
     c = Tk.Canvas(win, w, h)
@@ -25,15 +27,7 @@ function tk(self::PlotContainer, args...)
                                (x...)->(_saved_canvas=nothing))
         _saved_canvas = device
     end
-    device.redraw = function (_)
-        cr = Tk.getgc(device)
-        Cairo.set_source_rgb(cr, 1, 1, 1)
-        Cairo.paint(cr)
-        Winston.page_compose(self, Tk.cairo_surface(device))
-        Tk.reveal(device)
-        Tk.update()
-    end
-    device.redraw(device)
+    display(device, self)
     self
 end
 
@@ -46,13 +40,10 @@ function display(args...)
 end
 
 function display(c::Tk.Canvas, pc::PlotContainer)
-    c.redraw = function (_)
-        ctx = Base.Graphics.getgc(c)
-        Base.Graphics.set_source_rgb(ctx, 1, 1, 1)
-        Base.Graphics.paint(ctx)
+    c.draw = function (_)
+        ctx = getgc(c)
+        set_source_rgb(ctx, 1, 1, 1)
+        paint(ctx)
         Winston.page_compose(pc, Tk.cairo_surface(c))
-        Tk.reveal(c)
-        Tk.update()
     end
-    c.redraw(c)
 end

@@ -37,14 +37,11 @@ type Canvas3D
         this.models_motion = {}
         this.models_release = {}
 
-        configure(this)
         win.mouse.button1press = (c,x,y)->canvas3d_mousedown(this,x,y)
         win.mouse.button1motion = (c,x,y)->canvas3d_button1motion(this,x,y)
         win.mouse.button1release = (c,x,y)->canvas3d_button1release(this,x,y)
-        win.redraw = function (c)
-            configure(this)
-            draw(getgc(this.win), this, false)
-        end
+        win.resize = w->configure(this)
+        win.draw = c->draw(getgc(this.win), this, false)
         this
     end
 end
@@ -114,8 +111,6 @@ function draw(gc, this::Canvas3D, motion::Bool)
     polygon(gc, bv, edges[3])
     polygon(gc, bv, edges[4])
     stroke(gc)
-
-    reveal(this.win)
 end
 
 function canvas3d_mousedown(this::Canvas3D, x, y)
@@ -184,11 +179,13 @@ end
 function canvas3d_button1motion(this::Canvas3D, x, y)
     canvas3d_mouseupdate(this, x, y)
     draw(getgc(this.win), this, true)
+    reveal(this.win)
 end
 
 function canvas3d_button1release(this::Canvas3D, x, y)
     canvas3d_mouseupdate(this, x, y)
     draw(getgc(this.win), this, false)
+    reveal(this.win)
 end
 
 # connectivity of m x n grid

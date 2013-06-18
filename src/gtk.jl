@@ -26,14 +26,7 @@ function gtk(self::PlotContainer, args...)
         device, win = GTKdrawingwindow("Julia", width, height, _saved_gtk_destroyed)
         _saved_gtk_renderer = device
     end
-    draw(device) do
-        cc = getgc(device)
-        Cairo.set_source_rgb(cc, 1, 1, 1)
-        Cairo.paint(cc)
-        Winston.page_compose(self, cs)
-        Gtk.reveal(device)
-        nothing
-    end
+    display(device, self)
     self
 end
 
@@ -43,4 +36,14 @@ end
 
 function display(args...)
     gtk(args...)
+end
+
+function display(c::Gtk.Canvas, pc::PlotContainer)
+    c.draw = function(_)
+        ctx = getgc(c)
+        set_source_rgb(ctx, 1, 1, 1)
+        paint(ctx)
+        Winston.page_compose(pc, Gtk.cairo_surface(c))
+    end
+    Gtk.draw(c)
 end

@@ -1,20 +1,20 @@
-import GTK
+import Gtk
 import Base.repl_show
 
 function GTKdrawingwindow(name, w, h, closecb=nothing)
-    win = GTK.Window(name, w, h)
-    c = GTK.Canvas(win)
-    #Tk.pack(c)
-    #if !is(closecb,nothing)
-    #    ccb = Tk.tcl_callback(closecb)
-    #    Tk.tcl_eval("bind $(win.path) <Destroy> $ccb")
-    #end
-    GTK.cairo_surface(c), win
+    win = Gtk.Window(name, w, h)
+    c = Gtk.Canvas(win)
+    if closecb !== nothing
+        Gtk.on_signal_destroy(win, closecb, win)
+    end
+    c, win
 end
 
 _saved_gtk_renderer = nothing
-_saved_gtk_win = nothing
-
+function _saved_gtk_destroyed(::Ptr, widget::Gtk.GTKWidget)
+    global _saved_gtk_renderer = nothing
+    nothing
+end
 function gtk(self::PlotContainer, args...)
     global _saved_gtk_renderer, _saved_gtk_win
     opts = Winston.args2dict(args...)
@@ -22,14 +22,19 @@ function gtk(self::PlotContainer, args...)
     height = get(opts,"height",Winston.config_value("window","height"))
     reuse_window = isinteractive() #&& Winston.config_value("window","reuse")
     device = _saved_gtk_renderer
-    win = _saved_gtk_win
-    if device === nothing || win == nothing || !reuse_window || win.destroyed
-        device, win = GTKdrawingwindow("Julia", width, height,
-                                       (x...)->(_saved_gtk_renderer=nothing))
+    if device === nothing || !reuse_window
+        device, win = GTKdrawingwindow("Julia", width, height, _saved_gtk_destroyed)
         _saved_gtk_renderer = device
-        _saved_gtk_win = win
     end
-    Winston.page_compose(self, device, !reuse_window)
+    draw(device) do
+        cc = getgc(device)
+        Cairo.set_source_rgb(cc, 1, 1, 1)
+        Cairo.paint(cc)
+        Winston.page_compose(self, cs)
+        Gtk.reveal(device)
+        nothing
+    end
+    self
 end
 
 function repl_show(io::IO, p::PlotContainer)

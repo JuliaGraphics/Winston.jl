@@ -1,6 +1,16 @@
-using Tk
+module Plot3d
+
+import Winston.output_surface
+if output_surface == :tk
+    eval(Expr(:toplevel, Expr(:using, :Tk)))
+elseif output_surface == :gtk
+    eval(Expr(:toplevel, Expr(:using, :Gtk)))
+end
 using Color
 using Base.Graphics
+
+export plot3d, surf
+#export demo_sombrero, demo_sphere
 
 type Canvas3D
     win::Canvas
@@ -24,7 +34,7 @@ type Canvas3D
     colorcube::RGB
     models_motion::Vector{Any}
     models_release::Vector{Any}
-    
+
     function Canvas3D(win; xmin=0, xmax=width(win)-1, ymin=0, ymax=height(win)-1,
                       zmin=-10, zmax=10, colorbg=RGB(1,1,1), colorcube=RGB(0,0,0))
         this = new(win)
@@ -45,6 +55,8 @@ type Canvas3D
         this
     end
 end
+
+Base.show(io::IO, c3::Canvas3D) = print(io, "Canvas3D")
 
 cube_verts(x0, x1, y0, y1, z0, z1) = [x0 x1 x1 x0 x0 x1 x1 x0
                                       y0 y0 y1 y1 y0 y0 y1 y1
@@ -266,7 +278,9 @@ end
 function plot3d(o::Polygons3D)
     w = Window("3d plot", 320, 320)
     c = Canvas(w)
-    pack(c, expand = true, fill = "both")
+    if output_surface == :tk
+        pack(c, expand = true, fill = "both")
+    end
 
     xmin = min(o.V[1,:]); xmax = max(o.V[1,:])
     ymin = min(o.V[2,:]); ymax = max(o.V[2,:])
@@ -293,3 +307,5 @@ demo_sombrero() =
                 (u,v)->sin(hypot(u,v))/hypot(u,v),
                 (u,v)->v,
                 -8:.53:8, -8:.53:8))
+
+end

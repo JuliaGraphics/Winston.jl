@@ -110,7 +110,7 @@ function compose_plot(p::FramedPlot, args...)
         y = args[1]
         x = 1:length(y)
         add(p, Curve(x,y))
-        return display(p)
+        return p
     end
     while length(args) > 0
         x = shift!(args)

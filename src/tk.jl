@@ -49,4 +49,5 @@ function display(c::Tk.Canvas, pc::PlotContainer)
         Winston.page_compose(pc, Tk.cairo_surface(c))
     end
     Tk.draw(c)
+    Tk.update()
 end

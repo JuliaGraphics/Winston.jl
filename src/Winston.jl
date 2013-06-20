@@ -2934,6 +2934,6 @@ function kw_get(self::HasStyle, key, notfound)
     return get(getattr(self,"style"), key, notfound)
 end
 
-include("Plot.jl")
+include("plot.jl")
 
 end # module

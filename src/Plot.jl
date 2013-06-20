@@ -1,9 +1,6 @@
 output_surface = Winston.config_value("default","output_surface")
 output_surface = Base.symbol(lowercase(get(ENV, "WINSTON_OUTPUT", output_surface)))
 
-#module Plot
-
-#using Winston
 import Cairo
 using Color
 
@@ -176,7 +173,33 @@ function imagesc{T<:Real}(xrange::Interval, yrange::Interval, data::AbstractArra
     display(p)
 end
 
-imagesc(xrange, yrange, data) = imagesc(xrange, yrange, data, (min(data),max(data)))
+imagesc(xrange, yrange, data) = imagesc(xrange, yrange, data, (min(data),max(data)+1))
 imagesc(data) = ((h, w) = size(data); imagesc((0,w), (0,h), data))
 
-#end # module
+function spy(S::SparseMatrixCSC, nrS::Integer, ncS::Integer)
+    m, n = size(S)
+    colptr = S.colptr
+    rowval = S.rowval
+    nzval  = S.nzval
+
+    if nrS > m; nrS = m; end
+    if ncS > n; ncS = n; end
+
+    target = zeros(nrS, ncS)
+    x = nrS / m
+    y = ncS / n
+
+    for col = 1:n
+        for k = colptr[col]:colptr[col+1]-1
+            row = rowval[k]
+            target[ceil(row * x), ceil(col * y)] += 1
+        end
+    end
+
+    imagesc((1,m), (1,n), target)
+end
+
+spy(S::SparseMatrixCSC) = spy(S, 100, 100)
+
+spy(A::AbstractMatrix, nrS, ncS) = spy(sparse(A), nrS, ncS)
+spy(A::AbstractMatrix) = spy(sparse(A))

@@ -901,7 +901,7 @@ function _format_ticklabel(x, range)
     end
     b -= 1
     if abs(b) > 4
-        s = memio(1, false)
+        s = IOBuffer()
         if neg write(s, '-') end
         if digits != [0x31]
             write(s, char(digits[1]))
@@ -2304,7 +2304,7 @@ function svg(self::PlotContainer, args...)
     opts = args2dict(args...)
     width = get(opts,"width",config_value("window","width"))
     height = get(opts,"height",config_value("window","height"))
-    stream = memio(0, false)
+    stream = IOBuffer()
 
     surface = CairoSVGSurface(stream, width, height)
     r = CairoRenderer(surface)

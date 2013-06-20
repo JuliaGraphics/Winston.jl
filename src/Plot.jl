@@ -5,7 +5,7 @@ import Cairo
 using Color
 
 export imagesc, plot, semilogx, semilogy, loglog
-export file
+export file, spy
 
 if output_surface == :gtk
     include("gtk.jl")

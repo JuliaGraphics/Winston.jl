@@ -26,18 +26,20 @@ function tk(self::PlotContainer, args...)
         device = drawingwindow("Julia", width, height,
                                (x...)->(_saved_canvas=nothing))
         _saved_canvas = device
+    else
+        @osx_only begin
+            device.initialized = false
+            Tk.configure(device)
+            device.initialized = true
+        end
     end
     display(device, self)
     self
 end
 
-function repl_show(io::IO, p::PlotContainer)
-    print("<plot>")
-end
+repl_show(io::IO, p::PlotContainer) = print("<plot>")
 
-function display(args...)
-    tk(args...)
-end
+display(args...) = tk(args...)
 
 function display(c::Tk.Canvas, pc::PlotContainer)
     c.draw = function (_)

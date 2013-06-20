@@ -5,7 +5,7 @@ import Cairo
 using Color
 
 export imagesc, plot, semilogx, semilogy, loglog
-export file, spy
+export file, spy, plothist
 
 if output_surface == :gtk
     include("gtk.jl")
@@ -203,3 +203,11 @@ spy(S::SparseMatrixCSC) = spy(S, 100, 100)
 
 spy(A::AbstractMatrix, nrS, ncS) = spy(sparse(A), nrS, ncS)
 spy(A::AbstractMatrix) = spy(sparse(A))
+
+function plothist(x::AbstractVector, nbins)
+    p = FramedPlot()
+    add(p, Histogram(hist(x, nbins)[2], 1))
+    display(p)
+end
+
+plothist(x) = plothist(x, 20)

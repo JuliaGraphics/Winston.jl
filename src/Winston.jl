@@ -851,10 +851,11 @@ function _format_ticklabel(x, range)
         write(s, '}')
         return takebuf_string(s)
     end
-    if range < 1e-6
-        a, b = _magform(range)
-        return "%.*f" % (abs(b),x)
-    end
+    # XXX: @sprint doesn't implement %.*f
+    #if range < 1e-6
+    #    a, b = _magform(range)
+    #    return @sprintf "%.*f" (abs(b),x)
+    #end
     s = sprint(showcompact, x)
     endswith(s, ".0") ? s[1:end-2] : s
 end

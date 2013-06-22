@@ -204,10 +204,13 @@ spy(S::SparseMatrixCSC) = spy(S, 100, 100)
 spy(A::AbstractMatrix, nrS, ncS) = spy(sparse(A), nrS, ncS)
 spy(A::AbstractMatrix) = spy(sparse(A))
 
-function plothist(x::AbstractVector, nbins)
+function plothist(h::(Range,Vector))
     p = FramedPlot()
-    add(p, Histogram(hist(x, nbins)[2], 1))
+    add(p, Histogram(h[2], isa(h[1],Range1)? 1 : h[1].step))
+    setattr(p.x1, "ticks",[ h[1] ] .- h[1].start)
+    setattr(p.x1, "ticklabels",map(string,h[1]))
     display(p)
 end
 
-plothist(x) = plothist(x, 20)
+plothist(x::AbstractVector, nbins) = plothist(hist(x,nbins))
+plothist(x::AbstractVector) = plothist(hist(x))

@@ -206,9 +206,7 @@ spy(A::AbstractMatrix) = spy(sparse(A))
 
 function plothist(h::(Range,Vector))
     p = FramedPlot()
-    add(p, Histogram(h[2], isa(h[1],Range1)? 1 : h[1].step))
-    setattr(p.x1, "ticks",[ h[1] ] .- h[1].start)
-    setattr(p.x1, "ticklabels",map(string,h[1]))
+    add(p, Histogram(h...))
     display(p)
 end
 

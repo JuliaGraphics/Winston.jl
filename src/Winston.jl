@@ -2362,29 +2362,26 @@ end
 
 type Histogram <: LineComponent
     attr::PlotAttributes
-    values
-    x0
-    binsize
+    edges::AbstractVector
+    values::AbstractVector
 
-    function Histogram(values, binsize, args...)
+    function Histogram(edges, counts, args...)
         self = new(Dict())
         conf_setattr(self)
         kw_init(self, args...)
-        self.values = values
-        self.x0 = 0 # XXX:fixme
-        self.binsize = binsize
+        self.edges = edges
+        self.values = counts
         self
     end
 end
 
 function limits(self::Histogram)
-    nval = length(self.values)
     if getattr(self, "drop_to_zero")
-        p = Point(self.x0, min(0, min(self.values)))
+        p = Point(min(self.edges), min(0, min(self.values)))
     else
-        p = Point(self.x0, min(self.values))
+        p = Point(min(self.edges), min(self.values))
     end
-    q = Point(self.x0 + nval*self.binsize, max(self.values))
+    q = Point(max(self.edges), max(self.values))
     return BoundingBox(p, q)
 end
 
@@ -2394,22 +2391,19 @@ function make(self::Histogram, context::PlotContext)
     x = Float64[]
     y = Float64[]
     if drop_to_zero
-        push!(x, self.x0)
-        push!(y, 0)
+        push!(x, first(self.edges))
+        push!(y, 0.)
     end
-    for i in 0:nval-1
-        xi = self.x0 + i * self.binsize
-        yi = self.values[i+1]
-        #x.extend([xi, xi + self.binsize])
-        #y.extend([yi, yi])
-        push!(x, xi)
-        push!(x, xi + self.binsize)
+    for i in 1:nval
+        yi = self.values[i]
+        push!(x, self.edges[i])
+        push!(x, self.edges[i+1])
         push!(y, yi)
         push!(y, yi)
     end
     if drop_to_zero
-        push!(x, self.x0 + nval*self.binsize)
-        push!(y, 0)
+        push!(x, last(self.edges))
+        push!(y, 0.)
     end
     u, v = project(context.geom, x, y)
     [ PathObject(u, v) ]

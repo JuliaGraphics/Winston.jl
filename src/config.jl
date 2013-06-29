@@ -1,5 +1,5 @@
 
-_winston_config = IniFile()
+_winston_config = Inifile()
 
 begin
     local fn

@@ -1,10 +1,8 @@
-require("IniFile")
-
 module Winston
 
 importall Cairo
 importall Base.Graphics
-using Inifile
+using IniFile
 
 import Base.getindex, Base.setindex!, Base.+, Base.-, Base.add, Base.isempty,
        Base.copy, Base.(*), Base.(/), Base.get

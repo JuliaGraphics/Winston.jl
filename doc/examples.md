@@ -66,15 +66,12 @@ Example 3
 ``` julia
 using Winston
 
-x = linspace( 0, 3pi, 30)
-y = sin(x)
-
 p = FramedPlot()
 setattr(p, "title", "Title")
 setattr(p, "xlabel", "X axis")
 setattr(p, "ylabel", "Y axis")
 
-add( p, Histogram(y, 1) )
+add( p, Histogram(hist(randn(1000))...) )
 add( p, PlotLabel(.5, .5, "Histogram", "color", 0xcc0000) )
 
 t1 = Table( 1, 2 )

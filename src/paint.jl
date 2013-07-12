@@ -1,16 +1,8 @@
-# =============================================================================
-#
-# RenderObjects
-#
-# =============================================================================
 
 abstract RenderObject
 typealias RenderStyle Dict{String,Union(Integer,FloatingPoint,String)}
 
 function kw_init(self::RenderObject, args...)
-    for (k,v) in kw_defaults(self)
-        self.style[k] = v
-    end
     for (key, value) in args2dict(args...)
         self.style[key] = value
     end
@@ -28,11 +20,6 @@ type LineObject <: RenderObject
     end
 end
 
-_kw_rename(::LineObject) = [
-    "width"     => "linewidth",
-    "type"      => "linetype",
-]
-
 function boundingbox(self::LineObject, context)
     BoundingBox(self.p, self.q)
 end
@@ -45,27 +32,16 @@ type LabelsObject <: RenderObject
     style::RenderStyle
     points::Vector{Point}
     labels::Vector
+    angle::Float64
+    halign::ASCIIString
+    valign::ASCIIString
 
-    function LabelsObject(points, labels, args...)
-        self = new(RenderStyle(), points, labels)
+    function LabelsObject(points, labels, args...; angle=0., halign="center", valign="center")
+        self = new(RenderStyle(), points, labels, angle, halign, valign)
         kw_init(self, args...)
         self
     end
 end
-
-kw_defaults(::LabelsObject) = [
-    "textangle"     => 0,
-    "texthalign"    => "center",
-    "textvalign"    => "center",
-]
-
-_kw_rename(::LabelsObject) = [
-    "face"      => "fontface",
-    "size"      => "fontsize",
-    "angle"     => "textangle",
-    "halign"    => "texthalign",
-    "valign"    => "textvalign",
-]
 
 __halign_offset = [ "right"=>Vec2(-1,0), "center"=>Vec2(-.5,.5), "left"=>Vec2(0,1) ]
 __valign_offset = [ "top"=>Vec2(-1,0), "center"=>Vec2(-.5,.5), "bottom"=>Vec2(0,1) ]
@@ -74,13 +50,11 @@ function boundingbox(self::LabelsObject, context)
     bb = BoundingBox()
     push_style(context, self.style)
 
-    angle = get(context.draw, "textangle") * pi/180.
-    halign = get(context.draw, "texthalign")
-    valign = get(context.draw, "textvalign")
+    angle = self.angle * pi/180.
 
     height = textheight(context.draw, self.labels[1])
-    ho = __halign_offset[halign]
-    vo = __valign_offset[valign]
+    ho = __halign_offset[self.halign]
+    vo = __valign_offset[self.valign]
 
     for i = 1:length(self.labels)
         pos = self.points[i]
@@ -103,7 +77,8 @@ end
 function draw(self::LabelsObject, context)
     for i in 1:length(self.labels)
         p = self.points[i]
-        text(context.draw, p.x, p.y, self.labels[i])
+        text(context.draw, p.x, p.y, self.labels[i];
+             angle=self.angle, halign=self.halign, valign=self.valign)
     end
 end
 
@@ -144,11 +119,6 @@ type SymbolObject <: RenderObject
     end
 end
 
-_kw_rename(::SymbolObject) = [
-    "type" => "symboltype",
-    "size" => "symbolsize",
-]
-
 function boundingbox(self::SymbolObject, context)
     push_style(context, self.style)
     symbolsize = get(context.draw, "symbolsize")
@@ -178,11 +148,6 @@ type SymbolsObject <: RenderObject
     end
 end
 
-_kw_rename(::SymbolsObject) = [
-    "type" => "symboltype",
-    "size" => "symbolsize",
-]
-
 function boundingbox(self::SymbolsObject, context::PlotContext)
     xmin = min(self.x)
     xmax = max(self.x)
@@ -199,39 +164,26 @@ type TextObject <: RenderObject
     style::RenderStyle
     pos::Point
     str::String
+    angle::Float64
+    halign::ASCIIString
+    valign::ASCIIString
 
-    function TextObject(pos, str, args...)
-        self = new(RenderStyle(), pos, str)
+    function TextObject(pos, str, args...; angle=0., halign="center", valign="center")
+        self = new(RenderStyle(), pos, str, angle, halign, valign)
         kw_init(self, args...)
         self
     end
 end
 
-kw_defaults(::TextObject) = [
-    "textangle"     => 0,
-    "texthalign"    => "center",
-    "textvalign"    => "center",
-]
-
-_kw_rename(::TextObject) = [
-    "face"      => "fontface",
-    "size"      => "fontsize",
-    "angle"     => "textangle",
-    "halign"    => "texthalign",
-    "valign"    => "textvalign",
-]
-
 function boundingbox(self::TextObject, context::PlotContext)
     push_style(context, self.style)
-    angle = get(context.draw, "textangle") * pi/180.
-    halign = get(context.draw, "texthalign")
-    valign = get(context.draw, "textvalign")
+    angle = self.angle * pi/180.
     width = textwidth(context.draw, self.str)
     height = textheight(context.draw, self.str)
     pop_style(context)
 
-    hvec = width * __halign_offset[halign]
-    vvec = height * __valign_offset[valign]
+    hvec = width * __halign_offset[self.halign]
+    vvec = height * __valign_offset[self.valign]
 
     bb = BoundingBox(self.pos.x + hvec.x, self.pos.x + hvec.y,
                      self.pos.y + vvec.x, self.pos.y + vvec.y)
@@ -240,28 +192,8 @@ function boundingbox(self::TextObject, context::PlotContext)
 end
 
 function draw(self::TextObject, context::PlotContext)
-    text(context.draw, self.pos.x, self.pos.y, self.str)
-end
-
-function LineTextObject(p::Point, q::Point, str, offset, args...)
-    #kw_init(self, args...)
-    #self.str = str
-
-    midpoint = 0.5*(p + q)
-    direction = q - p
-    direction /= norm(direction)
-    angle = atan2(direction.y, direction.x)
-    direction = rotate(direction, pi/2)
-    pos = midpoint + offset*direction
-
-    kw = [ "textangle" => angle * 180./pi,
-           "texthalign" => "center" ]
-    if offset > 0
-        kw["textvalign"] = "bottom"
-    else
-        kw["textvalign"] = "top"
-    end
-    TextObject(pos, str, args..., kw)
+    text(context.draw, self.pos.x, self.pos.y, self.str;
+         angle=self.angle, halign=self.halign, valign=self.valign)
 end
 
 type PathObject <: RenderObject
@@ -277,11 +209,6 @@ type PathObject <: RenderObject
         self
     end
 end
-
-_kw_rename(::PathObject) = [
-    "width"     => "linewidth",
-    "type"      => "linetype",
-]
 
 function boundingbox(self::PathObject, context)
     xmin = min(self.x)
@@ -306,11 +233,6 @@ type PolygonObject <: RenderObject
         self
     end
 end
-
-_kw_rename(::PolygonObject) = [
-    "width"     => "linewidth",
-    "type"      => "linetype",
-]
 
 function boundingbox(self::PolygonObject, context)
     return BoundingBox(self.points...)

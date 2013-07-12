@@ -48,15 +48,6 @@ function args2dict(args...)
     opts
 end
 
-function _draw_text(device, x::Real, y::Real, str::String, args...)
-    save_state(device)
-    for (key,val) in args2dict(args...)
-        set(device, key, val)
-    end
-    text(device, x, y, str)
-    restore_state(device)
-end
-
 function _first_not_none(args...)
     for arg in args
 	if !is(arg,nothing)
@@ -210,7 +201,7 @@ function make(self::Legend, context::PlotContext)
     objs = {}
     for comp in self.components
         s = getattr(comp, "label", "")
-        t = TextObject(text_pos, s, getattr(self,"style"))
+        t = TextObject(text_pos, s, getattr(self,"style"); halign=halign)
         push!(objs, t)
         push!(objs, make_key(comp,bbox))
         text_pos = text_pos + dp
@@ -802,7 +793,7 @@ function _make_ticklabels(self::HalfAxis, context, pos, labels)
         style[k] = v
     end
 
-    LabelsObject(labelpos, labels, style)
+    LabelsObject(labelpos, labels, style; halign=style["texthalign"], valign=style["textvalign"])
 end
 
 function _make_spine(self::HalfAxis, context)
@@ -1518,19 +1509,15 @@ function _labels_draw(self::FramedArray, device::Renderer, int_bbox::BoundingBox
 
     save_state(device)
     set(device, "fontsize", labelsize)
-    set(device, "texthalign", "center")
     if !is(getattr(self,"xlabel"),nothing)
         x = center(int_bbox).x
         y = ymin(bb) - labeloffset
-        set(device, "textvalign", "top")
-        text(device, x, y, getattr(self,"xlabel"))
+        text(device, x, y, getattr(self,"xlabel"); valign="top")
     end
     if !is(getattr(self,"ylabel"),nothing)
         x = xmin(bb) - labeloffset
         y = center(int_bbox).y
-        set(device, "textangle", 90.)
-        set(device, "textvalign", "bottom")
-        text(device, x, y, getattr(self,"ylabel"))
+        text(device, x, y, getattr(self,"ylabel"); angle=90., valign="bottom")
     end
     restore_state(device)
 end
@@ -1661,6 +1648,7 @@ function exterior(self::PlotContainer, device::Renderer, interior::BoundingBox)
 end
 
 function compose_interior(self::PlotContainer, device::Renderer, int_bbox::BoundingBox)
+    # XXX: separate out into its own component
     if hasattr(self, "title")
         offset = _size_relative(getattr(self, "title_offset"), int_bbox)
         ext_bbox = exterior(self, device, int_bbox)
@@ -1672,9 +1660,12 @@ function compose_interior(self::PlotContainer, device::Renderer, int_bbox::Bound
         end
         style["fontsize"] = _fontsize_relative(
             getattr(self,"title_style")["fontsize"], int_bbox, boundingbox(device))
-        style["texthalign"] = "center"
-        style["textvalign"] = "bottom"
-        _draw_text(device, x, y, getattr(self,"title"), style)
+        save_state(device)
+        for (key,val) in style
+            set(device, key, val)
+        end
+        text(device, x, y, getattr(self,"title"); valign="bottom")
+        restore_state(device)
     end
 end
 
@@ -2059,8 +2050,17 @@ function make(self::BoxLabel, context)
         q = lowerright(bb)
     end
 
-    lt = LineTextObject(p, q, self.str, offset, getattr(self, "style"))
-    [ lt ]
+    midpoint = 0.5*(p + q)
+    direction = q - p
+    direction /= norm(direction)
+    angle = atan2(direction.y, direction.x)
+    direction = rotate(direction, pi/2)
+    pos = midpoint + offset*direction
+
+    valign = (offset > 0) ? "bottom" : "top"
+    t = TextObject(pos, self.str, getattr(self, "style");
+                   angle=angle*180./pi, valign=valign)
+    [ t ]
 end
 
 # LabelComponent --------------------------------------------------------------
@@ -2096,6 +2096,7 @@ end
 
 function make(self::DataLabel, context)
     xy = project(context.geom, self.pos)
+    # XXX:fix angle,halign,valign
     t = TextObject(xy, self.str, getattr(self, "style"))
     [ t ]
 end
@@ -2117,6 +2118,7 @@ end
 
 function make(self::PlotLabel, context)
     pos = project(context.plot_geom, self.pos)
+    # XXX:fix angle,halign,valign
     t = TextObject(pos, self.str, getattr(self, "style"))
     [ t ]
 end
@@ -2139,9 +2141,6 @@ end
 #_kw_rename(::Labels) = [
 #    "face"      => "fontface",
 #    "size"      => "fontsize",
-#    "angle"     => "textangle",
-#    "halign"    => "texthalign",
-#    "valign"    => "textvalign",
 #]
 #
 #function limits(self::Labels)

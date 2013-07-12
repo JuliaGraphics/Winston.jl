@@ -251,10 +251,7 @@ function layout_text(self::CairoRenderer, str::String)
     layout_text(self.ctx, str, get(self,"fontsize"))
 end
 
-function text(self::CairoRenderer, x::Real, y::Real, str::String)
-    halign = get(self.state, "texthalign", "center")
-    valign = get(self.state, "textvalign", "center")
-    angle = get(self.state, "textangle", 0.)
+function text(self::CairoRenderer, x::Real, y::Real, str::String; angle=0., halign="center", valign="center")
     return text(self.ctx, x, y, str, get(self,"fontsize"), halign, valign, angle)
 end
 

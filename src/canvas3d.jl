@@ -97,7 +97,7 @@ function draw(gc, this::Canvas3D, motion::Bool)
         bv[:,i] = project(this, this.boxv[:,i])
     end
 
-    edges = sortby(cube4sides, p->mean(bv[3,:][p]))
+    edges = sort(cube4sides, by=p->mean(bv[3,:][p]))
 
     set_source(gc, this.colorbg)
     paint(gc)
@@ -237,7 +237,7 @@ end
 
 function draw(gc, c::Canvas3D, this::Polygons3D)
     v = project(c, this.V)
-    z_ord = Base.Sort.sortpermby(this.P, p->v[3,p[1]])  # z sort
+    z_ord = sortperm(this.P, by=p->v[3,p[1]])  # z sort
     set_line_width(gc, 0.5)
     for n in z_ord
         p = this.P[n]

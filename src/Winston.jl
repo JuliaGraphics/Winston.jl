@@ -1725,7 +1725,7 @@ function write_eps(self::PlotContainer, filename::String, width::Real, height::R
     finish(surface)
 end
 
-function write_pdf(self::PlotContainer, filename::String, width::String, height::String)
+function write_pdf(self, filename::String, width::String, height::String)
     write_pdf(self, filename, _str_size_to_pts(width), _str_size_to_pts(height))
 end
 
@@ -1737,12 +1737,14 @@ function write_pdf(self::PlotContainer, filename::String, width::Real, height::R
     finish(surface)
 end
 
-function write_multipage_pdf(plots::Vector, filename::String, width, height)
-    device = PDFRenderer(filename, width, height)
+function write_pdf{T<:PlotContainer}(plots::Vector{T}, filename::String, width::Real, height::Real)
+    surface = CairoPDFSurface(filename, width, height)
+    r = CairoRenderer(surface)
     for plt in plots
-        page_compose(plt, device, false)
-        show_page(device.ctx)
+        page_compose(plt, r)
+        show_page(r.ctx)
     end
+    finish(surface)
 end
 
 function write_png(self::PlotContainer, filename::String, width::Int, height::Int)
@@ -1776,14 +1778,13 @@ function file(self::PlotContainer, filename::String, args...)
     end
 end
 
-function file(plots::Vector, filename::String, args...)
-    # plots::Vector{PlotContainer}
+function file{T<:PlotContainer}(plots::Vector{T}, filename::String, args...)
     extn = filename[end-2:end]
     opts = args2dict(args...)
     if extn == "pdf"
         width = get(opts,"width",config_value("pdf","width"))
         height = get(opts,"height",config_value("pdf","height"))
-        write_multipage_pdf(plots, filename, width, height)
+        write_pdf(plots, filename, width, height)
     else
         error("I can't export multiple pages to .$extn, sorry.")
     end

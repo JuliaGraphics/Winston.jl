@@ -248,11 +248,11 @@ function polygon(self::CairoRenderer, points::Vector)
 end
 
 function layout_text(self::CairoRenderer, str::String)
-    layout_text(self.ctx, str, get(self,"fontsize"))
+    set_latex(self.ctx, str, get(self,"fontsize"))
 end
 
-function text(self::CairoRenderer, x::Real, y::Real, str::String; angle=0., halign="center", valign="center")
-    return text(self.ctx, x, y, str, get(self,"fontsize"), halign, valign, angle)
+function text(self::CairoRenderer, x::Real, y::Real, str::String; kwargs...)
+    return text(self.ctx, x, y, set_latex(self.ctx, str, get(self,"fontsize")); markup=true, kwargs...)
 end
 
 function textwidth(self::CairoRenderer, str)

@@ -64,6 +64,50 @@ upperleft(bb::BoundingBox) = Point(bb.xmin, bb.ymax)
 lowerright(bb::BoundingBox) = Point(bb.xmax, bb.ymin)
 upperright(bb::BoundingBox) = Point(bb.xmax, bb.ymax)
 
+maxfinite(A) = max(A)
+maxfinite(x, y) = max(x, y)
+function maxfinite{T<:FloatingPoint}(A::AbstractArray{T})
+    ret = nan(T)
+    for a in A
+        ret = isfinite(a) ? (ret > a ? ret : a) : ret
+    end
+    ret
+end
+function maxfinite(x::FloatingPoint, y::FloatingPoint)
+    ifx = isfinite(x)
+    ify = isfinite(y)
+    if ifx && ify
+        return max(x, y)
+    elseif ifx
+        return x
+    end
+    y
+end
+maxfinite(x::FloatingPoint, y) = isfinite(x) ? max(x, y) : y
+maxfinite(x, y::FloatingPoint) = isfinite(y) ? max(x, y) : x
+
+minfinite(A) = min(A)
+minfinite(x, y) = min(x, y)
+function minfinite{T<:FloatingPoint}(A::AbstractArray{T})
+    ret = nan(T)
+    for a in A
+        ret = isfinite(a) ? (ret < a ? ret : a) : ret
+    end
+    ret
+end
+function minfinite(x::FloatingPoint, y::FloatingPoint)
+    ifx = isfinite(x)
+    ify = isfinite(y)
+    if ifx && ify
+        return min(x, y)
+    elseif ifx
+        return x
+    end
+    y
+end
+minfinite(x::FloatingPoint, y) = isfinite(x) ? min(x, y) : y
+minfinite(x, y::FloatingPoint) = isfinite(y) ? min(x, y) : x
+
 include("geom.jl")
 
 # relative size ---------------------------------------------------------------
@@ -238,10 +282,10 @@ type ErrorBarsX <: ErrorBar
 end
 
 function limits(self::ErrorBarsX)
-    return BoundingBox(min(min(self.lo), min(self.hi)),
-                       max(max(self.lo), max(self.hi)),
-                       min(self.y),
-                       max(self.y))
+    return BoundingBox(minfinite(minfinite(self.lo), minfinite(self.hi)),
+                       maxfinite(maxfinite(self.lo), maxfinite(self.hi)),
+                       minfinite(self.y),
+                       maxfinite(self.y))
 end
 
 function make(self::ErrorBarsX, context)
@@ -278,10 +322,10 @@ type ErrorBarsY <: ErrorBar
 end
 
 function limits(self::ErrorBarsY)
-    return BoundingBox(min(self.x),
-                       max(self.x),
-                       min(min(self.lo), min(self.hi)),
-                       max(max(self.lo), max(self.hi)))
+    return BoundingBox(minfinite(self.x),
+                       maxfinite(self.x),
+                       minfinite(minfinite(self.lo), minfinite(self.hi)),
+                       maxfinite(maxfinite(self.lo), maxfinite(self.hi)))
 end
 
 function make(self::ErrorBarsY, context)
@@ -1348,7 +1392,7 @@ function _range_union(a, b)
     if is(b,nothing)
         return a
     end
-    return min(a[1],b[1]), max(a[2],b[2])
+    return minfinite(a[1],b[1]), maxfinite(a[2],b[2])
 end
 
 type FramedArray <: PlotContainer
@@ -1852,7 +1896,7 @@ type Curve <: LineComponent
 end
 
 function limits(self::Curve)
-    return BoundingBox(min(self.x), max(self.x), min(self.y), max(self.y))
+    return BoundingBox(minfinite(self.x), maxfinite(self.x), minfinite(self.y), maxfinite(self.y))
 end
 
 function make(self::Curve, context)
@@ -1933,11 +1977,11 @@ end
 
 function limits(self::Histogram)
     if getattr(self, "drop_to_zero")
-        p = Point(min(self.edges), min(0, min(self.values)))
+        p = Point(minfinite(self.edges), minfinite(0, minfinite(self.values)))
     else
-        p = Point(min(self.edges), min(self.values))
+        p = Point(minfinite(self.edges), minfinite(self.values))
     end
-    q = Point(max(self.edges), max(self.values))
+    q = Point(maxfinite(self.edges), maxfinite(self.values))
     return BoundingBox(p, q)
 end
 
@@ -2187,7 +2231,7 @@ type FillAbove <: FillComponent
 end
 
 function limits(self::FillAbove)
-    return BoundingBox(min(self.x), max(self.x), min(self.y), max(self.y))
+    return BoundingBox(minfinite(self.x), maxfinite(self.x), minfinite(self.y), maxfinite(self.y))
 end
 
 function make(self::FillAbove, context)
@@ -2214,7 +2258,7 @@ type FillBelow <: FillComponent
 end
 
 function limits(self::FillBelow)
-    return BoundingBox(min(self.x), max(self.x), min(self.y), max(self.y))
+    return BoundingBox(minfinite(self.x), maxfinite(self.x), minfinite(self.y), maxfinite(self.y))
 end
 
 function make(self::FillBelow, context)
@@ -2245,10 +2289,10 @@ type FillBetween <: FillComponent
 end
 
 function limits(self::FillBetween)
-    min_x = min(min(self.x1), min(self.x2))
-    max_x = max(max(self.x1), max(self.x2))
-    min_y = min(min(self.y1), min(self.y2))
-    max_y = max(max(self.y1), max(self.y2))
+    min_x = minfinite(minfinite(self.x1), minfinite(self.x2))
+    max_x = maxfinite(maxfinite(self.x1), maxfinite(self.x2))
+    min_y = minfinite(minfinite(self.y1), minfinite(self.y2))
+    max_y = maxfinite(maxfinite(self.y1), maxfinite(self.y2))
     return BoundingBox(min_x, max_x, min_y, max_y)
 end
 
@@ -2331,7 +2375,7 @@ kw_defaults(::SymbolDataComponent) = [
 ]
 
 function limits(self::SymbolDataComponent)
-    return BoundingBox(min(self.x), max(self.x), min(self.y), max(self.y))
+    return BoundingBox(minfinite(self.x), maxfinite(self.x), minfinite(self.y), maxfinite(self.y))
 end
 
 function make(self::SymbolDataComponent, context::PlotContext)
@@ -2366,7 +2410,7 @@ kw_defaults(::ColoredPoints) = [
 ]
 
 function limits(self::ColoredPoints)
-    return BoundingBox(min(self.x), max(self.x), min(self.y), max(self.y))
+    return BoundingBox(minfinite(self.x), maxfinite(self.x), minfinite(self.y), maxfinite(self.y))
 end
 
 function make(self::ColoredPoints, context::PlotContext)

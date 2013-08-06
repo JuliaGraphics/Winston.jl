@@ -117,7 +117,18 @@ stroke(cr::CairoRenderer) = stroke(cr.ctx)
 
 move_to(self::CairoRenderer, px, py) = move_to(self.ctx, px, py)
 
-line_to(self::CairoRenderer, px, py) = line_to(self.ctx, px, py)
+let lastfinite = true
+global line_to
+function line_to(self::CairoRenderer, px, py)
+    nextfinite = isfinite(px) && isfinite(py)
+    if lastfinite && nextfinite
+        line_to(self.ctx, px, py)
+    elseif nextfinite
+        move_to(self.ctx, px, py)
+    end
+    lastfinite = nextfinite
+end
+end
 
 rel_line_to(self::CairoRenderer, px, py) = rel_line_to(self.ctx, px, py)
 
@@ -235,7 +246,7 @@ function curve(self::CairoRenderer, x::AbstractVector, y::AbstractVector)
     new_path(self.ctx)
     move_to(self.ctx, x[1], y[1])
     for i = 2:n
-        line_to(self.ctx, x[i], y[i])
+        line_to(self, x[i], y[i])
     end
     stroke(self.ctx)
 end

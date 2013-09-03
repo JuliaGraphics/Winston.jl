@@ -358,7 +358,7 @@ end
 
 # Inset -----------------------------------------------------------------------
 
-abstract _Inset
+abstract _Inset <: PlotComponent
 
 function render(self::_Inset, context::PlotContext)
     region = boundingbox(self, context)
@@ -932,7 +932,7 @@ type PlotComposite <: HasStyle
     end
 end
 
-function add(self::PlotComposite, args...)
+function add(self::PlotComposite, args::PlotComponent...)
     for arg in args
         push!(self.components, arg)
     end
@@ -1145,11 +1145,11 @@ function isempty(self::FramedPlot)
     return isempty(self.content1) && isempty(self.content2)
 end
 
-function add(self::FramedPlot, args...)
+function add(self::FramedPlot, args::PlotComponent...)
     add(self.content1, args...)
 end
 
-function add2(self::FramedPlot, args...)
+function add2(self::FramedPlot, args::PlotComponent...)
     add(self.content2, args...)
 end
 
@@ -1326,7 +1326,7 @@ function isempty(self::Plot)
     return isempty(self.content)
 end
 
-function add(self::Plot, args...)
+function add(self::Plot, args::PlotComponent...)
     add(self.content, args...)
 end
 
@@ -1566,7 +1566,7 @@ function _labels_draw(self::FramedArray, device::Renderer, int_bbox::BoundingBox
     restore_state(device)
 end
 
-function add(self::FramedArray, args...)
+function add(self::FramedArray, args::PlotComponent...)
     for i in 1:self.nrows, j=1:self.ncols
         obj = self.content[i,j]
         add(obj, args...)
@@ -1886,7 +1886,7 @@ type Curve <: LineComponent
     x
     y
 
-    function Curve(x, y, args...)
+    function Curve(x::AbstractArray, y::AbstractArray, args...)
         attr = Dict() 
         self = new(attr, x, y)
         iniattr(self)

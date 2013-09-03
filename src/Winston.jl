@@ -2538,5 +2538,5 @@ function kw_get(self::HasStyle, key, notfound)
 end
 
 include("plot.jl")
-
+include("plot_interfaces.jl")
 end # module

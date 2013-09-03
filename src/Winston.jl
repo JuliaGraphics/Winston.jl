@@ -1431,7 +1431,7 @@ function setattr(self::FramedArray, name, value)
         "xrange",
         "yrange",
     )
-    if contains(_attr_distribute, name)
+    if name in _attr_distribute
         for i in 1:self.nrows, j=1:self.ncols
             setattr(self.content[i,j], name, value)
         end

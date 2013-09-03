@@ -217,7 +217,7 @@ function symbols(self::CairoRenderer, x, y)
 
     splitname = split(fullname)
     name = pop!(splitname)
-    filled = contains(splitname, "solid") || contains(splitname, "filled")
+    filled = "solid" in splitname || "filled" in splitname
 
     default_symbol_func = (ctx,x,y,r) -> (
         new_sub_path(ctx);

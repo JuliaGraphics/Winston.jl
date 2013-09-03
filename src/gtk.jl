@@ -1,5 +1,4 @@
 import Gtk
-import Base.repl_show
 
 function GTKdrawingwindow(name, w, h, closecb=nothing)
     win = Gtk.Window(name, w, h)
@@ -28,10 +27,6 @@ function gtk(self::PlotContainer, args...)
     end
     display(device, self)
     self
-end
-
-function repl_show(io::IO, p::PlotContainer)
-    print("<plot>")
 end
 
 function display(args...)

@@ -1,5 +1,4 @@
 import Tk
-import Base.repl_show
 
 using Base.Graphics
 
@@ -36,8 +35,6 @@ function tk(self::PlotContainer, args...)
     display(device, self)
     self
 end
-
-repl_show(io::IO, p::PlotContainer) = print("<plot>")
 
 display(args...) = tk(args...)
 

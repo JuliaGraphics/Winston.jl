@@ -5,7 +5,7 @@ importall Base.Graphics
 using IniFile
 
 import Base.getindex, Base.setindex!, Base.+, Base.-, Base.add, Base.isempty,
-       Base.copy, Base.(*), Base.(/), Base.get
+       Base.copy, Base.(*), Base.(/), Base.get, Base.show
 
 export PlotContainer
 export Curve, FillAbove, FillBelow, FillBetween, Histogram, Image, Legend,
@@ -1648,7 +1648,7 @@ end
 # PlotContainer ---------------------------------------------------------------
 
 function show(io::IO, self::PlotContainer)
-    print(io, typeof(self))
+    print(io, typeof(self), "(...)")
 end
 
 function interior(self::PlotContainer, device::Renderer, exterior_bbox::BoundingBox)
@@ -2425,7 +2425,7 @@ end
 # PlotComponent ---------------------------------------------------------------
 
 function show(io::IO, self::PlotComponent)
-    print(io,typeof(self),"()")
+    print(io, typeof(self), "(...)")
 end
 
 function limits(self::PlotComponent)

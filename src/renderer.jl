@@ -248,9 +248,11 @@ function curve(self::CairoRenderer, x::AbstractVector, y::AbstractVector)
     while i <= length(x) && (!isfinite(x[i]) || !isfinite(y[i]))
         i += 1
     end
-    move_to(self.ctx, x[i], y[i])
-    for i = i+1:n
-        line_to(self, x[i], y[i])
+    if i <= length(x)
+        move_to(self.ctx, x[i], y[i])
+        for i = i+1:n
+            line_to(self, x[i], y[i])
+        end
     end
     stroke(self.ctx)
 end

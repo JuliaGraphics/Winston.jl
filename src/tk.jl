@@ -48,3 +48,11 @@ function display(c::Tk.Canvas, pc::PlotContainer)
     Tk.draw(c)
     Tk.update()
 end
+
+function get_context(c::Tk.Canvas, pc::PlotContainer)
+    device = CairoRenderer(Tk.cairo_surface(c))
+    ext_bbox = BoundingBox(0,width(c),0,height(c))
+    _get_context(device, ext_bbox, pc)
+end
+
+get_context(pc::PlotContainer) = get_context(_saved_canvas, pc)

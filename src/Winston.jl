@@ -13,7 +13,7 @@ export Curve, FillAbove, FillBelow, FillBetween, Histogram, Image, Legend,
     SymmetricErrorBarsX, SymmetricErrorBarsY
 export FramedArray, FramedPlot, Table
 export file, getattr, setattr, style, svg
-export get_context, device_to_data
+export get_context, device_to_data, data_to_device
 
 abstract HasAttr
 abstract HasStyle <: HasAttr
@@ -214,6 +214,14 @@ function device_to_data(ctx::PlotContext, x::Real, y::Real)
     xu = (x - aff.t[1])/aff.m[1,1]
     yu = ((h-y) - aff.t[2])/aff.m[2,2]
     xu, yu
+end
+
+function data_to_device{T<:Real}(ctx::PlotContext, x::Union(T,AbstractArray{T}), y::Union(T,AbstractArray{T}))
+    aff = ctx.geom.aff
+    h = height(ctx.draw)
+    xdev = aff.t[1] + x*aff.m[1,1]
+    ydev = h - (aff.t[2] + y*aff.m[2,2])
+    xdev, ydev
 end
 
 include("paint.jl")

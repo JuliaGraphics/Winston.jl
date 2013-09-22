@@ -13,6 +13,7 @@ export Curve, FillAbove, FillBelow, FillBetween, Histogram, Image, Legend,
     SymmetricErrorBarsX, SymmetricErrorBarsY
 export FramedArray, FramedPlot, Table
 export file, getattr, setattr, style, svg
+export get_context, device_to_data, data_to_device
 
 abstract HasAttr
 abstract HasStyle <: HasAttr
@@ -188,6 +189,39 @@ end
 
 function pop_style(context::PlotContext)
     restore_state(context.draw)
+end
+
+function _get_context(device::Renderer, ext_bbox::BoundingBox, pc::PlotContainer)
+    for (key,val) in config_options("defaults")
+        set(device, key, val)
+    end
+    ext_bbox *= 1 - getattr(pc, "page_margin")
+    if hasattr(pc, "title")
+        offset = _size_relative(getattr(pc,"title_offset"), ext_bbox)
+        fontsize = _fontsize_relative(
+            getattr(pc,"title_style")["fontsize"], ext_bbox, boundingbox(device))
+        ext_bbox = deform(ext_bbox, 0, 0, 0, -offset-fontsize)
+    end
+    int_bbox = interior(pc, device, ext_bbox)
+    invoke(compose_interior, (PlotContainer,Renderer,BoundingBox), pc, device, int_bbox)
+    ret = _context1(pc, device, int_bbox)
+    ret
+end
+
+function device_to_data(ctx::PlotContext, x::Real, y::Real)
+    aff = ctx.geom.aff
+    h = height(ctx.draw)
+    xu = (x - aff.t[1])/aff.m[1,1]
+    yu = ((h-y) - aff.t[2])/aff.m[2,2]
+    xu, yu
+end
+
+function data_to_device{T<:Real}(ctx::PlotContext, x::Union(T,AbstractArray{T}), y::Union(T,AbstractArray{T}))
+    aff = ctx.geom.aff
+    h = height(ctx.draw)
+    xdev = aff.t[1] + x*aff.m[1,1]
+    ydev = h - (aff.t[2] + y*aff.m[2,2])
+    xdev, ydev
 end
 
 include("paint.jl")

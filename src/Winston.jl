@@ -28,7 +28,7 @@ include("renderer.jl")
 # utils -----------------------------------------------------------------------
 
 function args2dict(args...)
-    opts = Dict()
+    opts = Dict{Symbol,Any}()
     if length(args) == 0
         return opts
     end
@@ -37,13 +37,13 @@ function args2dict(args...)
         arg, iter = next(args, iter)
         if typeof(arg) <: Associative
             for (k,v) in arg
-                opts[k] = v
+                opts[symbol(k)] = v
             end
         elseif typeof(arg) <: Tuple
-            opts[arg[1]] = arg[2]
+            opts[symbol(arg[1])] = arg[2]
         else
             val, iter = next(args, iter)
-            opts[arg] = val
+            opts[symbol(arg)] = val
         end
     end
     opts
@@ -169,9 +169,9 @@ function _kw_func_relative_width(context::PlotContext, key, value)
 end
 
 _kw_func = [
-    "fontsize" => _kw_func_relative_fontsize,
-    "linewidth" => _kw_func_relative_width,
-    "symbolsize" => _kw_func_relative_size,
+    :fontsize => _kw_func_relative_fontsize,
+    :linewidth => _kw_func_relative_width,
+    :symbolsize => _kw_func_relative_size,
 ]
 function push_style(context::PlotContext, style)
     save_state(context.draw)
@@ -252,11 +252,11 @@ type Legend <: PlotComponent
 end
 
 _kw_rename(::Legend) = [
-    "face"      => "fontface",
-    "size"      => "fontsize",
-    "angle"     => "textangle",
-    "halign"    => "texthalign",
-    "valign"    => "textvalign",
+    :face      => :fontface,
+    :size      => :fontsize,
+    :angle     => :textangle,
+    :halign    => :texthalign,
+    :valign    => :textvalign,
 ]
 
 function make(self::Legend, context::PlotContext)
@@ -266,7 +266,7 @@ function make(self::Legend, context::PlotContext)
     key_hsep = _size_relative(getattr(self, "key_hsep"), context.dev_bbox)
     key_vsep = _size_relative(getattr(self, "key_vsep"), context.dev_bbox)
 
-    halign = kw_get(self, "texthalign")
+    halign = kw_get(self, :texthalign)
     if halign == "left"
         text_pos = Point(key_pos[1]+key_width/2+key_hsep, key_pos[2])
     else
@@ -293,9 +293,9 @@ end
 abstract ErrorBar <: PlotComponent
 
 _kw_rename(::ErrorBar) = [
-    "color" => "linecolor",
-    "width" => "linewidth",
-    "type" => "linetype",
+    :color => :linecolor,
+    :width => :linewidth,
+    :type => :linetype,
 ]
 
 type ErrorBarsX <: ErrorBar
@@ -805,10 +805,10 @@ end
 # defaults
 
 _attr_map(::HalfAxis) = [
-    "labeloffset"       => "label_offset",
-    "major_ticklabels"  => "ticklabels",
-    "major_ticks"       => "ticks",
-    "minor_ticks"       => "subticks",
+    :labeloffset       => :label_offset,
+    :major_ticklabels  => :ticklabels,
+    :major_ticks       => :ticks,
+    :minor_ticks       => :subticks,
 ]
 
 function _ticks(self::HalfAxis, context)
@@ -864,14 +864,14 @@ function _make_ticklabels(self::HalfAxis, context, pos, labels)
 
     halign, valign = _align(self)
 
-    style = (String=>Any)[]
-    style["texthalign"] = halign
-    style["textvalign"] = valign
-    for (k,v) in getattr(self, "ticklabels_style")
+    style = (Symbol=>Any)[]
+    style[:texthalign] = halign
+    style[:textvalign] = valign
+    for (k,v) in getattr(self, :ticklabels_style)
         style[k] = v
     end
 
-    LabelsObject(labelpos, labels, style; halign=style["texthalign"], valign=style["textvalign"])
+    LabelsObject(labelpos, labels, style; halign=style[:texthalign], valign=style[:textvalign])
 end
 
 function _make_spine(self::HalfAxis, context)
@@ -1014,7 +1014,7 @@ end
 
 # -----------------------------------------------------------------------------
 
-function _limits_axis(content_range, gutter, user_range, is_log)
+function _limits_axis(content_range, gutter, user_range, is_log::Bool)
 
     r0, r1 = 0, 1
 
@@ -1137,17 +1137,17 @@ type FramedPlot <: PlotContainer
 end
 
 _attr_map(fp::FramedPlot) = [
-    "xlabel"    => (fp.x1, "label"),
-    "ylabel"    => (fp.y1, "label"),
-    "xlog"      => (fp.x1, "log"),
-    "ylog"      => (fp.y1, "log"),
-    "xrange"    => (fp.x1, "range"),
-    "yrange"    => (fp.y1, "range"),
-    "xtitle"    => (fp.x1, "label"),
-    "ytitle"    => (fp.y1, "label"),
+    :xlabel    => (fp.x1, :label),
+    :ylabel    => (fp.y1, :label),
+    :xlog      => (fp.x1, :log),
+    :ylog      => (fp.y1, :log),
+    :xrange    => (fp.x1, :range),
+    :yrange    => (fp.y1, :range),
+    :xtitle    => (fp.x1, :label),
+    :ytitle    => (fp.y1, :label),
 ]
 
-function getattr(self::FramedPlot, name)
+function getattr(self::FramedPlot, name::Symbol)
     am = _attr_map(self)
     if haskey(am, name)
         a,b = am[name]
@@ -1161,7 +1161,7 @@ function getattr(self::FramedPlot, name)
     end
 end
 
-function setattr(self::FramedPlot, name, value)
+function setattr(self::FramedPlot, name::Symbol, value)
     am = _attr_map(self)
     if haskey(am, name)
         a,b = am[name]
@@ -1457,7 +1457,7 @@ end
 # XXX:fixme
 isempty(self::FramedArray) = false
 
-function setattr(self::FramedArray, name, value)
+function setattr(self::FramedArray, name::Symbol, value)
     _attr_distribute = Set(
         "gutter",
         "xlog",
@@ -1727,7 +1727,7 @@ end
 
 function compose_interior(self::PlotContainer, device::Renderer, int_bbox::BoundingBox)
     # XXX: separate out into its own component
-    if hasattr(self, "title")
+    if hasattr(self, :title)
         offset = _size_relative(getattr(self, "title_offset"), int_bbox)
         ext_bbox = exterior(self, device, int_bbox)
         x = center(int_bbox).x
@@ -1736,13 +1736,13 @@ function compose_interior(self::PlotContainer, device::Renderer, int_bbox::Bound
         for (k,v) in getattr(self, "title_style")
             style[k] = v
         end
-        style["fontsize"] = _fontsize_relative(
-            getattr(self,"title_style")["fontsize"], int_bbox, boundingbox(device))
+        style[:fontsize] = _fontsize_relative(
+            getattr(self,:title_style)[:fontsize], int_bbox, boundingbox(device))
         save_state(device)
         for (key,val) in style
             set(device, key, val)
         end
-        text(device, x, y, getattr(self,"title"); valign="bottom")
+        text(device, x, y, getattr(self,:title); valign="bottom")
         restore_state(device)
     end
 end
@@ -1752,10 +1752,10 @@ function compose(self::PlotContainer, device::Renderer, region::BoundingBox)
         error("empty container")
     end
     ext_bbox = region
-    if hasattr(self, "title")
+    if hasattr(self, :title)
         offset = _size_relative(getattr(self,"title_offset"), ext_bbox)
         fontsize = _fontsize_relative(
-            getattr(self,"title_style")["fontsize"], ext_bbox, boundingbox(device))
+            getattr(self,:title_style)[:fontsize], ext_bbox, boundingbox(device))
         ext_bbox = deform(ext_bbox, 0, 0, 0, -offset-fontsize)
     end
     int_bbox = interior(self, device, ext_bbox)
@@ -1903,9 +1903,9 @@ end
 abstract LineComponent <: PlotComponent
 
 _kw_rename(::LineComponent) = [
-    "color" => "linecolor",
-    "width" => "linewidth",
-    "type" => "linetype",
+    :color => :linecolor,
+    :width => :linewidth,
+    :type => :linetype,
 ]
 
 function make_key(self::LineComponent, bbox::BoundingBox)
@@ -2107,8 +2107,8 @@ type BoxLabel <: PlotComponent
 end
 
 _kw_rename(::BoxLabel) = [
-    "face" => "fontface",
-    "size" => "fontsize",
+    :face => :fontface,
+    :size => :fontsize,
 ]
 
 function make(self::BoxLabel, context)
@@ -2147,11 +2147,11 @@ end
 abstract LabelComponent <: PlotComponent
 
 _kw_rename(::LabelComponent) = [
-    "face"      => "fontface",
-    "size"      => "fontsize",
-    "angle"     => "textangle",
-    "halign"    => "texthalign",
-    "valign"    => "textvalign",
+    :face      => :fontface,
+    :size      => :fontsize,
+    :angle     => :textangle,
+    :halign    => :texthalign,
+    :valign    => :textvalign,
 ]
 
 #function limits(self::LabelComponent)
@@ -2245,8 +2245,8 @@ function make_key(self::FillComponent, bbox::BoundingBox)
 end
 
 kw_defaults(::FillComponent) = [
-    "color" => config_value("FillComponent","fillcolor"),
-    "filltype" => config_value("FillComponent","filltype"),
+    :color => config_value("FillComponent","fillcolor"),
+    :filltype => config_value("FillComponent","filltype"),
 ]
 
 type FillAbove <: FillComponent
@@ -2341,8 +2341,6 @@ end
 
 abstract ImageComponent <: PlotComponent
 
-kw_defaults(::ImageComponent) = Dict()
-
 type Image <: ImageComponent
     attr::PlotAttributes
     img
@@ -2379,8 +2377,8 @@ end
 abstract SymbolDataComponent <: PlotComponent
 
 _kw_rename(::SymbolDataComponent) = [
-    "type" => "symboltype",
-    "size" => "symbolsize",
+    :type => :symboltype,
+    :size => :symbolsize,
 ]
 
 function make_key(self::SymbolDataComponent, bbox::BoundingBox)
@@ -2404,8 +2402,8 @@ type Points <: SymbolDataComponent
 end
 
 kw_defaults(::SymbolDataComponent) = [
-    "symboltype" => config_value("Points","symboltype"),
-    "symbolsize" => config_value("Points","symbolsize"),
+    :symboltype => config_value("Points","symboltype"),
+    :symbolsize => config_value("Points","symbolsize"),
 ]
 
 function limits(self::SymbolDataComponent)
@@ -2439,8 +2437,8 @@ type ColoredPoints <: SymbolDataComponent
 end
 
 kw_defaults(::ColoredPoints) = [
-    "symboltype" => config_value("Points","symboltype"),
-    "symbolsize" => config_value("Points","symbolsize"),
+    :symboltype => config_value("Points","symboltype"),
+    :symbolsize => config_value("Points","symbolsize"),
 ]
 
 function limits(self::ColoredPoints)
@@ -2492,25 +2490,30 @@ end
 
 _attr_map(::HasAttr) = Dict()
 
-function hasattr(self::HasAttr, name)
+function hasattr(self::HasAttr, name::Symbol)
     key = get(_attr_map(self), name, name)
     return haskey(self.attr, key)
 end
 
-function getattr(self::HasAttr, name)
+function getattr(self::HasAttr, name::Symbol)
     key = get(_attr_map(self), name, name)
     return self.attr[key]
 end
 
-function getattr(self::HasAttr, name, notfound)
+function getattr(self::HasAttr, name::Symbol, notfound)
     key = get(_attr_map(self), name, name)
     return haskey(self.attr,key) ? self.attr[key] : notfound
 end
 
-function setattr(self::HasAttr, name, value)
+function setattr(self::HasAttr, name::Symbol, value)
     key = get(_attr_map(self), name, name)
     self.attr[key] = value
 end
+
+hasattr(self::HasAttr, name::String) = hasattr(self, symbol(name))
+getattr(self::HasAttr, name::String) = getattr(self, symbol(name))
+getattr(self::HasAttr, name::String, notfound) = getattr(self, symbol(name), notfound)
+setattr(self::HasAttr, name::String, value) = setattr(self, symbol(name), value)
 
 function iniattr(self::HasAttr, args...)
     types = {typeof(self)}
@@ -2532,21 +2535,21 @@ const conf_setattr = iniattr
 
 # HasStyle ---------------------------------------------------------------
 
-kw_defaults(x) = Dict()
-_kw_rename(x) = (String=>String)[]
+kw_defaults(x) = Dict{Symbol,Any}()
+_kw_rename(x) = (Symbol=>Symbol)[]
 
 function kw_init(self::HasStyle, args...)
     # jeez, what a mess...
-    sty = Dict()
+    sty = Dict{Symbol,Any}()
     for (k,v) in kw_defaults(self)
         sty[k] = v
     end
-    if hasattr(self, "kw_defaults")
-        for (k,v) in getattr(self, "kw_defaults")
+    if hasattr(self, :kw_defaults)
+        for (k,v) in getattr(self, :kw_defaults)
             sty[k] = v
         end
     end
-    setattr(self, "style", sty)
+    setattr(self, :style, sty)
     for (key, value) in args2dict(args...)
         kw_set(self, key, value)
     end
@@ -2557,7 +2560,7 @@ function kw_set(self::HasStyle, name, value)
     #    kw_init(self)
     #end
     key = get(_kw_rename(self), name, name)
-    getattr(self, "style")[key] = value
+    getattr(self, :style)[key] = value
 end
 
 function style(self::HasStyle, args...)
@@ -2568,7 +2571,7 @@ end
 
 kw_get(self::HasStyle, key) = kw_get(self, key, nothing)
 function kw_get(self::HasStyle, key, notfound)
-    return get(getattr(self,"style"), key, notfound)
+    return get(getattr(self,:style), key, notfound)
 end
 
 include("plot.jl")

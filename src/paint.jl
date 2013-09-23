@@ -1,6 +1,6 @@
 
 abstract RenderObject
-typealias RenderStyle Dict{String,Union(Integer,FloatingPoint,String)}
+typealias RenderStyle Dict{Symbol,Union(Integer,FloatingPoint,String)}
 
 function kw_init(self::RenderObject, args...)
     for (key, value) in args2dict(args...)
@@ -131,7 +131,7 @@ function boundingbox(self::SymbolObject, context)
 end
 
 function draw(self::SymbolObject, context)
-    symbol(context.draw, self.pos.x, self.pos.y)
+    symbols(context.draw, [self.pos.x], [self.pos.y])
 end
 
 type SymbolsObject <: RenderObject

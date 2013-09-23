@@ -26,11 +26,11 @@ function _atox(s::String)
             return h
         end
     elseif x[1] == '{' && x[end] == '}'
-        style = Dict()
+        style = Dict{Symbol,Any}()
         pairs = map(strip, split(x[2:end-1], ',', false))
         for pair in pairs
             kv = split(pair, ':', false)
-            style[ strip(kv[1]) ] = _atox(strip(kv[2]))
+            style[ symbol(strip(kv[1])) ] = _atox(strip(kv[2]))
         end
         return style
     elseif x[1] == '"' && x[end] == '"'
@@ -53,14 +53,14 @@ function config_value(section, option)
 end
 
 function config_options(sec::String)
-    opts = Dict()
+    opts = Dict{Symbol,Any}()
     if sec == "defaults"
         for (k,v) in _winston_config.defaults
-            opts[k] = _atox(v)
+            opts[symbol(k)] = _atox(v)
         end
     elseif has_section(_winston_config, sec)
         for (k,v) in section(_winston_config, sec)
-            opts[k] = _atox(v)
+            opts[symbol(k)] = _atox(v)
         end
     end
     opts

@@ -1,16 +1,15 @@
 type RendererState
-    current::Dict
-    saved::Vector{Dict}
+    current::Dict{Symbol,Any}
+    saved::Vector{Dict{Symbol,Any}}
 
-    RendererState() = new(Dict(),Dict[])
+    RendererState() = new(Dict{Symbol,Any}(),Dict{Symbol,Any}[])
 end
 
-function set(self::RendererState, name, value)
+function set(self::RendererState, name::Symbol, value)
     self.current[name] = value
 end
 
-get(self::RendererState, name) = get(self, name, nothing)
-function get(self::RendererState, name, notfound)
+function get(self::RendererState, name::Symbol, notfound=nothing)
     if haskey(self.current, name)
         return self.current[name]
     end
@@ -24,7 +23,7 @@ end
 
 function save(self::RendererState)
     unshift!(self.saved, self.current)
-    self.current = Dict()
+    self.current = Dict{Symbol,Any}()
 end
 
 function restore(self::RendererState)
@@ -70,36 +69,34 @@ function set_clip_rect(ctx::CairoContext, bb::BoundingBox)
 end
 
 const __pl_style_func = [
-    "color"     => set_color,
-    "linecolor" => set_color,
-    "fillcolor" => set_color,
-    "linestyle" => set_line_type,
-    "linetype"  => set_line_type,
-    "linewidth" => set_line_width,
-    "filltype"  => set_fill_type,
-    "cliprect"  => set_clip_rect,
+    :color     => set_color,
+    :linecolor => set_color,
+    :fillcolor => set_color,
+    :linestyle => set_line_type,
+    :linetype  => set_line_type,
+    :linewidth => set_line_width,
+    :filltype  => set_fill_type,
+    :cliprect  => set_clip_rect,
 ]
 
-function set(self::CairoRenderer, key::String, value)
+function set(self::CairoRenderer, key::Symbol, value)
     set(self.state, key, value)
-    if key == "fontface"
-        fontsize = get(self, "fontsize", 12)
+    if key == :fontface
+        fontsize = get(self, :fontsize, 12)
         set_font_face(self.ctx, "$value $(fontsize)px")
-    elseif key == "fontsize"
-        fontface = get(self, "fontface", "sans-serif")
+    elseif key == :fontsize
+        fontface = get(self, :fontface, "sans-serif")
         set_font_face(self.ctx, "$fontface $(value)px")
     elseif haskey(__pl_style_func, key)
         __pl_style_func[key](self.ctx, value)
     end
 end
+set(self::CairoRenderer, key::String, value) = set(self, symbol(key), value)
 
-function get(self::CairoRenderer, parameter::String, notfound)
+function get(self::CairoRenderer, parameter::Symbol, notfound=nothing)
     return get(self.state, parameter, notfound)
 end
-
-function get(self::CairoRenderer, parameter::String)
-    get(self, parameter, nothing)
-end
+get(self::CairoRenderer, parameter::String, notfound=nothing) = get(self, symbol(parameter), notfound)
 
 function save_state(self::CairoRenderer)
     save(self.state)
@@ -207,13 +204,9 @@ const symbol_funcs = {
     ),
 }
 
-function symbol(self::CairoRenderer, x::Real, y::Real)
-    symbols(self, [x], [y])
-end
-
 function symbols(self::CairoRenderer, x, y)
-    fullname = get(self.state, "symboltype", "square")
-    size = get(self.state, "symbolsize", 0.01)
+    fullname = get(self.state, :symboltype, "square")
+    size = get(self.state, :symbolsize, 0.01)
 
     splitname = split(fullname)
     name = pop!(splitname)
@@ -265,11 +258,11 @@ function polygon(self::CairoRenderer, points::Vector)
 end
 
 function layout_text(self::CairoRenderer, str::String)
-    set_latex(self.ctx, str, get(self,"fontsize"))
+    set_latex(self.ctx, str, get(self,:fontsize))
 end
 
 function text(self::CairoRenderer, x::Real, y::Real, str::String; kwargs...)
-    return text(self.ctx, x, y, set_latex(self.ctx, str, get(self,"fontsize")); markup=true, kwargs...)
+    return text(self.ctx, x, y, set_latex(self.ctx, str, get(self,:fontsize)); markup=true, kwargs...)
 end
 
 function textwidth(self::CairoRenderer, str)
@@ -279,5 +272,5 @@ function textwidth(self::CairoRenderer, str)
 end
 
 function textheight(self::CairoRenderer, str)
-    get(self.state, "fontsize") ## XXX: kludge?
+    get(self.state, :fontsize) ## XXX: kludge?
 end

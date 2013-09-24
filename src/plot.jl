@@ -15,53 +15,53 @@ else
     assert(false)
 end
 
-function plot(args...)
+function plot(args...; kvs...)
     p = FramedPlot()
-    _plot(p, args...)
+    _plot(p, args...; kvs...)
 end
 
-function semilogx(args...)
+function semilogx(args...; kvs...)
     p = FramedPlot()
     setattr(p, "xlog", true)
-    _plot(p, args...)
+    _plot(p, args...; kvs...)
 end
 
-function semilogy(args...)
+function semilogy(args...; kvs...)
     p = FramedPlot()
     setattr(p, "ylog", true)
-    _plot(p, args...)
+    _plot(p, args...; kvs...)
 end
 
-function loglog(args...)
+function loglog(args...; kvs...)
     p = FramedPlot()
     setattr(p, "xlog", true)
     setattr(p, "ylog", true)
-    _plot(p, args...)
+    _plot(p, args...; kvs...)
 end
 
 const chartokens = [
-    '-' => {"linestyle" => "solid"},
-    ':' => {"linestyle" => "dotted"},
-    ';' => {"linestyle" => "dotdashed"},
-    '+' => {"symboltype" => "plus"},
-    'o' => {"symboltype" => "circle"},
-    '*' => {"symboltype" => "asterisk"},
-    '.' => {"symboltype" => "dot"},
-    'x' => {"symboltype" => "cross"},
-    's' => {"symboltype" => "square"},
-    'd' => {"symboltype" => "diamond"},
-    '^' => {"symboltype" => "triangle"},
-    'v' => {"symboltype" => "down-triangle"},
-    '>' => {"symboltype" => "right-triangle"},
-    '<' => {"symboltype" => "left-triangle"},
-    'y' => {"color" => "yellow"},
-    'm' => {"color" => "magenta"},
-    'c' => {"color" => "cyan"},
-    'r' => {"color" => "red"},
-    'g' => {"color" => "green"},
-    'b' => {"color" => "blue"},
-    'w' => {"color" => "white"},
-    'k' => {"color" => "black"},
+    '-' => {:linestyle => "solid"},
+    ':' => {:linestyle => "dotted"},
+    ';' => {:linestyle => "dotdashed"},
+    '+' => {:symboltype => "plus"},
+    'o' => {:symboltype => "circle"},
+    '*' => {:symboltype => "asterisk"},
+    '.' => {:symboltype => "dot"},
+    'x' => {:symboltype => "cross"},
+    's' => {:symboltype => "square"},
+    'd' => {:symboltype => "diamond"},
+    '^' => {:symboltype => "triangle"},
+    'v' => {:symboltype => "down-triangle"},
+    '>' => {:symboltype => "right-triangle"},
+    '<' => {:symboltype => "left-triangle"},
+    'y' => {:color => "yellow"},
+    'm' => {:color => "magenta"},
+    'c' => {:color => "cyan"},
+    'r' => {:color => "red"},
+    'g' => {:color => "green"},
+    'b' => {:color => "blue"},
+    'w' => {:color => "white"},
+    'k' => {:color => "black"},
 ]
 
 function _parse_style(spec::String)
@@ -70,7 +70,7 @@ function _parse_style(spec::String)
     for (k,v) in [ "--" => "dashed", "-." => "dotdashed" ]
         splitspec = split(spec, k)
         if length(splitspec) > 1
-            style["linestyle"] = v
+            style[:linestyle] = v
             spec = join(splitspec)
         end
     end
@@ -85,53 +85,29 @@ function _parse_style(spec::String)
     style
 end
 
-function args2array(args...)
-    n = length(args)
-    a = cell(n)
-    for i = 1:n
-        a[i] = args[i]
-    end
-    a
-end
-
-function _plot(p::FramedPlot, args...)
-    compose_plot(p, args...)
-    display(p)
-end
-
-function compose_plot(p::FramedPlot, args...)
-    args = args2array(args...)
-    n = length(args)
-    @assert n > 0
-    if n == 1
-        y = args[1]
-        x = 1:length(y)
-        add(p, Curve(x,y))
-        return p
-    end
-    while length(args) > 0
-        x = shift!(args)
-        if typeof(x) <: String
-            # TODO
-        else
-            y = shift!(args)
-            style = [ "linestyle" => "solid" ] # TODO:cycle colors
-            if length(args) > 0 && typeof(args[1]) <: String
-                a = shift!(args)
-                if a == "xlabel" || a == "ylabel" || a == "title"
-                    setattr(p, a, shift!(args))
-                else
-                    style = _parse_style(a)
-                end
-            end
-            if haskey(style, "linestyle")
-                add(p, Curve(x, y, style))
-            end
-            if haskey(style, "symboltype")
-                add(p, Points(x, y, style))
-            end
+_plot(p::FramedPlot, y; kvs...) = _plot(p, 1:length(y), y; kvs...)
+_plot(p::FramedPlot, y, spec::String; kvs...) = _plot(p, 1:length(y), y, spec; kvs...)
+function _plot(p::FramedPlot, x, y, args...; kvs...)
+    args = {args...}
+    while true
+        style = [ :linestyle => "solid" ] # TODO:cycle colors
+        if length(args) > 0 && typeof(args[1]) <: String
+            merge!(style, _parse_style(shift!(args)))
         end
+        if haskey(style, :linestyle)
+            add(p, Curve(x, y, style))
+        elseif haskey(style, :symboltype)
+            add(p, Points(x, y, style))
+        end
+        length(args) == 0 && break
+        length(args) == 1 && error("wrong number of arguments")
+        x = shift!(args)
+        y = shift!(args)
     end
+    for (k,v) in kvs
+        setattr(p, k, v)
+    end
+    display(p)
     p
 end
 

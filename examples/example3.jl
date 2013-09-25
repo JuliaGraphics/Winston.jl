@@ -2,13 +2,13 @@
 
 using Winston
 
-p = FramedPlot()
-setattr(p, "title", "Title")
-setattr(p, "xlabel", "X axis")
-setattr(p, "ylabel", "Y axis")
+p = FramedPlot(
+        title="Title",
+        xlabel="X axis",
+        ylabel="Y axis")
 
 add( p, Histogram(hist(randn(1000))...) )
-add( p, PlotLabel(.5, .5, "Histogram", "color", 0xcc0000) )
+add( p, PlotLabel(.5, .5, "Histogram", color=0xcc0000) )
 
 t1 = Table( 1, 2 )
 t1[1,1] = p

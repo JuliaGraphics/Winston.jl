@@ -182,7 +182,6 @@ function spy(S::SparseMatrixCSC, nrS::Integer, ncS::Integer)
 end
 
 spy(S::SparseMatrixCSC) = spy(S, 100, 100)
-
 spy(A::AbstractMatrix, nrS, ncS) = spy(sparse(A), nrS, ncS)
 spy(A::AbstractMatrix) = spy(sparse(A))
 

@@ -5,12 +5,13 @@ using Winston
 x = linspace( 0., 2pi, 30 )
 y = sin(x)
 
-p = FramedArray( 2, 2, "title", "title" )
-setattr( p, "aspect_ratio", 0.75 )
-setattr( p, "xlabel", "x label" )
-setattr( p, "ylabel", "y label" )
-setattr( p, "uniform_limits", true )
-setattr( p, "cellspacing", 1. )
+p = FramedArray( 2, 2,
+        title="title",
+        aspect_ratio=0.75,
+        xlabel="x label",
+        ylabel="y label",
+        uniform_limits=true,
+        cellspacing=1. )
 
 add( p, LineY(0, "type", "dot") )
 

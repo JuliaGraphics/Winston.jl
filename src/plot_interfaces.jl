@@ -79,7 +79,7 @@ function plot(f::Function, a::Real, b::Real;  kwargs...)
     p = FramedPlot()
     add(p, Curve(xs, ys))
     for (k, v) in kwargs
-        setattr(p, string(k), v)
+        setattr(p, k, v)
     end
     p
 end
@@ -99,7 +99,7 @@ function plot(fs::Vector{Function}, a::Real, b::Real; color::Vector{ASCIIString}
         add(p, Curve(xs, ys, "color", color[i]))
     end
     for (k, v) in kwargs
-        setattr(p, string(k), v)
+        setattr(p, k, v)
     end
     p
 end
@@ -114,7 +114,7 @@ function plot(fs::Array{Function, 2}, a::Real, b::Real; kwargs...)
         p = ps[i,j]
         tbl[i,j] = p
         for (k, v) in kwargs
-            setattr(p, string(k), v[i,j])
+            setattr(p, k, v[i,j])
         end
     end
 
@@ -130,7 +130,7 @@ function plot(fs::Tuple, a::Real, b::Real; npoints::Int=500, kwargs...)
     p = FramedPlot()
     add(p, Curve(xs, ys))
     for (k, v) in kwargs
-        setattr(p, string(k), v)
+        setattr(p, k, v)
     end
     p
 end
@@ -307,7 +307,7 @@ function plot(f::Contourc; kwargs...)
         end
     end
     for (k, v) in kwargs
-        setattr(p, string(k), v)
+        setattr(p, k, v)
     end
 
     p

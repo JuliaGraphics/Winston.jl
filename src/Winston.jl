@@ -27,7 +27,7 @@ include("renderer.jl")
 
 # utils -----------------------------------------------------------------------
 
-function args2dict(args...)
+function args2dict(args...; kvs...)
     opts = Dict{Symbol,Any}()
     if length(args) == 0
         return opts
@@ -45,6 +45,9 @@ function args2dict(args...)
             val, iter = next(args, iter)
             opts[symbol(arg)] = val
         end
+    end
+    for (k,v) in kvs
+        opts[k] = v
     end
     opts
 end
@@ -240,10 +243,10 @@ type Legend <: PlotComponent
     y
     components::Array{PlotComponent,1}
 
-    function Legend(x, y, components, args...)
+    function Legend(x, y, components, args...; kvs...)
         self = new(Dict())
-        conf_setattr(self)
-        kw_init(self, args...)
+        iniattr(self)
+        kw_init(self, args...; kvs...)
         self.x = x
         self.y = y
         self.components = components
@@ -304,10 +307,10 @@ type ErrorBarsX <: ErrorBar
     lo
     hi
 
-    function ErrorBarsX(y, lo, hi, args...)
+    function ErrorBarsX(y, lo, hi, args...; kvs...)
         self = new(Dict())
-        conf_setattr(self)
-        kw_init(self, args...)
+        iniattr(self)
+        kw_init(self, args...; kvs...)
         self.y = y
         self.lo = lo
         self.hi = hi
@@ -344,10 +347,10 @@ type ErrorBarsY <: ErrorBar
     lo
     hi
 
-    function ErrorBarsY(x, lo, hi, args...)
+    function ErrorBarsY(x, lo, hi, args...; kvs...)
         self = new(Dict())
-        conf_setattr(self)
-        kw_init(self, args...)
+        iniattr(self)
+        kw_init(self, args...; kvs...)
         self.x = x
         self.lo = lo
         self.hi = hi
@@ -613,7 +616,7 @@ type HalfAxisX <: HalfAxis
     func_subticks_default
     func_subticks_num
 
-    function HalfAxisX(args...)
+    function HalfAxisX(args...; kvs...)
         self = new(
             Dict(),
             (_ticks_default_linear, _ticks_default_log),
@@ -622,7 +625,7 @@ type HalfAxisX <: HalfAxis
             (_subticks_linear, _subticks_log),
        )
         iniattr(self)
-        kw_init(self, args...) 
+        kw_init(self, args...; kvs...)
         self
     end
 end
@@ -711,7 +714,7 @@ type HalfAxisY <: HalfAxis
     func_subticks_default
     func_subticks_num
 
-    function HalfAxisY(args...)
+    function HalfAxisY(args...; kvs...)
         self = new(
             Dict(),
             (_ticks_default_linear, _ticks_default_log),
@@ -720,7 +723,7 @@ type HalfAxisY <: HalfAxis
             (_subticks_linear, _subticks_log),
        )
         iniattr(self)
-        kw_init(self, args...)
+        kw_init(self, args...; kvs...)
         self
     end
 end
@@ -959,9 +962,9 @@ type PlotComposite <: HasStyle
     components::Vector{Any}
     dont_clip::Bool
 
-    function PlotComposite(args...)
+    function PlotComposite(args...; kvs...)
         self = new(Dict(), {}, false)
-        kw_init(self, args...)
+        kw_init(self, args...; kvs...)
         self
     end
 end
@@ -1063,7 +1066,7 @@ end
 
 # FramedPlot ------------------------------------------------------------------
 
-type _Alias
+type _Alias <: HasAttr
     objs
     _Alias(args...) = new(args)
 end
@@ -1082,7 +1085,7 @@ end
 #    return apply(_Alias, objs)
 #end
 
-function setattr(self::_Alias, name, value)
+function setattr(self::_Alias, name::Symbol, value)
     for obj in self.objs
         setattr(obj, name, value)
     end
@@ -1108,15 +1111,15 @@ type FramedPlot <: PlotContainer
     x::_Alias
     y::_Alias
 
-    function FramedPlot(args...)
+    function FramedPlot(args...; kvs...)
         x1 = HalfAxisX()
-        setattr(x1, "ticklabels_dir", -1)
+        setattr(x1, :ticklabels_dir, -1)
         y1 = HalfAxisY()
-        setattr(y1, "ticklabels_dir", -1)
+        setattr(y1, :ticklabels_dir, -1)
         x2 = HalfAxisX()
-        setattr(x2, "draw_ticklabels", nothing)
+        setattr(x2, :draw_ticklabels, nothing)
         y2 = HalfAxisY()
-        setattr(y2, "draw_ticklabels", nothing)
+        setattr(y2, :draw_ticklabels, nothing)
         self = new(
             Dict(),
             PlotComposite(),
@@ -1127,11 +1130,11 @@ type FramedPlot <: PlotContainer
             _Alias(x2, y2),
             _Alias(x1, x2),
             _Alias(y1, y2),
-       )
-        setattr(self.frame, "grid_style", ["linetype" => "dot"])
-        setattr(self.frame, "tickdir", -1)
-        setattr(self.frame1, "draw_grid", false)
-        iniattr(self, args...)
+        )
+        setattr(self.frame, :grid_style, ["linetype" => "dot"])
+        setattr(self.frame, :tickdir, -1)
+        setattr(self.frame1, :draw_grid, false)
+        iniattr(self, args...; kvs...)
         self
     end
 end
@@ -1285,7 +1288,7 @@ type Table <: PlotContainer
 
     function Table(rows, cols, args...)
         self = new(Dict())
-        conf_setattr(self, args...)
+        iniattr(self, args...)
         self.rows = rows
         self.cols = cols
         self.content = cell(rows, cols)
@@ -1350,7 +1353,7 @@ type Plot <: PlotContainer
 
     function Plot(args...)
         self = new(Dict())
-        conf_setattr(self, args...)
+        iniattr(self, args...)
         self.content = PlotComposite()
         self
     end
@@ -1435,7 +1438,7 @@ type FramedArray <: PlotContainer
     ncols::Int
     content::Array{Any,2}
 
-    function FramedArray(nrows, ncols, args...)
+    function FramedArray(nrows, ncols, args...; kvs...)
         self = new(Dict())
         self.nrows = nrows
         self.ncols = ncols
@@ -1445,7 +1448,7 @@ type FramedArray <: PlotContainer
                 self.content[i,j] = Plot()
             end
         end
-        conf_setattr(self, args...)
+        iniattr(self, args...; kvs...)
         self
     end
 end
@@ -1836,9 +1839,9 @@ function write_png(self::PlotContainer, filename::String, width::Int, height::In
     finish(surface)
 end
 
-function file(self::PlotContainer, filename::String, args...)
+function file(self::PlotContainer, filename::String, args...; kvs...)
     extn = filename[end-2:end]
-    opts = args2dict(args...)
+    opts = args2dict(args...; kvs...)
     if extn == "eps"
         width = get(opts,"width",config_value("eps","width"))
         height = get(opts,"height",config_value("eps","height"))
@@ -1856,9 +1859,9 @@ function file(self::PlotContainer, filename::String, args...)
     end
 end
 
-function file{T<:PlotContainer}(plots::Vector{T}, filename::String, args...)
+function file{T<:PlotContainer}(plots::Vector{T}, filename::String, args...; kvs...)
     extn = filename[end-2:end]
-    opts = args2dict(args...)
+    opts = args2dict(args...; kvs...)
     if extn == "pdf"
         width = get(opts,"width",config_value("pdf","width"))
         height = get(opts,"height",config_value("pdf","height"))
@@ -1868,8 +1871,8 @@ function file{T<:PlotContainer}(plots::Vector{T}, filename::String, args...)
     end
 end
 
-function svg(self::PlotContainer, args...)
-    opts = args2dict(args...)
+function svg(self::PlotContainer, args...; kvs...)
+    opts = args2dict(args...; kvs...)
     width = get(opts,"width",config_value("window","width"))
     height = get(opts,"height",config_value("window","height"))
     stream = IOBuffer()
@@ -1920,11 +1923,11 @@ type Curve <: LineComponent
     x
     y
 
-    function Curve(x::AbstractArray, y::AbstractArray, args...)
+    function Curve(x::AbstractArray, y::AbstractArray, args...; kvs...)
         attr = Dict() 
         self = new(attr, x, y)
         iniattr(self)
-        kw_init(self, args2dict(args...)...)
+        kw_init(self, args...; kvs...)
         self
     end
 end
@@ -1945,11 +1948,11 @@ type Slope <: LineComponent
     slope::Real
     intercept
 
-    function Slope(slope, intercept, args...)
+    function Slope(slope, intercept, args...; kvs...)
         #LineComponent.__init__(self)
         self = new(Dict())
-        conf_setattr(self)
-        kw_init(self, args...)
+        iniattr(self)
+        kw_init(self, args...; kvs...)
         self.slope = slope
         self.intercept = intercept
         self
@@ -1999,10 +2002,10 @@ type Histogram <: LineComponent
     edges::AbstractVector
     values::AbstractVector
 
-    function Histogram(edges, counts, args...)
+    function Histogram(edges, counts, args...; kvs...)
         self = new(Dict())
-        conf_setattr(self)
-        kw_init(self, args...)
+        iniattr(self)
+        kw_init(self, args...; kvs...)
         self.edges = edges
         self.values = counts
         self
@@ -2047,10 +2050,10 @@ type LineX <: LineComponent
     attr::PlotAttributes
     x
 
-    function LineX(x, args...)
+    function LineX(x, args...; kvs...)
         self = new(Dict())
-        conf_setattr(self)
-        kw_init(self, args...)
+        iniattr(self)
+        kw_init(self, args...; kvs...)
         self.x = x
         self
     end
@@ -2071,10 +2074,10 @@ type LineY <: LineComponent
     attr::PlotAttributes
     y
 
-    function LineY(y, args...)
+    function LineY(y, args...; kvs...)
         self = new(Dict())
-        conf_setattr(self)
-        kw_init(self, args...)
+        iniattr(self)
+        kw_init(self, args...; kvs...)
         self.y = y
         self
     end
@@ -2098,10 +2101,10 @@ type BoxLabel <: PlotComponent
     side
     offset
 
-    function BoxLabel(obj, str::String, side, offset, args...)
+    function BoxLabel(obj, str::String, side, offset, args...; kvs...)
         @assert !is(str,nothing)
         self = new(Dict(), obj, str, side, offset)
-        kw_init(self, args...)
+        kw_init(self, args...; kvs...)
         self
     end
 end
@@ -2163,10 +2166,10 @@ type DataLabel <: LabelComponent
     pos::Point
     str::String
 
-    function DataLabel(x, y, str, args...)
+    function DataLabel(x, y, str, args...; kvs...)
         self = new(Dict())
-        conf_setattr(self)
-        kw_init(self, args...)
+        iniattr(self)
+        kw_init(self, args...; kvs...)
         self.pos = Point(x, y)
         self.str = str
         self
@@ -2185,10 +2188,10 @@ type PlotLabel <: LabelComponent
     pos::Point
     str::String
 
-    function PlotLabel(x, y, str, args...)
+    function PlotLabel(x, y, str, args...; kvs...)
         self = new(Dict())
-        conf_setattr(self)
-        kw_init(self, args...)
+        iniattr(self)
+        kw_init(self, args...; kvs...)
         self.pos = Point(x, y)
         self.str = str
         self
@@ -2208,9 +2211,9 @@ end
 #
 #    function __init__(self, x, y, labels, args...)
 #        _PlotComponent.__init__(self)
-#        self.conf_setattr("LabelsComponent")
-#        self.conf_setattr("Labels")
-#        kw_init(self, args...)
+#        self.iniattr("LabelsComponent")
+#        self.iniattr("Labels")
+#        kw_init(self, args...; kvs...)
 #        self.x = x
 #        self.y = y
 #        self.labels = labels
@@ -2254,10 +2257,10 @@ type FillAbove <: FillComponent
     x
     y
 
-    function FillAbove(x, y, args...)
+    function FillAbove(x, y, args...; kvs...)
         self = new(Dict())
-        conf_setattr(self)
-        kw_init(self, args...)
+        iniattr(self)
+        kw_init(self, args...; kvs...)
         self.x = x
         self.y = y
         self
@@ -2281,10 +2284,10 @@ type FillBelow <: FillComponent
     x
     y
 
-    function FillBelow(x, y, args...)
+    function FillBelow(x, y, args...; kvs...)
         self = new(Dict())
-        conf_setattr(self)
-        kw_init(self, args...)
+        iniattr(self)
+        kw_init(self, args...; kvs...)
         self.x = x
         self.y = y
         self
@@ -2310,10 +2313,10 @@ type FillBetween <: FillComponent
     x2
     y2
 
-    function FillBetween(x1, y1, x2, y2, args...)
+    function FillBetween(x1, y1, x2, y2, args...; kvs...)
         self = new(Dict())
-        conf_setattr(self)
-        kw_init(self, args...)
+        iniattr(self)
+        kw_init(self, args...; kvs...)
         self.x1 = x1
         self.y1 = y1
         self.x2 = x2
@@ -2349,14 +2352,14 @@ type Image <: ImageComponent
     w
     h
 
-    function Image(xrange, yrange, img, args...)
+    function Image(xrange, yrange, img, args...; kvs...)
         x = min(xrange)
         y = min(yrange)
         w = abs(xrange[2] - xrange[1])
         h = abs(yrange[2] - yrange[1])
         self = new(Dict(), img, x, y, w, h)
-        conf_setattr(self)
-        kw_init(self, args...)
+        iniattr(self)
+        kw_init(self, args...; kvs...)
         self
     end
 end
@@ -2391,10 +2394,10 @@ type Points <: SymbolDataComponent
     x
     y
 
-    function Points(x, y, args...)
+    function Points(x, y, args...; kvs...)
         self = new(Dict())
-        conf_setattr(self)
-        kw_init(self, args...)
+        iniattr(self)
+        kw_init(self, args...; kvs...)
         self.x = x
         self.y = y
         self
@@ -2425,10 +2428,10 @@ type ColoredPoints <: SymbolDataComponent
     y
     c
 
-    function ColoredPoints(x, y, c, args...)
+    function ColoredPoints(x, y, c, args...; kvs...)
         self = new(Dict())
-        conf_setattr(self)
-        kw_init(self, args...)
+        iniattr(self)
+        kw_init(self, args...; kvs...)
         self.x = x
         self.y = y
         self.c = c
@@ -2514,8 +2517,9 @@ hasattr(self::HasAttr, name::String) = hasattr(self, symbol(name))
 getattr(self::HasAttr, name::String) = getattr(self, symbol(name))
 getattr(self::HasAttr, name::String, notfound) = getattr(self, symbol(name), notfound)
 setattr(self::HasAttr, name::String, value) = setattr(self, symbol(name), value)
+setattr(self::HasAttr; kvs...) = (for (k,v) in kvs; setattr(self, k, v); end)
 
-function iniattr(self::HasAttr, args...)
+function iniattr(self::HasAttr, args...; kvs...)
     types = {typeof(self)}
     while super(types[end]) != Any
         push!(types, super(types[end]))
@@ -2529,16 +2533,17 @@ function iniattr(self::HasAttr, args...)
     for (k,v) in args2dict(args...)
         setattr(self, k, v)
     end
+    for (k,v) in kvs
+        setattr(self, k, v)
+    end
 end
-
-const conf_setattr = iniattr
 
 # HasStyle ---------------------------------------------------------------
 
 kw_defaults(x) = Dict{Symbol,Any}()
 _kw_rename(x) = (Symbol=>Symbol)[]
 
-function kw_init(self::HasStyle, args...)
+function kw_init(self::HasStyle, args...; kvs...)
     # jeez, what a mess...
     sty = Dict{Symbol,Any}()
     for (k,v) in kw_defaults(self)
@@ -2552,6 +2557,9 @@ function kw_init(self::HasStyle, args...)
     setattr(self, :style, sty)
     for (key, value) in args2dict(args...)
         kw_set(self, key, value)
+    end
+    for (k,v) in kvs
+        kw_set(self, k, v)
     end
 end
 

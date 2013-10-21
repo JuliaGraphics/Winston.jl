@@ -68,7 +68,7 @@ upperleft(bb::BoundingBox) = Point(bb.xmin, bb.ymax)
 lowerright(bb::BoundingBox) = Point(bb.xmax, bb.ymin)
 upperright(bb::BoundingBox) = Point(bb.xmax, bb.ymax)
 
-maxfinite(A) = max(A)
+maxfinite(A) = maximum(A)
 maxfinite(x, y) = max(x, y)
 function maxfinite{T<:FloatingPoint}(A::AbstractArray{T})
     ret = nan(T)
@@ -90,7 +90,7 @@ end
 maxfinite(x::FloatingPoint, y) = isfinite(x) ? max(x, y) : y
 maxfinite(x, y::FloatingPoint) = isfinite(y) ? max(x, y) : x
 
-minfinite(A) = min(A)
+minfinite(A) = minimum(A)
 minfinite(x, y) = min(x, y)
 function minfinite{T<:FloatingPoint}(A::AbstractArray{T})
     ret = nan(T)
@@ -845,7 +845,7 @@ function _ticklabels(self::HalfAxis, context, ticks)
     if !isequal(ticklabels,nothing)
         return ticklabels
     end
-    r = max(ticks) - min(ticks)
+    r = maximum(ticks) - minimum(ticks)
     [ _format_ticklabel(x,r) for x=ticks ]
 end
 
@@ -2353,8 +2353,8 @@ type Image <: ImageComponent
     h
 
     function Image(xrange, yrange, img, args...; kvs...)
-        x = min(xrange)
-        y = min(yrange)
+        x = minimum(xrange)
+        y = minimum(yrange)
         w = abs(xrange[2] - xrange[1])
         h = abs(yrange[2] - yrange[1])
         self = new(Dict(), img, x, y, w, h)

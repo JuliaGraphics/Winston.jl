@@ -4,7 +4,7 @@ output_surface = symbol(lowercase(get(ENV, "WINSTON_OUTPUT", output_surface)))
 import Cairo
 using Color
 
-export imagesc, plot, semilogx, semilogy, loglog
+export imagesc, plot, oplot, semilogx, semilogy, loglog
 export file, spy, plothist
 
 if output_surface == :gtk
@@ -15,11 +15,24 @@ else
     assert(false)
 end
 
-function plot(args...; kvs...)
-    p = FramedPlot()
-    _plot(p, args...; kvs...)
+global _pwinston
+
+file(fname::String)=file(_pwinston,fname)
+
+#main plot function
+function plot(args...; overplot=false,kvs...)
+    if !overplot
+        global _pwinston = FramedPlot()
+    end    
+    _plot(_pwinston,args...; kvs...)
 end
 
+#shortcuts for overplotting
+plot(p::FramedPlot,args...; kvs...)=_plot(p, args...; kvs...)
+oplot(args...; kvs...)=_plot(_pwinston,args...; kvs...)
+oplot(p::FramedPlot,args...; kvs...)=(p2=deepcopy(p); _plot(p2, args...; kvs...))
+
+#shortcuts for creating log-scale plots
 semilogx(args...; kvs...)=plot(args...; xlog=true, kvs...)
 semilogy(args...; kvs...)=plot(args...; ylog=true, kvs...)
 loglog(args...; kvs...)=plot(args...; xlog=true,ylog=true, kvs...)
@@ -79,11 +92,12 @@ function _plot(p::FramedPlot, x, y, args...; kvs...)
         if length(args) > 0 && typeof(args[1]) <: String
             merge!(style, _parse_style(shift!(args)))
         end
-        if haskey(style, :linestyle)
-            add(p, Curve(x, y, style))
-        elseif haskey(style, :symboltype)
+        if haskey(style, :symboltype)
             add(p, Points(x, y, style))
+        else
+            add(p, Curve(x, y, style))
         end
+
         length(args) == 0 && break
         length(args) == 1 && error("wrong number of arguments")
         x = shift!(args)
@@ -94,6 +108,8 @@ function _plot(p::FramedPlot, x, y, args...; kvs...)
         setattr(p, k, v)
     end
 #    display(p)
+
+    global _pwinston=p
     p
 end
 

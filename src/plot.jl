@@ -111,16 +111,33 @@ _plot(p::FramedPlot, y; kvs...) = _plot(p, 1:length(y), y; kvs...)
 _plot(p::FramedPlot, y, spec::String; kvs...) = _plot(p, 1:length(y), y, spec; kvs...)
 function _plot(p::FramedPlot, x, y, args...; kvs...)
     args = {args...}
+
     while true
-        style = [ :linestyle => "solid" ] # TODO:cycle colors
+        sopts = [ :linestyle => "solid" ] # TODO:cycle colors
         if length(args) > 0 && typeof(args[1]) <: String
-            merge!(style, _parse_style(shift!(args)))
+            merge!(sopts, _parse_style(shift!(args)))
         end
-        if haskey(style, :symboltype)
-            add(p, Points(x, y, style))
+        if haskey(sopts, :symboltype)
+            c=Points(x,y,sopts)
+        elseif length(args)==0
+            #special case of last argument
+            #we need to take named arguments also into account
+            c=Curve(x,y,sopts)
+            for (k,v) in kvs
+                if k==:symboltype
+                    c=Points(x,y,sopts)
+                    break
+                end
+            end
+            for (k,v) in kvs
+                if in(k,[:linetype,:symboltype,:color])
+                    style(c,k,v)
+                end
+            end
         else
-            add(p, Curve(x, y, style))
+            c=Curve(x,y,sopts)
         end
+        add(p,c)
 
         length(args) == 0 && break
         length(args) == 1 && error("wrong number of arguments")

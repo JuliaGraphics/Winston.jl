@@ -4,8 +4,10 @@ output_surface = symbol(lowercase(get(ENV, "WINSTON_OUTPUT", output_surface)))
 import Cairo
 using Color
 
-export imagesc, plot, oplot, semilogx, semilogy, loglog
-export file, spy, plothist
+export file,inset
+export plot,oplot,semilogx,semilogy,loglog,plothist
+export spy,imagesc
+export fillbetween
 
 if output_surface == :gtk
     include("gtk.jl")
@@ -17,7 +19,9 @@ end
 
 global _pwinston
 
+#system functions
 file(fname::String)=file(_pwinston,fname)
+display()=display(_pwinston)
 
 #main plot function
 function plot(args...; overplot=false,kvs...)
@@ -36,6 +40,26 @@ oplot(p::FramedPlot,args...; kvs...)=(p2=deepcopy(p); _plot(p2, args...; kvs...)
 semilogx(args...; kvs...)=plot(args...; xlog=true, kvs...)
 semilogy(args...; kvs...)=plot(args...; ylog=true, kvs...)
 loglog(args...; kvs...)=plot(args...; xlog=true,ylog=true, kvs...)
+
+#inset
+inset(xA,yA,xB,yB,ins)=inset(_pwinston,xA,yA,xB,yB,ins)
+inset(p::FramedPlot,xA::Real,yA::Real,xB::Real,yB::Real,ins::FramedPlot)=add(p,PlotInset((xA,yA),(xB,yB),ins))
+
+
+#filling
+#TODO: fill using lines e.g. \\\ ||| XXX
+fillbetween(xA,yA,xB,yB; kvs...)=fillbetween(_pwinston,xA,yA,xB,yB; kvs...)
+function fillbetween(p::FramedPlot,xA,yA,xB,yB; kvs...)
+    c=FillBetween(xA,yA,xB,yB)
+    for (k,v) in kvs
+        style(c,k,v)
+    end
+    add(p,c)
+    p
+end
+
+
+
 
 const chartokens = [
     '-' => {:linestyle => "solid"},

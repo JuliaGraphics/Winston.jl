@@ -20,24 +20,9 @@ function plot(args...; kvs...)
     _plot(p, args...; kvs...)
 end
 
-function semilogx(args...; kvs...)
-    p = FramedPlot()
-    setattr(p, "xlog", true)
-    _plot(p, args...; kvs...)
-end
-
-function semilogy(args...; kvs...)
-    p = FramedPlot()
-    setattr(p, "ylog", true)
-    _plot(p, args...; kvs...)
-end
-
-function loglog(args...; kvs...)
-    p = FramedPlot()
-    setattr(p, "xlog", true)
-    setattr(p, "ylog", true)
-    _plot(p, args...; kvs...)
-end
+semilogx(args...; kvs...)=plot(args...; xlog=true, kvs...)
+semilogy(args...; kvs...)=plot(args...; ylog=true, kvs...)
+loglog(args...; kvs...)=plot(args...; xlog=true,ylog=true, kvs...)
 
 const chartokens = [
     '-' => {:linestyle => "solid"},
@@ -104,10 +89,11 @@ function _plot(p::FramedPlot, x, y, args...; kvs...)
         x = shift!(args)
         y = shift!(args)
     end
+
     for (k,v) in kvs
         setattr(p, k, v)
     end
-    display(p)
+#    display(p)
     p
 end
 

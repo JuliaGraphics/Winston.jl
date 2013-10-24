@@ -14,7 +14,7 @@ y5=e.^(-3x)
 
 #basic tests
 ###############
-#plot(x,y3,"-r",yrange=[1.0,2.0e4],ylog=true,linewidth=5.,draw_spine=false)
+#plot(x,y3,"-r",yrange=[1.0,2.0e4],ylog=true,linewidth=5.)
 #loglog(x,y3,"-rd",xrange=[1,10],yrange=[1.0,2.0e4],linewidth=5.)
 
 #overplot behaviour
@@ -32,6 +32,5 @@ file(p2,"oplot_test2.png") #save p2
 file(p3,"oplot_test3.png") #save p3
 file("oplot_testw.png") #save last fig i.e. p3
 
-p2=plot(p2,x,y5,"vk") #oplot to p2
-file(p2,"oplot_test4.png") #save new p2
-file("oplot_testw2.png") #save last fig i.e. p2
+plot(p2,x,y5,"vk") #Make new fig that overplots to p2
+file("oplot_testw2.png") #save it

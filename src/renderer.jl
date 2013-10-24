@@ -245,9 +245,14 @@ function curve(self::CairoRenderer, x::AbstractVector, y::AbstractVector)
         move_to(self.ctx, x[i], y[i])
         for i = i+1:n
             line_to(self, x[i], y[i])
+            if i == n || (i&127)==0
+                stroke(self.ctx)
+                if i < n
+                    move_to(self, x[i], y[i])
+                end
+            end
         end
     end
-    stroke(self.ctx)
 end
 
 image(r::CairoRenderer, src, x, y, w, h) = image(r.ctx, src, x, y, w, h)

@@ -22,6 +22,8 @@ for the Cairo and Tk packages will attempt to install these for you, but
 there are some pre-requisites depending on whether you choose to build from source
 or to use a package manager.
 
+Windows: *all dependencies will be installed automatically using [WinRPM](https://github.com/JuliaLang/WinRPM.jl).*
+
 OS X (MacPorts):
 
     $ sudo port install cairo +x11

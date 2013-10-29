@@ -73,7 +73,7 @@ const __pl_style_func = [
     :linecolor => set_color,
     :fillcolor => set_color,
     :linestyle => set_line_type,
-    :linetype  => set_line_type,
+    :linekind  => set_line_type,
     :linewidth => set_line_width,
     :filltype  => set_fill_type,
     :cliprect  => set_clip_rect,
@@ -205,7 +205,7 @@ const symbol_funcs = {
 }
 
 function symbols(self::CairoRenderer, x, y)
-    fullname = get(self.state, :symboltype, "square")
+    fullname = get(self.state, :symbolkind, "square")
     size = get(self.state, :symbolsize, 0.01)
 
     splitname = split(fullname)
@@ -245,9 +245,14 @@ function curve(self::CairoRenderer, x::AbstractVector, y::AbstractVector)
         move_to(self.ctx, x[i], y[i])
         for i = i+1:n
             line_to(self, x[i], y[i])
+            if i == n || (i&127)==0
+                stroke(self.ctx)
+                if i < n
+                    move_to(self, x[i], y[i])
+                end
+            end
         end
     end
-    stroke(self.ctx)
 end
 
 image(r::CairoRenderer, src, x, y, w, h) = image(r.ctx, src, x, y, w, h)

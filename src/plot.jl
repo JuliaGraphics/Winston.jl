@@ -62,20 +62,20 @@ end
 
 
 const chartokens = [
-    '-' => {:linestyle => "solid"},
-    ':' => {:linestyle => "dotted"},
-    ';' => {:linestyle => "dotdashed"},
-    '+' => {:symboltype => "plus"},
-    'o' => {:symboltype => "circle"},
-    '*' => {:symboltype => "asterisk"},
-    '.' => {:symboltype => "dot"},
-    'x' => {:symboltype => "cross"},
-    's' => {:symboltype => "square"},
-    'd' => {:symboltype => "diamond"},
-    '^' => {:symboltype => "triangle"},
-    'v' => {:symboltype => "down-triangle"},
-    '>' => {:symboltype => "right-triangle"},
-    '<' => {:symboltype => "left-triangle"},
+    '-' => {:linekind => "solid"},
+    ':' => {:linekind => "dotted"},
+    ';' => {:linekind => "dotdashed"},
+    '+' => {:symbolkind => "plus"},
+    'o' => {:symbolkind => "circle"},
+    '*' => {:symbolkind => "asterisk"},
+    '.' => {:symbolkind => "dot"},
+    'x' => {:symbolkind => "cross"},
+    's' => {:symbolkind => "square"},
+    'd' => {:symbolkind => "diamond"},
+    '^' => {:symbolkind => "triangle"},
+    'v' => {:symbolkind => "down-triangle"},
+    '>' => {:symbolkind => "right-triangle"},
+    '<' => {:symbolkind => "left-triangle"},
     'y' => {:color => "yellow"},
     'm' => {:color => "magenta"},
     'c' => {:color => "cyan"},
@@ -92,7 +92,7 @@ function _parse_style(spec::String)
     for (k,v) in [ "--" => "dashed", "-." => "dotdashed" ]
         splitspec = split(spec, k)
         if length(splitspec) > 1
-            style[:linestyle] = v
+            style[:linekind] = v
             spec = join(splitspec)
         end
     end
@@ -113,24 +113,24 @@ function _plot(p::FramedPlot, x, y, args...; kvs...)
     args = {args...}
 
     while true
-        sopts = [ :linestyle => "solid" ] # TODO:cycle colors
+        sopts = [ :linekind => "solid" ] # TODO:cycle colors
         if length(args) > 0 && typeof(args[1]) <: String
             merge!(sopts, _parse_style(shift!(args)))
         end
-        if haskey(sopts, :symboltype)
+        if haskey(sopts, :symbolkind)
             c=Points(x,y,sopts)
         elseif length(args)==0
             #special case of last argument
             #we need to take named arguments also into account
             c=Curve(x,y,sopts)
             for (k,v) in kvs
-                if k==:symboltype
+                if k==:symbolkind
                     c=Points(x,y,sopts)
                     break
                 end
             end
             for (k,v) in kvs
-                if in(k,[:linetype,:symboltype,:color])
+                if in(k,[:linekind,:symbolkind,:color,:linewidth])
                     style(c,k,v)
                 end
             end
@@ -159,10 +159,14 @@ typealias Interval (Real,Real)
 function data2rgb{T<:Real}(data::AbstractArray{T,2}, limits::Interval, colormap)
     img = similar(data, Uint32)
     ncolors = length(colormap)
+    limlower = limits[1]
+    limscale = ncolors/(limits[2]-limits[1])
     for i = 1:length(data)
         datai = data[i]
         if isfinite(datai)
-            idx = iceil(ncolors*(datai - limits[1])/(limits[2] - limits[1]))
+            idxr = limscale*(datai - limlower)
+            idx = itrunc(idxr)
+            idx += idxr > convert(T, idx)
             if idx < 1 idx = 1 end
             if idx > ncolors idx = ncolors end
             img[i] = colormap[idx]

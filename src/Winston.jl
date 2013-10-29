@@ -298,7 +298,7 @@ abstract ErrorBar <: PlotComponent
 _kw_rename(::ErrorBar) = [
     :color => :linecolor,
     :width => :linewidth,
-    :type => :linetype,
+    :kind => :linekind,
 ]
 
 type ErrorBarsX <: ErrorBar
@@ -1131,7 +1131,7 @@ type FramedPlot <: PlotContainer
             _Alias(x1, x2),
             _Alias(y1, y2),
         )
-        setattr(self.frame, :grid_style, ["linetype" => "dot"])
+        setattr(self.frame, :grid_style, ["linekind" => "dot"])
         setattr(self.frame, :tickdir, -1)
         setattr(self.frame1, :draw_grid, false)
         iniattr(self, args...; kvs...)
@@ -1907,8 +1907,11 @@ abstract LineComponent <: PlotComponent
 
 _kw_rename(::LineComponent) = [
     :color => :linecolor,
+    :kind => :linekind,
     :width => :linewidth,
-    :type => :linetype,
+    # deprecated
+    :type => :linekind,
+    :linetype => :linekind,
 ]
 
 function make_key(self::LineComponent, bbox::BoundingBox)
@@ -2258,7 +2261,7 @@ end
 
 kw_defaults(::FillComponent) = [
     :color => config_value("FillComponent","fillcolor"),
-    :filltype => config_value("FillComponent","filltype"),
+    :fillkind => config_value("FillComponent","fillkind"),
 ]
 
 type FillAbove <: FillComponent
@@ -2389,8 +2392,11 @@ end
 abstract SymbolDataComponent <: PlotComponent
 
 _kw_rename(::SymbolDataComponent) = [
-    :type => :symboltype,
+    :kind => :symbolkind,
     :size => :symbolsize,
+    # deprecated
+    :type => :symbolkind,
+    :symboltype => :symbolkind,
 ]
 
 function make_key(self::SymbolDataComponent, bbox::BoundingBox)
@@ -2414,7 +2420,7 @@ type Points <: SymbolDataComponent
 end
 
 kw_defaults(::SymbolDataComponent) = [
-    :symboltype => config_value("Points","symboltype"),
+    :symbolkind => config_value("Points","symbolkind"),
     :symbolsize => config_value("Points","symbolsize"),
 ]
 
@@ -2449,7 +2455,7 @@ type ColoredPoints <: SymbolDataComponent
 end
 
 kw_defaults(::ColoredPoints) = [
-    :symboltype => config_value("Points","symboltype"),
+    :symbolkind => config_value("Points","symbolkind"),
     :symbolsize => config_value("Points","symbolsize"),
 ]
 
@@ -2580,8 +2586,11 @@ function kw_set(self::HasStyle, name, value)
     getattr(self, :style)[key] = value
 end
 
-function style(self::HasStyle, args...)
+function style(self::HasStyle, args...; kws...)
     for (key,val) in args2dict(args...)
+        kw_set(self, key, val)
+    end
+    for (key,val) in kws 
         kw_set(self, key, val)
     end
 end

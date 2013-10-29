@@ -94,10 +94,10 @@ function _plot(p::FramedPlot, x, y, args...; kvs...)
         if length(args) > 0 && typeof(args[1]) <: String
             merge!(style, _parse_style(shift!(args)))
         end
-        if haskey(style, :linestyle)
-            add(p, Curve(x, y, style))
-        elseif haskey(style, :symbolkind)
+        if haskey(style, :symbolkind)
             add(p, Points(x, y, style))
+        else
+            add(p, Curve(x, y, style))
         end
         length(args) == 0 && break
         length(args) == 1 && error("wrong number of arguments")

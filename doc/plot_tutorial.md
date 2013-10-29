@@ -27,7 +27,7 @@ For even more awesome figures we can use the named variables like this
 ```julia
 plot(x,y,symboltype="filled circle",color=0xcc0000,xrange=[10,100],xlog=true)
 ```
-All the named variables are same as in Winston itself. List can be found from [Winston reference sheet](https://github.com/nolta/Winston.jl/blob/master/doc/reference.md)
+All the named variables are same as in Winston itself. List can be found from [Winston reference sheet](https://github.com/nolta/Winston.jl/blob/master/doc/reference.md).
 
 
 Managing multiple figures
@@ -62,42 +62,47 @@ plot(p2,x,y5,"vk") #Make new fig that overplots to p2
 file("oplot_test5.png") #save it
 ```
 
-Other functions
+List of functions
 ===============
 In addition to `plot` & `oplot`, there exists a few shortcuts for commonly used things.
 
+---
 ```julia
 semilogx(x,y,args,kwargs)
 ```
 Logarithmic x-axis. This is the same as writing `plot(x,y,args,xlog=true,kwargs)`.
 
+---
 ```julia
 semilogy(x,y,args,kwargs)
 ```
 Logarithmic y-axis. This is the same as writing `plot(x,y,args,ylog=true,kwargs)`.
 
+---
 ```julia
 loglog(x,y,args,kwargs)
 ```
 Logarithmic x- and y-axis. This is the same as writing `plot(x,y,args,xlog=true,ylog=true,kwargs)`.
 
+---
 ```julia
 fillbetween(xA,yA,xB,yB,kwargs)
 ```
 Fill the area between xA & yA and xB & yB. To change the color of the area, use the named argument `color=XXX`.
 
+---
 ```julia
 spy(M)
 ```
 Plots the sparsity pattern of any matrix M.
 
+---
 
 Examples
 ========
 
 Example 1
 ---------
-![Example 1](http://www.cita.utoronto.ca/~nolta/julia/winston/examples/example1.png)
 
 ```julia
 using Winston
@@ -113,7 +118,6 @@ file("example1_2.png")
 ```
 Example 2
 ---------
-![Example 2](http://www.cita.utoronto.ca/~nolta/julia/winston/examples/example2.png)
 
 ```julia
 using Winston

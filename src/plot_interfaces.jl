@@ -17,7 +17,7 @@ errs_to_nan(f) = (x) -> try f(x) catch e NaN end
 typealias ScatterPlotPoints{T<:Real, S<:Real} (Vector{T}, Vector{S})
 
 function _plot(p::FramedPlot, x::ScatterPlotPoints, args...; kwargs...)
-    _plot(p, x[1], x[2], args...; symboltype="circle", kwargs...)
+    _plot(p, x[1], x[2], args...; symbolkind="circle", kwargs...)
 end
 
 function _plot(p::FramedPlot, f::Function, a::Real, b::Real, args...;  kwargs...)

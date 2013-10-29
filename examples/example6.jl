@@ -1,5 +1,3 @@
-#!/usr/bin/env julia
-
 using Winston
 
 x = linspace(pi, 3pi, 60)
@@ -19,5 +17,4 @@ setattr(p.y2, label="right", draw_ticks=false,
 add(p, Curve(x, c, kind="dash"))
 add(p, Curve(x, s))
 
-#file(p, "example6.eps")
 file(p, "example6.png")

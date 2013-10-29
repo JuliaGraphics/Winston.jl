@@ -1,7 +1,5 @@
-#!/usr/bin/env julia
-
 using Winston
- 
+
 x = linspace(0., 2pi, 30)
 y = sin(x)
 
@@ -20,5 +18,4 @@ add(p[1,2], Curve(x, .50*y))
 add(p[2,1], Curve(x, .75*y))
 add(p[2,2], Curve(x, y))
 
-#file(p, "example5.eps")
 file(p, "example5.png")

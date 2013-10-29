@@ -1,5 +1,3 @@
-#!/usr/bin/env julia
-
 using Winston
 
 p = FramedPlot(
@@ -18,7 +16,4 @@ t2 = Table(2, 1)
 t2[1,1] = t1
 t2[2,1] = p
 
-#file(t2, "example3.eps")
 file(t2, "example3.png")
-
-p = t2

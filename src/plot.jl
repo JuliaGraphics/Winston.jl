@@ -43,17 +43,17 @@ const chartokens = [
     '-' => {:linestyle => "solid"},
     ':' => {:linestyle => "dotted"},
     ';' => {:linestyle => "dotdashed"},
-    '+' => {:symboltype => "plus"},
-    'o' => {:symboltype => "circle"},
-    '*' => {:symboltype => "asterisk"},
-    '.' => {:symboltype => "dot"},
-    'x' => {:symboltype => "cross"},
-    's' => {:symboltype => "square"},
-    'd' => {:symboltype => "diamond"},
-    '^' => {:symboltype => "triangle"},
-    'v' => {:symboltype => "down-triangle"},
-    '>' => {:symboltype => "right-triangle"},
-    '<' => {:symboltype => "left-triangle"},
+    '+' => {:symbolkind => "plus"},
+    'o' => {:symbolkind => "circle"},
+    '*' => {:symbolkind => "asterisk"},
+    '.' => {:symbolkind => "dot"},
+    'x' => {:symbolkind => "cross"},
+    's' => {:symbolkind => "square"},
+    'd' => {:symbolkind => "diamond"},
+    '^' => {:symbolkind => "triangle"},
+    'v' => {:symbolkind => "down-triangle"},
+    '>' => {:symbolkind => "right-triangle"},
+    '<' => {:symbolkind => "left-triangle"},
     'y' => {:color => "yellow"},
     'm' => {:color => "magenta"},
     'c' => {:color => "cyan"},
@@ -96,7 +96,7 @@ function _plot(p::FramedPlot, x, y, args...; kvs...)
         end
         if haskey(style, :linestyle)
             add(p, Curve(x, y, style))
-        elseif haskey(style, :symboltype)
+        elseif haskey(style, :symbolkind)
             add(p, Points(x, y, style))
         end
         length(args) == 0 && break

@@ -9,7 +9,7 @@ c = cos(x)
 inset = FramedPlot(title="inset")
 setattr(inset.frame, draw_ticks=false)
 
-add( inset, Curve(x, s, "type", "dashed") )
+add( inset, Curve(x, s, kind="dashed") )
 
 p = FramedPlot(aspect_ratio=1)
 setattr(p.frame, tickdir=+1, draw_spine=false)

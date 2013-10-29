@@ -16,7 +16,7 @@ setattr( p.x2, label="top", range=(10,1000), log=true)
 setattr(p.y2, label="right", draw_ticks=false,
     ticklabels=["-1", "-1/2", "0", "1/2", "1"])
 
-add( p, Curve(x, c, "type", "dash") )
+add( p, Curve(x, c, kind="dash") )
 add( p, Curve(x, s) )
 
 #file(p, "example6.eps")

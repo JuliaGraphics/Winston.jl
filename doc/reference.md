@@ -494,7 +494,7 @@ Keywords which are not relevant (for instance, setting `fontface` for a `Line` o
 are ignored. After creation, style keywords can be set using the
 `style` member function:
 ```
-style( c, "linetype", "dotted" )
+style( c, "linekind", "dotted" )
 ```
 
 <table>
@@ -507,7 +507,7 @@ A list of acceptable names can be found in `rgb.txt` (usually found in `/usr/lib
 and `colors.txt` (usually found in `/usr/share/libplot/`).
 </td></tr>
 
-<tr><td> linetype </td><td> String
+<tr><td> linekind </td><td> String
 </td><td>
 Line types are specified by name. Valid names include:
 <pre>
@@ -526,7 +526,7 @@ Line types are specified by name. Valid names include:
 </td><td>
 </td></tr>
 
-<tr><td> symboltype </td><td> Char | String
+<tr><td> symbolkind </td><td> Char | String
 </td><td>
 Symbol types can be specified by name or by character.
 If a character the font character is used as the plot symbol.
@@ -597,7 +597,7 @@ to be changed. Here's a few you might want to change:
 </tr>
 
 
-<tr><td> symboltype </td><td> diamond
+<tr><td> symbolkind </td><td> diamond
 </td>
 <td>
 

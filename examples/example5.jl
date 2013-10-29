@@ -13,7 +13,7 @@ p = FramedArray( 2, 2,
         uniform_limits=true,
         cellspacing=1. )
 
-add( p, LineY(0, "type", "dot") )
+add( p, LineY(0, kind="dot") )
 
 add( p[1,1], Curve(x, .25*y) )
 add( p[1,2], Curve(x, .50*y) )

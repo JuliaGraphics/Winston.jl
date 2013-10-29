@@ -73,7 +73,7 @@ const __pl_style_func = [
     :linecolor => set_color,
     :fillcolor => set_color,
     :linestyle => set_line_type,
-    :linetype  => set_line_type,
+    :linekind  => set_line_type,
     :linewidth => set_line_width,
     :filltype  => set_fill_type,
     :cliprect  => set_clip_rect,
@@ -205,7 +205,7 @@ const symbol_funcs = {
 }
 
 function symbols(self::CairoRenderer, x, y)
-    fullname = get(self.state, :symboltype, "square")
+    fullname = get(self.state, :symbolkind, "square")
     size = get(self.state, :symbolsize, 0.01)
 
     splitname = split(fullname)

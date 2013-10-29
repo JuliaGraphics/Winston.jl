@@ -42,14 +42,14 @@ x = linspace( 0, 100, n )
 yA = 40 + 10randn(n)
 yB = x + 5randn(n)
 
-a = Points( x, yA, "type", "circle" )
+a = Points( x, yA, kind="circle" )
 setattr(a, "label", "a points")
 
 b = Points( x, yB )
 setattr(b, "label", "b points")
-style(b, "type", "filled circle" )
+style(b, kind="filled circle" )
 
-s = Slope( 1, (0,0), "type", "dotted" )
+s = Slope( 1, (0,0), kind="dotted" )
 setattr(s, "label", "slope")
 
 l = Legend( .1, .9, {a,b,s} )
@@ -101,7 +101,7 @@ inset = FramedPlot()
 setattr(inset, "title", "inset")
 setattr(inset.frame, "draw_ticks", false)
 
-add( inset, Curve(x, s, "type", "dashed") )
+add( inset, Curve(x, s, kind="dashed") )
 
 p = FramedPlot()
 setattr(p, "aspect_ratio", 1.)
@@ -133,7 +133,7 @@ setattr( a, "ylabel", "y label" )
 setattr( a, "uniform_limits", true )
 setattr( a, "cellspacing", 1. )
 
-add( a, LineY(0, "type", "dot") )
+add( a, LineY(0, kind="dot") )
 
 add( a[1,1], Curve(x, .25*y) )
 add( a[1,2], Curve(x, .50*y) )
@@ -174,7 +174,7 @@ setattr( p.y2, "label", "right" )
 setattr( p.y2, "draw_ticks", false )
 setattr( p.y2, "ticklabels", [ "-1", "-1/2", "0", "1/2", "1" ] )
 
-add( p, Curve(x, c, "type", "dash") )
+add( p, Curve(x, c, kind="dash") )
 add( p, Curve(x, s) )
 file(p, "example6.png")
 ```

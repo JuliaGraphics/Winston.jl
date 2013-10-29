@@ -2181,8 +2181,12 @@ end
 
 function make(self::DataLabel, context)
     xy = project(context.geom, self.pos)
-    # XXX:fix angle,halign,valign
-    t = TextObject(xy, self.str, getattr(self, "style"))
+    # XXX:fix angle,halign,valig so that default values are not send forward
+    textangle=kw_get(self,:textangle,0.0)
+    texthalign=kw_get(self,:texthalign,"center")
+    textvalign=kw_get(self,:textvalign,"center")
+
+    t = TextObject(xy, self.str, getattr(self, "style"); angle=textangle,halign=texthalign,valign=textvalign)
     [ t ]
 end
 
@@ -2203,8 +2207,13 @@ end
 
 function make(self::PlotLabel, context)
     pos = project(context.plot_geom, self.pos)
-    # XXX:fix angle,halign,valign
-    t = TextObject(pos, self.str, getattr(self, "style"))
+    # XXX:fix angle,halign,valign so that default values are not send forward
+    # they are now set here AND in paint.jl/TextObject
+    textangle=kw_get(self,:textangle,0.0)
+    texthalign=kw_get(self,:texthalign,"center")
+    textvalign=kw_get(self,:textvalign,"center")
+
+    t = TextObject(pos, self.str, getattr(self, "style"); angle=textangle,halign=texthalign,valign=textvalign)
     [ t ]
 end
 

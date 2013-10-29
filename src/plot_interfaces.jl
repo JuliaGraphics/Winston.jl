@@ -1,5 +1,80 @@
 ## Various possible plot interfaces
 
+
+## Plot interfaces for functions
+
+## plot(x, [y], args..., kwargs...) lineplot
+## plot(x::Tuple{Vector}, args...; symboltype::String="o", kwargs...) scatter plot
+## plot(f, a::Real, b::Real, args...; kwargs...)  function plot using adaptive point, a, b length two atleast
+## plot(fs::Tuple{Function}, a, b; kwargs) parametric plot
+## plot(fs::Vector{Function}, a::Real, b::Real, args...; kwargs...) function plot, overlay
+## plot(fs::Array{Function, 2}, a::Real, b::Real, args...; kwargs...) table of plots
+
+
+errs_to_nan(f) = (x) -> try f(x) catch e NaN end
+
+
+typealias ScatterPlotPoints{T<:Real, S<:Real} (Vector{T}, Vector{S})
+
+function _plot(p::FramedPlot, x::ScatterPlotPoints, args...; kwargs...)
+    _plot(p, x[1], x[2], args...; symbolkind="circle", kwargs...)
+end
+
+function _plot(p::FramedPlot, f::Function, a::Real, b::Real, args...;  kwargs...)
+    xs = adaptive_points(f, a, b)
+    ys = map(errs_to_nan(f), xs)
+    _plot(p, xs, ys, args...; kwargs...)
+end
+
+## multiple plots on one
+## kwargs vectorized, not recycled
+## e.g.:  plot([sin, cos], 0, 2pi, color=["blue", "red"]) 
+function _plot(p::FramedPlot, fs::Vector{Function}, a::Real, b::Real, args...; kwargs...)
+   
+    f = fs[1]
+
+    xs = adaptive_points(f, a, b)
+    ys = map(errs_to_nan(f), xs)
+    kws = [(k, v[1]) for (k,v) in kwargs]
+    _plot(p, xs, ys, args...; kws...)
+
+    for i in 2:length(fs)
+        xs = adaptive_points(fs[i], a, b)
+        ys = map(errs_to_nan(fs[i]), xs)
+        kws = [(k, v[i]) for (k,v) in kwargs]
+        _plot(p, xs, ys, args...;  kws...)
+    end
+
+    p
+    
+end
+
+## parametric plot
+typealias ParametricFunctionPair (Function, Function)
+function _plot(p::FramedPlot, fs::ParametricFunctionPair, a::Real, b::Real, args...; npoints::Int=500, kwargs...)
+    us = linspace(a, b, npoints)
+    xs = map(errs_to_nan(fs[1]), us)
+    ys = map(errs_to_nan(fs[2]), us)
+    _plot(p, xs, ys, args...; kwargs...)
+end
+
+
+## Array
+## kwargs are vectorized (without recycling)
+## e.g.:  plot([sin cos]', 0, 2pi, color=["blue" "red"]') 
+function plot(fs::Array{Function, 2}, a::Real, b::Real, args...; kwargs...)
+    m,n = size(fs)
+    tbl = Table(m, n)
+    for i in 1:m, j in 1:n
+        f = fs[i,j]
+        kws = [(k, v[i,j]) for (k, v) in kwargs]
+        p = plot(f, a, b, args...; kws...)
+        tbl[i,j] = p
+    end
+
+    tbl
+end
+
 ## adaptive plotting
 ## algorithm from http://yacas.sourceforge.net/Algochapter4.html
 ## use of heaps follows roughly quadgk.jl
@@ -22,6 +97,10 @@ function evalrule(f, a, b; depth::Int=0)
     xs = linspace(a, b, 7)[2:6] # avoid edges?
     y = [try f(x) catch e NaN end for x in xs]
 
+    if all(map(isnan,y))
+        error("Function does not evaluate to a real number at initial set of points in the interval ($a, $b)")
+    end
+
     wiggles(x,y,z) = any(map(u->isinf(u) | isnan(u), [x,y,z])) || (y < min(x,z)) || (y > max(x,z)) ? 1 : 0
     wiggly = [wiggles(y[i:i+2]...) for i in 1:3]
     
@@ -31,7 +110,7 @@ function evalrule(f, a, b; depth::Int=0)
         E = 1
     else
         ## not too wiggly, but may not approximate well enough
-        g = y - min(y)
+        g = y - minimum(y)
         E = (1/3)*abs( (y[1] + 4*y[2] + y[3]) - (y[3] + 4*y[4] + y[5])) # no h = (b-a)/2
     end
     Segment(a, b, depth, E)
@@ -40,7 +119,7 @@ end
 
 function adaptive_points(f::Function, a::Real, b::Real;
                              tol::Real=1e-3,
-                             max_depth::Int=8)
+                             max_depth::Int=6)
             
     n = 100
     s = (a+b)/2 + (b-a)/2* cos((n:-1:0) * pi/n) # non even, to avoid antialiasing. Overkill?
@@ -68,72 +147,6 @@ function adaptive_points(f::Function, a::Real, b::Real;
 end
     
 
-
-## Plot interfaces for functions
-
-
-function plot(f::Function, a::Real, b::Real;  kwargs...)
-    xs = adaptive_points(f, a, b)
-    ys = [try f(x) catch e NaN end for x in xs]
-
-    p = FramedPlot()
-    add(p, Curve(xs, ys))
-    for (k, v) in kwargs
-        setattr(p, k, v)
-    end
-    p
-end
-
-## multiple plots on one
-function plot(fs::Vector{Function}, a::Real, b::Real; color::Vector{ASCIIString}=ASCIIString[], kwargs...)
-    p = FramedPlot()
-
-    ## colorramp?
-    if length(color) == 0
-        color = repmat(["black"], length(fs), 1)
-    end
-
-    for i in 1:length(fs)
-        xs = adaptive_points(fs[i], a, b)
-        ys = [try fs[i](x) catch e NaN end for x in xs]
-        add(p, Curve(xs, ys, "color", color[i]))
-    end
-    for (k, v) in kwargs
-        setattr(p, k, v)
-    end
-    p
-end
-
-## Array
-## kwargs are vectorized (without recycling)
-function plot(fs::Array{Function, 2}, a::Real, b::Real; kwargs...)
-    ps = map(f -> plot(f, a, b), fs)
-    m,n = size(ps)
-    tbl = Table(m, n)
-    for i in 1:m, j in 1:n
-        p = ps[i,j]
-        tbl[i,j] = p
-        for (k, v) in kwargs
-            setattr(p, k, v[i,j])
-        end
-    end
-
-    tbl
-end
-
-## parametric plot
-function plot(fs::Tuple, a::Real, b::Real; npoints::Int=500, kwargs...)
-    us = linspace(a, b, npoints)
-    xs = [try fs[1](u) catch e NaN end for u in us]
-    ys = [try fs[2](u) catch e NaN end for u in us]
-
-    p = FramedPlot()
-    add(p, Curve(xs, ys))
-    for (k, v) in kwargs
-        setattr(p, k, v)
-    end
-    p
-end
 
 
 ## Contour plot -- but this is too slow to be usable

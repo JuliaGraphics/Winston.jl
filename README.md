@@ -55,6 +55,8 @@ Documentation
 -------------
 
 * [Examples](https://github.com/nolta/Winston.jl/blob/master/doc/examples.md)
+* [Plotting interface tutorial](https://github.com/natj/Winston.jl/blob/master/doc/plot_tutorial.md)
+* [Reference sheet](https://github.com/nolta/Winston.jl/blob/master/doc/reference.md)
 
 Status
 ------

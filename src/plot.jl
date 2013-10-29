@@ -4,8 +4,10 @@ output_surface = symbol(lowercase(get(ENV, "WINSTON_OUTPUT", output_surface)))
 import Cairo
 using Color
 
-export imagesc, plot, semilogx, semilogy, loglog
-export file, spy, plothist
+export file,inset
+export plot,oplot,semilogx,semilogy,loglog,plothist
+export spy,imagesc
+export fillbetween
 
 if output_surface == :gtk
     include("gtk.jl")
@@ -15,34 +17,54 @@ else
     assert(false)
 end
 
-function plot(args...; kvs...)
-    p = FramedPlot()
-    _plot(p, args...; kvs...)
+global _pwinston
+
+#system functions
+file(fname::String)=file(_pwinston,fname)
+display()=display(_pwinston)
+
+#main plot function
+function plot(args...; overplot=false,kvs...)
+    if !overplot
+        global _pwinston = FramedPlot()
+    end    
+    _plot(_pwinston,args...; kvs...)
 end
 
-function semilogx(args...; kvs...)
-    p = FramedPlot()
-    setattr(p, "xlog", true)
-    _plot(p, args...; kvs...)
+#shortcuts for overplotting
+plot(p::FramedPlot,args...; kvs...)=_plot(p, args...; kvs...)
+oplot(args...; kvs...)=_plot(_pwinston,args...; kvs...)
+oplot(p::FramedPlot,args...; kvs...)=(p2=deepcopy(p); _plot(p2, args...; kvs...))
+
+#shortcuts for creating log-scale plots
+semilogx(args...; kvs...)=plot(args...; xlog=true, kvs...)
+semilogy(args...; kvs...)=plot(args...; ylog=true, kvs...)
+loglog(args...; kvs...)=plot(args...; xlog=true,ylog=true, kvs...)
+
+#inset
+inset(xA,yA,xB,yB,ins)=inset(_pwinston,xA,yA,xB,yB,ins)
+inset(p::FramedPlot,xA::Real,yA::Real,xB::Real,yB::Real,ins::FramedPlot)=add(p,PlotInset((xA,yA),(xB,yB),ins))
+
+
+#filling
+#TODO: fill using lines e.g. \\\ ||| XXX
+fillbetween(xA,yA,xB,yB; kvs...)=fillbetween(_pwinston,xA,yA,xB,yB; kvs...)
+function fillbetween(p::FramedPlot,xA,yA,xB,yB; kvs...)
+    c=FillBetween(xA,yA,xB,yB)
+    for (k,v) in kvs
+        style(c,k,v)
+    end
+    add(p,c)
+    p
 end
 
-function semilogy(args...; kvs...)
-    p = FramedPlot()
-    setattr(p, "ylog", true)
-    _plot(p, args...; kvs...)
-end
 
-function loglog(args...; kvs...)
-    p = FramedPlot()
-    setattr(p, "xlog", true)
-    setattr(p, "ylog", true)
-    _plot(p, args...; kvs...)
-end
+
 
 const chartokens = [
-    '-' => {:linestyle => "solid"},
-    ':' => {:linestyle => "dotted"},
-    ';' => {:linestyle => "dotdashed"},
+    '-' => {:linekind => "solid"},
+    ':' => {:linekind => "dotted"},
+    ';' => {:linekind => "dotdashed"},
     '+' => {:symbolkind => "plus"},
     'o' => {:symbolkind => "circle"},
     '*' => {:symbolkind => "asterisk"},
@@ -70,7 +92,7 @@ function _parse_style(spec::String)
     for (k,v) in [ "--" => "dashed", "-." => "dotdashed" ]
         splitspec = split(spec, k)
         if length(splitspec) > 1
-            style[:linestyle] = v
+            style[:linekind] = v
             spec = join(splitspec)
         end
     end
@@ -89,25 +111,46 @@ _plot(p::FramedPlot, y; kvs...) = _plot(p, 1:length(y), y; kvs...)
 _plot(p::FramedPlot, y, spec::String; kvs...) = _plot(p, 1:length(y), y, spec; kvs...)
 function _plot(p::FramedPlot, x, y, args...; kvs...)
     args = {args...}
+
     while true
-        style = [ :linestyle => "solid" ] # TODO:cycle colors
+        sopts = [ :linekind => "solid" ] # TODO:cycle colors
         if length(args) > 0 && typeof(args[1]) <: String
-            merge!(style, _parse_style(shift!(args)))
+            merge!(sopts, _parse_style(shift!(args)))
         end
-        if haskey(style, :linestyle)
-            add(p, Curve(x, y, style))
-        elseif haskey(style, :symbolkind)
-            add(p, Points(x, y, style))
+        if haskey(sopts, :symbolkind)
+            c=Points(x,y,sopts)
+        elseif length(args)==0
+            #special case of last argument
+            #we need to take named arguments also into account
+            c=Curve(x,y,sopts)
+            for (k,v) in kvs
+                if k==:symbolkind
+                    c=Points(x,y,sopts)
+                    break
+                end
+            end
+            for (k,v) in kvs
+                if in(k,[:linekind,:symbolkind,:color,:linewidth])
+                    style(c,k,v)
+                end
+            end
+        else
+            c=Curve(x,y,sopts)
         end
+        add(p,c)
+
         length(args) == 0 && break
         length(args) == 1 && error("wrong number of arguments")
         x = shift!(args)
         y = shift!(args)
     end
+
     for (k,v) in kvs
         setattr(p, k, v)
     end
-    display(p)
+#    display(p)
+
+    global _pwinston=p
     p
 end
 

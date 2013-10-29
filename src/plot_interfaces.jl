@@ -16,14 +16,14 @@ errs_to_nan(f) = (x) -> try f(x) catch e NaN end
 
 typealias ScatterPlotPoints{T<:Real, S<:Real} (Vector{T}, Vector{S})
 
-function _plot(p::FramedPlot, x::ScatterPlotPoints, args...; symboltype::String="o", kwargs...)
-    plot(p, x[1], x[2], symboltype, args...;  kwargs...)
+function _plot(p::FramedPlot, x::ScatterPlotPoints, args...; kwargs...)
+    _plot(p, x[1], x[2], args...; symboltype="circle", kwargs...)
 end
 
 function _plot(p::FramedPlot, f::Function, a::Real, b::Real, args...;  kwargs...)
     xs = adaptive_points(f, a, b)
     ys = map(errs_to_nan(f), xs)
-    plot(p, xs, ys, args...; kwargs...)
+    _plot(p, xs, ys, args...; kwargs...)
 end
 
 ## multiple plots on one

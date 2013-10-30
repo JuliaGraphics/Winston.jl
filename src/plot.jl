@@ -19,11 +19,11 @@ end
 global _pwinston
 
 #system functions
-file(fname::String)=file(_pwinston,fname)
-display()=display(_pwinston)
+file(fname::String) = file(_pwinston, fname)
+display() = display(_pwinston)
 
 #main plot function
-function plot(args...; overplot=false,kvs...)
+function plot(args...; overplot=false, kvs...)
     if !overplot
         global _pwinston = FramedPlot()
     end    
@@ -31,14 +31,14 @@ function plot(args...; overplot=false,kvs...)
 end
 
 #shortcuts for overplotting
-plot(p::FramedPlot,args...; kvs...)=_plot(p, args...; kvs...)
-oplot(args...; kvs...)=_plot(_pwinston,args...; kvs...)
-oplot(p::FramedPlot,args...; kvs...)=(p2=deepcopy(p); _plot(p2, args...; kvs...))
+plot(p::FramedPlot,args...; kvs...) = _plot(p, args...; kvs...)
+oplot(args...; kvs...) = _plot(_pwinston, args...; kvs...)
+oplot(p::FramedPlot,args...; kvs...) = (p2 = deepcopy(p); _plot(p2, args...; kvs...))
 
 #shortcuts for creating log-scale plots
-semilogx(args...; kvs...)=plot(args...; xlog=true, kvs...)
-semilogy(args...; kvs...)=plot(args...; ylog=true, kvs...)
-loglog(args...; kvs...)=plot(args...; xlog=true,ylog=true, kvs...)
+semilogx(args...; kvs...) = plot(args...; xlog=true, kvs...)
+semilogy(args...; kvs...) = plot(args...; ylog=true, kvs...)
+loglog(args...; kvs...) = plot(args...; xlog=true, ylog=true, kvs...)
 
 #histogram
 #XXX: multiple histograms can not be cycled if there is not 2 arguments present
@@ -136,15 +136,15 @@ function _plot(p::FramedPlot, x, y, args...; histogram=false, kvs...)
             c=Curve(x,y,sopts)
             for (k,v) in kvs
                 if k==:symbolkind
-                    c=Points(x,y,sopts)
+                    c = Points(x, y, sopts)
                     break
                 end
             end
 
             #Setting style for the last object from named variables
             for (k,v) in kvs
-                if in(k,[:linekind,:symbolkind,:color,:fillcolor,:linecolor,:linewidth,:symbolsize])
-                    style(c,k,v)
+                if k in [:linekind,:symbolkind,:color,:fillcolor,:linecolor,:linewidth,:symbolsize]
+                    style(c, k, v)
                 end
             end
 
@@ -154,9 +154,9 @@ function _plot(p::FramedPlot, x, y, args...; histogram=false, kvs...)
 
         #Case 4: Curve
         else
-            c=Curve(x,y,sopts)
+            c = Curve(x, y, sopts)
         end
-        add(p,c)
+        add(p, c)
 
         length(args) == 0 && break
         length(args) == 1 && error("wrong number of arguments")
@@ -169,7 +169,7 @@ function _plot(p::FramedPlot, x, y, args...; histogram=false, kvs...)
     end
     display(p)
 
-    global _pwinston=p
+    global _pwinston = p
     p
 end
 

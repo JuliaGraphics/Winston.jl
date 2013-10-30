@@ -16,7 +16,8 @@ export file,
        spy,
        title,
        xlabel,
-       ylabel
+       ylabel,
+       errorbar
 
 if output_surface == :gtk
     include("gtk.jl")
@@ -236,4 +237,42 @@ plothist(args...; kvs...) = plothist(FramedPlot(), args...; kvs...)
 
 # shortcut for overplotting
 oplothist(args...; kvs...) = plothist(_pwinston, args...; kvs...)
+
+#errorbar
+errorbar(args...; kvs...) = errorbar(_pwinston, args...; kvs...)
+function errorbar(p::FramedPlot, x::AbstractVector, y::AbstractVector; xerr=nothing, yerr=nothing, kvs...)
+
+    xn=length(x)
+    yn=length(y)
+
+    if xerr != nothing
+        xen = length(xerr)
+        if xen == xn
+            cx = SymmetricErrorBarsX(x, y, xerr)
+        elseif xen == 2xn
+            cx = ErrorBarsX(y, x.-xerr[1:xn], x.+xerr[xn+1:xen])
+        else
+            warn("Dimensions of x and xerr do not match!")
+        end
+        style(cx; kvs...)
+        add(p,cx)
+    end
+
+    if yerr != nothing
+        yen=length(yerr)
+        if yen == yn
+            cy = SymmetricErrorBarsY(x, y, yerr)
+        elseif yen == 2yn
+            cy = ErrorBarsY(x, y.-yerr[1:yn], y.+yerr[yn+1:yen])
+        else
+            warn("Dimensions of y and yerr do not match!")
+        end
+        style(cy; kvs...)
+        add(p,cy)
+    end
+
+    global _pwinston = p
+    display(p)
+    p
+end
 

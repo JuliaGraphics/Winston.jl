@@ -4,9 +4,15 @@ output_surface = symbol(lowercase(get(ENV, "WINSTON_OUTPUT", output_surface)))
 import Cairo
 using Color
 
-export file
-export plot,oplot,semilogx,semilogy,loglog,plothist
-export spy,imagesc
+export file,
+       imagesc,
+       loglog,
+       oplot,
+       plot,
+       plothist,
+       semilogx,
+       semilogy,
+       spy
 
 if output_surface == :gtk
     include("gtk.jl")
@@ -16,29 +22,17 @@ else
     assert(false)
 end
 
-global _pwinston
+_pwinston = FramedPlot()
 
 #system functions
-file(fname::String)=file(_pwinston,fname)
-display()=display(_pwinston)
-
-#main plot function
-function plot(args...; overplot=false,kvs...)
-    if !overplot
-        global _pwinston = FramedPlot()
-    end    
-    _plot(_pwinston,args...; kvs...)
-end
-
-#shortcuts for overplotting
-plot(p::FramedPlot,args...; kvs...)=_plot(p, args...; kvs...)
-oplot(args...; kvs...)=_plot(_pwinston,args...; kvs...)
-oplot(p::FramedPlot,args...; kvs...)=(p2=deepcopy(p); _plot(p2, args...; kvs...))
+file(fname::String) = file(_pwinston, fname)
+display() = display(_pwinston)
 
 #shortcuts for creating log-scale plots
-semilogx(args...; kvs...)=plot(args...; xlog=true, kvs...)
-semilogy(args...; kvs...)=plot(args...; ylog=true, kvs...)
-loglog(args...; kvs...)=plot(args...; xlog=true,ylog=true, kvs...)
+semilogx(args...; kvs...) = plot(args...; xlog=true, kvs...)
+semilogy(args...; kvs...) = plot(args...; ylog=true, kvs...)
+loglog(args...; kvs...) = plot(args...; xlog=true, ylog=true, kvs...)
+
 
 const chartokens = [
     '-' => {:linekind => "solid"},
@@ -86,8 +80,8 @@ function _parse_style(spec::String)
     style
 end
 
-_plot(p::FramedPlot, y; kvs...) = _plot(p, 1:length(y), y; kvs...)
-_plot(p::FramedPlot, y, spec::String; kvs...) = _plot(p, 1:length(y), y, spec; kvs...)
+plot(p::FramedPlot, y; kvs...) = plot(p, 1:length(y), y; kvs...)
+plot(p::FramedPlot, y, spec::String; kvs...) = plot(p, 1:length(y), y, spec; kvs...)
 function _plot(p::FramedPlot, x, y, args...; kvs...)
     args = {args...}
 
@@ -96,27 +90,43 @@ function _plot(p::FramedPlot, x, y, args...; kvs...)
         if length(args) > 0 && typeof(args[1]) <: String
             merge!(sopts, _parse_style(shift!(args)))
         end
-        if haskey(sopts, :symbolkind)
-            c=Points(x,y,sopts)
-        elseif length(args)==0
-            #special case of last argument
+
+        #Case 1: Last object to plot
+        if length(args) == 0
+
+            #Assume curve and overwrite with points if :symbolkind is present
             c=Curve(x,y,sopts)
             for (k,v) in kvs
-                if k==:symbolkind
-                    c=Points(x,y,sopts)
+                if k == :symbolkind
+                    c = Points(x, y, sopts)
                     break
                 end
             end
-            #Setting style for the last object from named variables
+
+            #Setting kind and color for the last object from named variables
             for (k,v) in kvs
-                if in(k,[:linekind,:symbolkind,:color,:fillcolor,:linecolor,:linewidth,:symbolsize])
-                    style(c,k,v)
+                if k in [:linekind, :symbolkind, :color, :fillcolor, :linecolor]
+                    style(c, k, v)
                 end
             end
+
+        #Case 2: Symbols
+        elseif haskey(sopts, :symbolkind)
+            c = Points(x,y,sopts)
+
+        #Case 3: Curve
         else
-            c=Curve(x,y,sopts)
+            c = Curve(x, y, sopts)
         end
-        add(p,c)
+
+        #Setting width & size from named variables
+        for (k,v) in kvs
+            if k in [:linewidth, :symbolsize]
+                style(c, k, v)
+            end
+        end
+        add(p, c)
+
 
         length(args) == 0 && break
         length(args) == 1 && error("wrong number of arguments")
@@ -127,11 +137,20 @@ function _plot(p::FramedPlot, x, y, args...; kvs...)
     for (k,v) in kvs
         setattr(p, k, v)
     end
-    display(p)
 
-    global _pwinston=p
+    global _pwinston = p
     p
 end
+
+function plot(p::FramedPlot, x, y, args...; kvs...)
+    _plot(p, x, y, args...; kvs...)
+    display(p)
+    p
+end
+plot(args...; kvs...) = plot(FramedPlot(), args...; kvs...)
+
+# shortcut for overplotting
+oplot(args...; kvs...) = plot(_pwinston, args...; kvs...)
 
 typealias Interval (Real,Real)
 
@@ -211,11 +230,64 @@ spy(S::SparseMatrixCSC) = spy(S, 100, 100)
 spy(A::AbstractMatrix, nrS, ncS) = spy(sparse(A), nrS, ncS)
 spy(A::AbstractMatrix) = spy(sparse(A))
 
-function plothist(h::(Range,Vector))
-    p = FramedPlot()
-    add(p, Histogram(h...))
+#Histogram
+function plothist(p::FramedPlot, x, y, args...; kvs...)
+    _plothist(p, x, y, args...; kvs...)
     display(p)
+    p
 end
+plothist(args...; kvs...) = plothist(FramedPlot(), args...; kvs...)
 
-plothist(x::AbstractVector, nbins) = plothist(hist(x,nbins))
-plothist(x::AbstractVector) = plothist(hist(x))
+# shortcut for overplotting
+oplothist(args...; kvs...) = plothist(_pwinston, args...; kvs...)
+
+function _plothist(p::FramedPlot, args...; kvs...)
+    args = {args...}
+    while true
+        length(args) == 0 && break
+        y = 1
+        x = shift!(args)
+
+        sopts = [ :linekind => "solid" ] # TODO:cycle colors
+
+        #Check if y is presented (vector/range or nbins)
+        if length(args) > 0 && !(typeof(args[1]) <: String) 
+            y = shift!(args)
+        end
+
+        #Check if style option is presented
+        if length(args) > 0 && typeof(args[1]) <: String
+            merge!(sopts, _parse_style(shift!(args)))    
+        end
+
+        if y == 1
+            c = Histogram(hist(x)..., sopts)
+        else
+            c = Histogram(hist(x,y)..., sopts)
+        end
+
+        #Setting width from named variables
+        for (k,v) in kvs
+            if k in [:linewidth]
+                style(c, k, v)
+            end
+        end
+        
+        #Setting kind and color for the last object from named variables
+        if length(args) == 0
+            for (k,v) in kvs
+                if k in [:linekind, :color, :fillcolor, :linecolor]
+                    style(c, k, v)
+                end
+            end
+        end
+        add(p, c)
+    end
+
+    for (k,v) in kvs
+        setattr(p, k, v)
+    end
+
+    global _pwinston = p
+    p
+end            

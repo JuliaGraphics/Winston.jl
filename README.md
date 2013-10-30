@@ -48,12 +48,6 @@ julia> plot(x, y, "b:", x2, y2, "g^")
 
 which creates a blue dotted line and green triangles.
  
-For even more awesome figures, we can use named variables like this
-
-```jlcon
-julia. plot(x, y, symbolkind="filled circle", color=0xcc0000, xrange=[10,100], xlog=true)
-```
-
 Declarative interface
 ---------------------
 

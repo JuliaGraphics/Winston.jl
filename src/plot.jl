@@ -115,20 +115,20 @@ function _plot(p::FramedPlot, x, y, args...; histogram=false, kvs...)
         #Case 1: Histogram
         if histogram
             if length(y)==1 && y[1]==1
-                c=Histogram(hist(x)...,sopts)
+                c = Histogram(hist(x)...,sopts)
             elseif length(y)==1
-                c=Histogram(hist(x,y[1])...,sopts)
+                c = Histogram(hist(x,y[1])...,sopts)
             else
-                c=Histogram(hist(x,y)...,sopts)
-            end
-            
-            #Adding style from named variables
-            for (k,v) in kvs
-                if in(k,[:linekind,:color,:fillcolor,:linecolor,:linewidth])
-                    style(c,k,v)
-                end
+                c = Histogram(hist(x,y)...,sopts)
             end
 
+            #Setting kind and color for the last object from named variables
+            for (k,v) in kvs
+                if k in [:linekind, :color, :fillcolor, :linecolor]
+                    style(c, k, v)
+                end
+            end
+            
         #Case 2: Last object to plot
         elseif length(args)==0
 
@@ -141,22 +141,30 @@ function _plot(p::FramedPlot, x, y, args...; histogram=false, kvs...)
                 end
             end
 
-            #Setting style for the last object from named variables
+            #Setting kind and color for the last object from named variables
             for (k,v) in kvs
-                if k in [:linekind,:symbolkind,:color,:fillcolor,:linecolor,:linewidth,:symbolsize]
+                if k in [:linekind, :symbolkind, :color, :fillcolor, :linecolor]
                     style(c, k, v)
                 end
             end
 
         #Case 3: Symbols
         elseif haskey(sopts, :symbolkind)
-            c=Points(x,y,sopts)
+            c = Points(x,y,sopts)
 
         #Case 4: Curve
         else
             c = Curve(x, y, sopts)
         end
+
+        #Setting width & size from named variables
+        for (k,v) in kvs
+            if k in [:linewidth, :symbolsize]
+                style(c, k, v)
+            end
+        end
         add(p, c)
+
 
         length(args) == 0 && break
         length(args) == 1 && error("wrong number of arguments")

@@ -27,7 +27,7 @@ function plot(args...; overplot=false, kvs...)
     if !overplot
         global _pwinston = FramedPlot()
     end    
-    _plot(_pwinston,args...; kvs...)
+    _plot(_pwinston, args...; kvs...)
 end
 
 #shortcuts for overplotting

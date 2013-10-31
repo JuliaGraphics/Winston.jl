@@ -228,3 +228,78 @@ spy(S::SparseMatrixCSC) = spy(S, 100, 100)
 spy(A::AbstractMatrix, nrS, ncS) = spy(sparse(A), nrS, ncS)
 spy(A::AbstractMatrix) = spy(sparse(A))
 
+#Histogram
+function plothist(args...; overplot=false, kvs...)
+    if !overplot
+        global _pwinston = FramedPlot()
+    end    
+    _plothist(_pwinston, args...; kvs...)
+end
+
+#shortcuts for overplotting
+plothist(p::FramedPlot,args...; kvs...) = _plothist(p, args...; kvs...)
+oplothist(args...; kvs...) = _plothist(_pwinston, args...; kvs...)
+oplothist(p::FramedPlot,args...; kvs...) = (p2 = deepcopy(p); _plothist(p2, args...; kvs...))
+
+
+function _plothist(p::FramedPlot, args...; kvs...)
+    args = {args...}
+    while true
+        length(args) == 0 && break
+        y = 1
+        x = shift!(args)
+
+        sopts = [ :linekind => "solid" ] # TODO:cycle colors
+        if length(args) > 0 && !(typeof(args[1]) <: String) 
+            y = shift!(args)
+        end
+        if length(args) > 0 && typeof(args[1]) <: String
+            merge!(sopts, _parse_style(shift!(args)))    
+        end
+
+        if y == 1
+            c = Histogram(hist(x)..., sopts)
+        else
+            c = Histogram(hist(x,y)..., sopts)
+        end
+
+        #Setting width from named variables
+        for (k,v) in kvs
+            if k in [:linewidth]
+                style(c, k, v)
+            end
+        end
+        
+        #Setting kind and color for the last object from named variables
+        if length(args) == 0
+            for (k,v) in kvs
+                if k in [:linekind, :color, :fillcolor, :linecolor]
+                    style(c, k, v)
+                end
+            end
+        end
+        add(p, c)
+    end
+
+    for (k,v) in kvs
+        setattr(p, k, v)
+    end
+    display(p)
+
+    global _pwinston = p
+    p
+end            
+
+#histogram
+#XXX: multiple histograms can not be cycled if there is not 2 arguments present
+#plothist(args...; kvs...)=plot(args...; histogram=true, kvs...)
+#plothist(x::AbstractVector; kvs...)=plothist(x,[1]; kvs...)
+#plothist(x::AbstractVector, spec::String; kvs...)=plothist(x,[1], spec; kvs...)
+
+#overplot histograms
+#plothist(p::FramedPlot,args...; kvs...)=_plot(p,args...; histogram=true, kvs...)
+#plothist(p::FramedPlot,x::AbstractVector; kvs...)=plothist(p,x,[1]; kvs...)
+#plothist(p::FramedPlot,x::AbstractVector, spec::String; kvs...)=plothist(p,x,[1], spec; kvs...)
+
+#oplothist(args...; kvs...)=plothist(args...; overplot=true, kvs...)
+#oplothist(p::FramedPlot,args...; kvs...)=plothist(p,args...; overplot=true, kvs...)

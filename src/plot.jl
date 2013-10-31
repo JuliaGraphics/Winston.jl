@@ -40,20 +40,6 @@ semilogx(args...; kvs...) = plot(args...; xlog=true, kvs...)
 semilogy(args...; kvs...) = plot(args...; ylog=true, kvs...)
 loglog(args...; kvs...) = plot(args...; xlog=true, ylog=true, kvs...)
 
-#histogram
-#XXX: multiple histograms can not be cycled if there is not 2 arguments present
-plothist(args...; kvs...)=plot(args...; histogram=true, kvs...)
-plothist(x::AbstractVector; kvs...)=plothist(x,[1]; kvs...)
-plothist(x::AbstractVector, spec::String; kvs...)=plothist(x,[1], spec; kvs...)
-
-#overplot histograms
-plothist(p::FramedPlot,args...; kvs...)=_plot(p,args...; histogram=true, kvs...)
-plothist(p::FramedPlot,x::AbstractVector; kvs...)=plothist(p,x,[1]; kvs...)
-plothist(p::FramedPlot,x::AbstractVector, spec::String; kvs...)=plothist(p,x,[1], spec; kvs...)
-
-oplothist(args...; kvs...)=plothist(args...; overplot=true, kvs...)
-oplothist(p::FramedPlot,args...; kvs...)=plothist(p,args...; overplot=true, kvs...)
-
 
 const chartokens = [
     '-' => {:linekind => "solid"},
@@ -103,7 +89,7 @@ end
 
 _plot(p::FramedPlot, y; kvs...) = _plot(p, 1:length(y), y; kvs...)
 _plot(p::FramedPlot, y, spec::String; kvs...) = _plot(p, 1:length(y), y, spec; kvs...)
-function _plot(p::FramedPlot, x, y, args...; histogram=false, kvs...)
+function _plot(p::FramedPlot, x, y, args...; kvs...)
     args = {args...}
 
     while true
@@ -112,25 +98,8 @@ function _plot(p::FramedPlot, x, y, args...; histogram=false, kvs...)
             merge!(sopts, _parse_style(shift!(args)))
         end
 
-        #Case 1: Histogram
-        if histogram
-            if length(y)==1 && y[1]==1
-                c = Histogram(hist(x)...,sopts)
-            elseif length(y)==1
-                c = Histogram(hist(x,y[1])...,sopts)
-            else
-                c = Histogram(hist(x,y)...,sopts)
-            end
-
-            #Setting kind and color for the last object from named variables
-            for (k,v) in kvs
-                if k in [:linekind, :color, :fillcolor, :linecolor]
-                    style(c, k, v)
-                end
-            end
-            
-        #Case 2: Last object to plot
-        elseif length(args)==0
+        #Case 1: Last object to plot
+        if length(args)==0
 
             #Assume curve and overwrite with points if :symbolkind is present
             c=Curve(x,y,sopts)
@@ -148,11 +117,11 @@ function _plot(p::FramedPlot, x, y, args...; histogram=false, kvs...)
                 end
             end
 
-        #Case 3: Symbols
+        #Case 2: Symbols
         elseif haskey(sopts, :symbolkind)
             c = Points(x,y,sopts)
 
-        #Case 4: Curve
+        #Case 3: Curve
         else
             c = Curve(x, y, sopts)
         end
@@ -258,3 +227,4 @@ end
 spy(S::SparseMatrixCSC) = spy(S, 100, 100)
 spy(A::AbstractMatrix, nrS, ncS) = spy(sparse(A), nrS, ncS)
 spy(A::AbstractMatrix) = spy(sparse(A))
+

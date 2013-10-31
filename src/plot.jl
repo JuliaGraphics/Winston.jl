@@ -99,12 +99,12 @@ function _plot(p::FramedPlot, x, y, args...; kvs...)
         end
 
         #Case 1: Last object to plot
-        if length(args)==0
+        if length(args) == 0
 
             #Assume curve and overwrite with points if :symbolkind is present
             c=Curve(x,y,sopts)
             for (k,v) in kvs
-                if k==:symbolkind
+                if k == :symbolkind
                     c = Points(x, y, sopts)
                     break
                 end
@@ -237,9 +237,9 @@ function plothist(args...; overplot=false, kvs...)
 end
 
 #shortcuts for overplotting
-plothist(p::FramedPlot,args...; kvs...) = _plothist(p, args...; kvs...)
+plothist(p::FramedPlot, args...; kvs...) = _plothist(p, args...; kvs...)
 oplothist(args...; kvs...) = _plothist(_pwinston, args...; kvs...)
-oplothist(p::FramedPlot,args...; kvs...) = (p2 = deepcopy(p); _plothist(p2, args...; kvs...))
+oplothist(p::FramedPlot, args...; kvs...) = (p2 = deepcopy(p); _plothist(p2, args...; kvs...))
 
 
 function _plothist(p::FramedPlot, args...; kvs...)
@@ -289,17 +289,3 @@ function _plothist(p::FramedPlot, args...; kvs...)
     global _pwinston = p
     p
 end            
-
-#histogram
-#XXX: multiple histograms can not be cycled if there is not 2 arguments present
-#plothist(args...; kvs...)=plot(args...; histogram=true, kvs...)
-#plothist(x::AbstractVector; kvs...)=plothist(x,[1]; kvs...)
-#plothist(x::AbstractVector, spec::String; kvs...)=plothist(x,[1], spec; kvs...)
-
-#overplot histograms
-#plothist(p::FramedPlot,args...; kvs...)=_plot(p,args...; histogram=true, kvs...)
-#plothist(p::FramedPlot,x::AbstractVector; kvs...)=plothist(p,x,[1]; kvs...)
-#plothist(p::FramedPlot,x::AbstractVector, spec::String; kvs...)=plothist(p,x,[1], spec; kvs...)
-
-#oplothist(args...; kvs...)=plothist(args...; overplot=true, kvs...)
-#oplothist(p::FramedPlot,args...; kvs...)=plothist(p,args...; overplot=true, kvs...)

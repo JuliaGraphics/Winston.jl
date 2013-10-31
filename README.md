@@ -28,7 +28,7 @@ julia> oplot(x2, y2)
 And finally save it with
 
 ```jlcon
-julia> file("figure.png")
+julia> file("figure.png")   # .eps & .pdf are also supported
 ```
 
 More elaborate figures can be created by using the quick option for color,

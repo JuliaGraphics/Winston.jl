@@ -4,9 +4,15 @@ output_surface = symbol(lowercase(get(ENV, "WINSTON_OUTPUT", output_surface)))
 import Cairo
 using Color
 
-export file
-export plot,oplot,semilogx,semilogy,loglog,plothist
-export spy,imagesc
+export file,
+       imagesc,
+       loglog,
+       oplot,
+       plot,
+       plothist,
+       semilogx,
+       semilogy,
+       spy
 
 if output_surface == :gtk
     include("gtk.jl")
@@ -16,24 +22,11 @@ else
     assert(false)
 end
 
-global _pwinston
+_pwinston = FramedPlot()
 
 #system functions
 file(fname::String) = file(_pwinston, fname)
 display() = display(_pwinston)
-
-#main plot function
-function plot(args...; overplot=false, kvs...)
-    if !overplot
-        global _pwinston = FramedPlot()
-    end    
-    _plot(_pwinston, args...; kvs...)
-end
-
-#shortcuts for overplotting
-plot(p::FramedPlot,args...; kvs...) = _plot(p, args...; kvs...)
-oplot(args...; kvs...) = _plot(_pwinston, args...; kvs...)
-oplot(p::FramedPlot,args...; kvs...) = (p2 = deepcopy(p); _plot(p2, args...; kvs...))
 
 #shortcuts for creating log-scale plots
 semilogx(args...; kvs...) = plot(args...; xlog=true, kvs...)
@@ -86,8 +79,8 @@ function _parse_style(spec::String)
     style
 end
 
-_plot(p::FramedPlot, y; kvs...) = _plot(p, 1:length(y), y; kvs...)
-_plot(p::FramedPlot, y, spec::String; kvs...) = _plot(p, 1:length(y), y, spec; kvs...)
+plot(p::FramedPlot, y; kvs...) = plot(p, 1:length(y), y; kvs...)
+plot(p::FramedPlot, y, spec::String; kvs...) = plot(p, 1:length(y), y, spec; kvs...)
 function _plot(p::FramedPlot, x, y, args...; kvs...)
     args = {args...}
 
@@ -127,11 +120,19 @@ function _plot(p::FramedPlot, x, y, args...; kvs...)
     for (k,v) in kvs
         setattr(p, k, v)
     end
-    display(p)
 
     global _pwinston = p
     p
 end
+function plot(p::FramedPlot, x, y, args...; kvs...)
+    _plot(p, x, y, args...; kvs...)
+    display(p)
+    p
+end
+plot(args...; kvs...) = plot(FramedPlot(), args...; kvs...)
+
+# shortcut for overplotting
+oplot(args...; kvs...) = plot(_pwinston, args...; kvs...)
 
 typealias Interval (Real,Real)
 

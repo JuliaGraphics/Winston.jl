@@ -8,6 +8,7 @@ export file,
        imagesc,
        loglog,
        oplot,
+       oplothist,
        plot,
        plothist,
        semilogx,
@@ -207,11 +208,25 @@ spy(S::SparseMatrixCSC) = spy(S, 100, 100)
 spy(A::AbstractMatrix, nrS, ncS) = spy(sparse(A), nrS, ncS)
 spy(A::AbstractMatrix) = spy(sparse(A))
 
-function plothist(h::(Range,Vector))
-    p = FramedPlot()
-    add(p, Histogram(h...))
-    display(p)
-end
+function plothist(p::FramedPlot, h::(Range,Vector); kvs...)
+    c = Histogram(h...)
+    add(p, c)
 
-plothist(x::AbstractVector, nbins) = plothist(hist(x,nbins))
-plothist(x::AbstractVector) = plothist(hist(x))
+    for (k,v) in kvs
+        if k in [:color,:linecolor,:linekind,:linetype,:linewidth]
+            style(c, k, v)
+        else
+            setattr(p, k, v)
+        end
+    end
+
+    global _pwinston = p
+    display(p)
+    p
+end
+plothist(p::FramedPlot, args...; kvs...) = plothist(p::FramedPlot, hist(args...); kvs...)
+plothist(args...; kvs...) = plothist(FramedPlot(), args...; kvs...)
+
+# shortcut for overplotting
+oplothist(args...; kvs...) = plothist(_pwinston, args...; kvs...)
+

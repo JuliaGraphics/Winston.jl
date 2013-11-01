@@ -83,32 +83,20 @@ plot(p::FramedPlot, y; kvs...) = plot(p, 1:length(y), y; kvs...)
 plot(p::FramedPlot, y, spec::String; kvs...) = plot(p, 1:length(y), y, spec; kvs...)
 function _plot(p::FramedPlot, x, y, args...; kvs...)
     args = {args...}
+    components = {}
 
     while true
         sopts = [ :linekind => "solid" ] # TODO:cycle colors
         if length(args) > 0 && typeof(args[1]) <: String
             merge!(sopts, _parse_style(shift!(args)))
         end
+
         if haskey(sopts, :symbolkind)
             c = Points(x, y, sopts)
-        elseif length(args) == 0
-            #special case of last argument
-            c = Curve(x, y, sopts)
-            for (k,v) in kvs
-                if k==:symbolkind
-                    c = Points(x, y, sopts)
-                    break
-                end
-            end
-            #Setting style for the last object from named variables
-            for (k,v) in kvs
-                if k in [:linekind,:symbolkind,:color,:fillcolor,:linecolor,:linewidth,:symbolsize]
-                    style(c, k, v)
-                end
-            end
         else
             c = Curve(x, y, sopts)
         end
+        push!(components, c)
         add(p, c)
 
         length(args) == 0 && break
@@ -118,12 +106,19 @@ function _plot(p::FramedPlot, x, y, args...; kvs...)
     end
 
     for (k,v) in kvs
-        setattr(p, k, v)
+        if k in [:linekind,:symbolkind,:color,:linecolor,:linewidth,:symbolsize]
+            for c in components
+                style(c, k, v)
+            end
+        else
+            setattr(p, k, v)
+        end
     end
 
     global _pwinston = p
     p
 end
+
 function plot(p::FramedPlot, x, y, args...; kvs...)
     _plot(p, x, y, args...; kvs...)
     display(p)

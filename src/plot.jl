@@ -13,7 +13,10 @@ export file,
        plothist,
        semilogx,
        semilogy,
-       spy
+       spy,
+       title,
+       xlabel,
+       ylabel
 
 if output_surface == :gtk
     include("gtk.jl")
@@ -28,6 +31,10 @@ _pwinston = FramedPlot()
 #system functions
 file(fname::String) = file(_pwinston, fname)
 display() = display(_pwinston)
+
+for f in (:xlabel,:ylabel,:title)
+    @eval $f(s::String) = (setattr(_pwinston, $f=s); display(_pwinston))
+end
 
 #shortcuts for creating log-scale plots
 semilogx(args...; kvs...) = plot(args...; xlog=true, kvs...)

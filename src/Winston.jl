@@ -29,9 +29,6 @@ include("renderer.jl")
 
 function args2dict(args...; kvs...)
     opts = Dict{Symbol,Any}()
-    if length(args) == 0
-        return opts
-    end
     iter = start(args)
     while !done(args, iter)
         arg, iter = next(args, iter)
@@ -1843,16 +1840,16 @@ function file(self::PlotContainer, filename::String, args...; kvs...)
     extn = filename[end-2:end]
     opts = args2dict(args...; kvs...)
     if extn == "eps"
-        width = get(opts,"width",config_value("eps","width"))
-        height = get(opts,"height",config_value("eps","height"))
+        width = get(opts,:width,config_value("eps","width"))
+        height = get(opts,:height,config_value("eps","height"))
         write_eps(self, filename, width, height)
     elseif extn == "pdf"
-        width = get(opts,"width",config_value("pdf","width"))
-        height = get(opts,"height",config_value("pdf","height"))
+        width = get(opts,:width,config_value("pdf","width"))
+        height = get(opts,:height,config_value("pdf","height"))
         write_pdf(self, filename, width, height)
     elseif extn == "png"
-        width = get(opts,"width",config_value("window","width"))
-        height = get(opts,"height",config_value("window","height"))
+        width = get(opts,:width,config_value("window","width"))
+        height = get(opts,:height,config_value("window","height"))
         write_png(self, filename, width, height)
     else
         error("I can't export .$extn, sorry.")
@@ -1863,8 +1860,8 @@ function file{T<:PlotContainer}(plots::Vector{T}, filename::String, args...; kvs
     extn = filename[end-2:end]
     opts = args2dict(args...; kvs...)
     if extn == "pdf"
-        width = get(opts,"width",config_value("pdf","width"))
-        height = get(opts,"height",config_value("pdf","height"))
+        width = get(opts,:width,config_value("pdf","width"))
+        height = get(opts,:height,config_value("pdf","height"))
         write_pdf(plots, filename, width, height)
     else
         error("I can't export multiple pages to .$extn, sorry.")
@@ -1873,8 +1870,8 @@ end
 
 function svg(self::PlotContainer, args...; kvs...)
     opts = args2dict(args...; kvs...)
-    width = get(opts,"width",config_value("window","width"))
-    height = get(opts,"height",config_value("window","height"))
+    width = get(opts,:width,config_value("window","width"))
+    height = get(opts,:height,config_value("window","height"))
     stream = IOBuffer()
 
     surface = CairoSVGSurface(stream, width, height)
@@ -2585,11 +2582,11 @@ function kw_set(self::HasStyle, name, value)
     getattr(self, :style)[key] = value
 end
 
-function style(self::HasStyle, args...; kws...)
+function style(self::HasStyle, args...; kvs...)
     for (key,val) in args2dict(args...)
         kw_set(self, key, val)
     end
-    for (key,val) in kws 
+    for (key,val) in kvs
         kw_set(self, key, val)
     end
 end

@@ -1,9 +1,6 @@
 output_surface = Winston.config_value("default","output_surface")
 output_surface = symbol(lowercase(get(ENV, "WINSTON_OUTPUT", output_surface)))
 
-import Cairo
-using Color
-
 export file,
        imagesc,
        loglog,

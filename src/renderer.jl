@@ -267,7 +267,7 @@ function layout_text(self::CairoRenderer, str::String)
 end
 
 function text(self::CairoRenderer, x::Real, y::Real, str::String; kwargs...)
-    return text(self.ctx, x, y, set_latex(self.ctx, str, get(self,:fontsize)); markup=true, kwargs...)
+    return Cairo.text(self.ctx, x, y, set_latex(self.ctx, str, get(self,:fontsize)); markup=true, kwargs...)
 end
 
 function textwidth(self::CairoRenderer, str)

@@ -1,6 +1,7 @@
 module Winston
 
-importall Cairo
+using Cairo
+using Color
 importall Base.Graphics
 using IniFile
 

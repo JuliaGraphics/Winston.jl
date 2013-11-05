@@ -1839,32 +1839,60 @@ function write_png(self::PlotContainer, filename::String, width::Int, height::In
     finish(surface)
 end
 
-function file(self::PlotContainer, filename::String, args...; kvs...)
-    extn = filename[end-2:end]
-    opts = args2dict(args...; kvs...)
+function file(self::PlotContainer, filename::String; width=nothing, height=nothing, kvs...)
+    extn = split(filename,".")
+    if length(extn) == 1
+        filename=string(filename,".png")
+        extn="png"
+    else
+        extn=extn[end]
+    end
+#XXX: do we need args and kvs for anything?    
+#    opts = args2dict(args...; kvs...)
+
+    if extn == "png"
+        conf_extn="window"
+    else
+        conf_extn=extn
+    end
+
+    if width == nothing
+        width = config_value(conf_extn,"width")
+    end
+    if height == nothing
+        height = config_value(conf_extn,"height")
+    end
+
     if extn == "eps"
-        width = get(opts,"width",config_value("eps","width"))
-        height = get(opts,"height",config_value("eps","height"))
         write_eps(self, filename, width, height)
     elseif extn == "pdf"
-        width = get(opts,"width",config_value("pdf","width"))
-        height = get(opts,"height",config_value("pdf","height"))
         write_pdf(self, filename, width, height)
     elseif extn == "png"
-        width = get(opts,"width",config_value("window","width"))
-        height = get(opts,"height",config_value("window","height"))
         write_png(self, filename, width, height)
     else
         error("I can't export .$extn, sorry.")
     end
 end
 
-function file{T<:PlotContainer}(plots::Vector{T}, filename::String, args...; kvs...)
-    extn = filename[end-2:end]
-    opts = args2dict(args...; kvs...)
+function file{T<:PlotContainer}(plots::Vector{T}, filename::String; width=nothing, height=nothing, kvs...)
+    extn = split(filename,".")
+    if length(extn) == 1
+        filename=string(filename,".png")
+        extn="png"
+    else
+        extn=extn[end]
+    end
+#XXX: do we need args and kvs for anything?    
+#    opts = args2dict(args...; kvs...)
+
+    if width == nothing
+        width = config_value("pdf","width")
+    end
+    if height == nothing
+        height = config_value("pdf","height")
+    end
+
     if extn == "pdf"
-        width = get(opts,"width",config_value("pdf","width"))
-        height = get(opts,"height",config_value("pdf","height"))
         write_pdf(plots, filename, width, height)
     else
         error("I can't export multiple pages to .$extn, sorry.")

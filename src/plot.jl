@@ -29,7 +29,7 @@ end
 _pwinston = FramedPlot()
 
 #system functions
-file(fname::String) = file(_pwinston, fname)
+file(fname::String; kvs...) = file(_pwinston, fname; kvs...)
 display() = display(_pwinston)
 
 for f in (:xlabel,:ylabel,:title)

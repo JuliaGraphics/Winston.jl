@@ -76,7 +76,7 @@ const chartokens = [
     'k' => {:color => "black"},
 ]
 
-function _parse_style(spec::String)
+function _parse_spec(spec::String)
     style = Dict()
 
     for (k,v) in [ "--" => "dashed", "-." => "dotdashed" ]
@@ -94,33 +94,48 @@ function _parse_style(spec::String)
             end
         end
     end
+
     style
 end
 
-plot(p::FramedPlot, y; kvs...) = plot(p, 1:length(y), y; kvs...)
-plot(p::FramedPlot, y, spec::String; kvs...) = plot(p, 1:length(y), y, spec; kvs...)
-function plot(p::FramedPlot, x, y, args...; kvs...)
+function default_color(i::Int)
+    cs = [0x000000, 0xED2C30, 0x008C46, 0x1859A9,
+          0xF37C21, 0x652B91, 0xA11C20, 0xB33794]
+    cs[mod1(i,length(cs))]
+end
+
+function plot(p::FramedPlot, args...; kvs...)
     args = {args...}
     components = {}
+    i = 0
 
-    while true
-        sopts = [ :linekind => "solid" ] # TODO:cycle colors
-        if length(args) > 0 && typeof(args[1]) <: String
-            merge!(sopts, _parse_style(shift!(args)))
-        end
+    while length(args) > 0
+        local x, y, sopts
 
-        if haskey(sopts, :symbolkind)
-            c = Points(x, y, sopts)
+        if length(args) == 1 || typeof(args[2]) <: String
+            y = shift!(args)
+            x = 1:length(y)
         else
-            c = Curve(x, y, sopts)
+            x = shift!(args)
+            y = shift!(args)
         end
-        push!(components, c)
-        add(p, c)
 
-        length(args) == 0 && break
-        length(args) == 1 && error("wrong number of arguments")
-        x = shift!(args)
-        y = shift!(args)
+        if length(args) > 0 && typeof(args[1]) <: String
+            sopts = _parse_spec(shift!(args))
+        else
+            sopts = {:linekind => "solid"}
+        end
+        if !haskey(sopts, :color)
+            i += 1
+            sopts[:color] = default_color(i)
+        end
+
+        if haskey(sopts, :linekind) || !haskey(sopts, :symbolkind)
+            push!(components, Curve(x, y, sopts))
+        end
+        if haskey(sopts, :symbolkind)
+            push!(components, Points(x, y, sopts))
+        end
     end
 
     for (k,v) in kvs
@@ -131,6 +146,10 @@ function plot(p::FramedPlot, x, y, args...; kvs...)
         else
             setattr(p, k, v)
         end
+    end
+
+    for c in components
+        add(p, c)
     end
 
     global _pwinston = p

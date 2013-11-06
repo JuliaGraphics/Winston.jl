@@ -17,8 +17,8 @@ end
 function gtk(self::PlotContainer, args...)
     global _saved_gtk_renderer, _saved_gtk_win
     opts = Winston.args2dict(args...)
-    width = get(opts,"width",Winston.config_value("window","width"))
-    height = get(opts,"height",Winston.config_value("window","height"))
+    width = get(opts, :width, Winston.config_value("window","width"))
+    height = get(opts, :height, Winston.config_value("window","height"))
     reuse_window = isinteractive() #&& Winston.config_value("window","reuse")
     device = _saved_gtk_renderer
     if device === nothing || !reuse_window
@@ -27,10 +27,6 @@ function gtk(self::PlotContainer, args...)
     end
     display(device, self)
     self
-end
-
-function display(args...)
-    gtk(args...)
 end
 
 function display(c::Gtk.Canvas, pc::PlotContainer)

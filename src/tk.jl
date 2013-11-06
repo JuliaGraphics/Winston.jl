@@ -1,7 +1,5 @@
 import Tk
 
-using Base.Graphics
-
 function drawingwindow(name, w, h, closecb=nothing)
     win = Tk.Window(name, w, h)
     c = Tk.Canvas(win, w, h)
@@ -17,8 +15,8 @@ _saved_canvas = nothing
 function tk(self::PlotContainer, args...)
     global _saved_canvas
     opts = Winston.args2dict(args...)
-    width = get(opts,"width",Winston.config_value("window","width"))
-    height = get(opts,"height",Winston.config_value("window","height"))
+    width = get(opts, :width, Winston.config_value("window","width"))
+    height = get(opts, :height, Winston.config_value("window","height"))
     reuse_window = isinteractive() #&& Winston.config_value("window","reuse")
     device = _saved_canvas
     if device === nothing || !reuse_window
@@ -35,8 +33,6 @@ function tk(self::PlotContainer, args...)
     display(device, self)
     self
 end
-
-display(args...) = tk(args...)
 
 function display(c::Tk.Canvas, pc::PlotContainer)
     c.draw = function (_)

@@ -16,10 +16,16 @@ export file,
        ylabel,
        errorbar
 
+type WinstonDisplay <: Display end
+pushdisplay(WinstonDisplay())
+
+import Base.display
 if output_surface == :gtk
     include("gtk.jl")
+    display(::WinstonDisplay, p::PlotContainer) = gtk(p)
 elseif output_surface == :tk
     include("tk.jl")
+    display(::WinstonDisplay, p::PlotContainer) = tk(p)
 else
     assert(false)
 end
@@ -31,7 +37,7 @@ file(fname::String, args...; kvs...) = file(_pwinston, fname, args...; kvs...)
 display() = display(_pwinston)
 
 for f in (:xlabel,:ylabel,:title)
-    @eval $f(s::String) = (setattr(_pwinston, $f=s); display(_pwinston))
+    @eval $f(s::String) = (setattr(_pwinston, $f=s); _pwinston)
 end
 
 #shortcuts for creating log-scale plots
@@ -87,7 +93,7 @@ end
 
 plot(p::FramedPlot, y; kvs...) = plot(p, 1:length(y), y; kvs...)
 plot(p::FramedPlot, y, spec::String; kvs...) = plot(p, 1:length(y), y, spec; kvs...)
-function _plot(p::FramedPlot, x, y, args...; kvs...)
+function plot(p::FramedPlot, x, y, args...; kvs...)
     args = {args...}
     components = {}
 
@@ -122,12 +128,6 @@ function _plot(p::FramedPlot, x, y, args...; kvs...)
     end
 
     global _pwinston = p
-    p
-end
-
-function plot(p::FramedPlot, x, y, args...; kvs...)
-    _plot(p, x, y, args...; kvs...)
-    display(p)
     p
 end
 plot(args...; kvs...) = plot(FramedPlot(), args...; kvs...)
@@ -179,7 +179,7 @@ function imagesc{T<:Real}(xrange::Interval, yrange::Interval, data::AbstractArra
     setattr(p, "yrange", reverse(yrange))
     img = data2rgb(data, clims, _default_colormap)
     add(p, Image(xrange, reverse(yrange), img))
-    display(p)
+    p
 end
 
 imagesc(xrange, yrange, data) = imagesc(xrange, yrange, data, (min(data),max(data)+1))
@@ -226,7 +226,6 @@ function plothist(p::FramedPlot, h::(Range,Vector); kvs...)
     end
 
     global _pwinston = p
-    display(p)
     p
 end
 plothist(p::FramedPlot, args...; kvs...) = plothist(p::FramedPlot, hist(args...); kvs...)
@@ -269,7 +268,6 @@ function errorbar(p::FramedPlot, x::AbstractVector, y::AbstractVector; xerr=noth
     end
 
     global _pwinston = p
-    display(p)
     p
 end
 

@@ -1,7 +1,8 @@
 output_surface = Winston.config_value("default","output_surface")
 output_surface = symbol(lowercase(get(ENV, "WINSTON_OUTPUT", output_surface)))
 
-export file,
+export errorbar,
+       file,
        imagesc,
        loglog,
        oplot,
@@ -13,8 +14,9 @@ export file,
        spy,
        title,
        xlabel,
+       xlim,
        ylabel,
-       errorbar
+       ylim
 
 type WinstonDisplay <: Display end
 pushdisplay(WinstonDisplay())
@@ -38,6 +40,10 @@ display() = display(_pwinston)
 
 for f in (:xlabel,:ylabel,:title)
     @eval $f(s::String) = (setattr(_pwinston, $f=s); _pwinston)
+end
+for (f,k) in ((:xlim,:xrange),(:ylim,:yrange))
+    @eval $f(a, b) = (setattr(_pwinston, $k=(a,b)); _pwinston)
+    @eval $f(a) = (setattr(_pwinston, $k=(a[1],a[2])); _pwinston)
 end
 
 #shortcuts for creating log-scale plots

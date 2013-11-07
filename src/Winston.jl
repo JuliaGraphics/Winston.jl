@@ -1749,9 +1749,7 @@ function compose_interior(self::PlotContainer, device::Renderer, int_bbox::Bound
 end
 
 function compose(self::PlotContainer, device::Renderer, region::BoundingBox)
-    if isempty(self)
-        error("empty container")
-    end
+    if isempty(self) return end
     ext_bbox = region
     if hasattr(self, :title)
         offset = _size_relative(getattr(self,"title_offset"), ext_bbox)

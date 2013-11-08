@@ -277,9 +277,12 @@ end
 
 function plot3d(o::Polygons3D)
     w = Window("3d plot", 320, 320)
-    c = Canvas(w)
     if output_surface == :tk
+        c = Canvas(w)
         pack(c, expand = true, fill = "both")
+    else
+        c = Canvas()
+        push!(w, c)
     end
 
     xmin = min(o.V[1,:]); xmax = max(o.V[1,:])

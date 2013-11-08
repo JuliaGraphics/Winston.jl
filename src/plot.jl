@@ -261,12 +261,25 @@ plothist(args...; kvs...) = plothist(FramedPlot(), args...; kvs...)
 # shortcut for overplotting
 oplothist(args...; kvs...) = plothist(_pwinston, args...; kvs...)
 
+# 3x3 gaussian
+#_default_kernel2d=[.05 .1 .05; .1 .4 .1; .05 .1 .05]
+
+# 5x5 gaussian
+_default_kernel2d=(1.0/273.)*[1.0 4.0 7.0 4.0 1.0;
+                             4.0 16. 26. 16. 4.0;
+                             7.0 26. 41. 26. 7.0;
+                             1.0 4.0 7.0 4.0 1.0;
+                             4.0 16. 26. 16. 4.0]                 
+
 #hist2d
-function plothist2d(p::FramedPlot, h::(Union(Range,Vector),Union(Range,Vector),Array{Int,2}); colormap=_default_colormap, kvs...)
+function plothist2d(p::FramedPlot, h::(Union(Range,Vector),Union(Range,Vector),Array{Int,2}); colormap=_default_colormap, smooth=0, kernel=_default_kernel2d, kvs...)
     xr, yr, hdata = h
 
-    clims = (minimum(hdata), maximum(hdata)+1)
+    for i in 1:smooth
+        hdata = conv2(hdata*1.0, kernel)
+    end
 
+    clims = (minimum(hdata), maximum(hdata)+1)
     img = data2rgb(hdata, clims, colormap)'
     add(p, Image((xr[1], xr[end]), (yr[1], yr[end]), img;))
 

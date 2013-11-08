@@ -1,5 +1,4 @@
 
-
 Winston Reference Guide
 =======================
 
@@ -158,8 +157,11 @@ Components are rendered in the order they're added.
 <td>If true use log scaling, otherwise linear.</td>
 </tr>
 
-<tr><td> xrange </td><td> (Real,Real) </td>
-<td></td>
+<tr><td> xrange </td><td> (Nohing | Real, Nothing | Real) </td>
+<td>
+    The x-axis left and right limits, respectively.
+    Limits set to `nothing` are chosen automatically.
+</td>
 </tr>
 
 <tr><td> ylabel </td><td> String </td>
@@ -170,7 +172,11 @@ Components are rendered in the order they're added.
 <td>If true use log scaling, otherwise linear.</td>
 </tr>
 
-<tr><td> yrange </td><td> (Real,Real) </td>
+<tr><td> yrange </td><td> (Nothing | Real, Nothing | Real) </td>
+<td>
+    The y-axis left and right limits, respectively.
+    Limits set to `nothing` are chosen automatically.
+</td>
 <td></td>
 </tr>
 
@@ -247,8 +253,12 @@ For instance, when you set `p.xlog` you're actually setting
 </tr><tr><td> log </td><td> Bool </td>
 <td></td></tr>
 
-</tr><tr><td> range </td><td> (Real, Real)</td>
-<td></td></tr>
+</tr><tr><td> range </td><td> (Nothing | Real, Nothing | Real)</td>
+<td>
+    Left and right limits, respectively.
+    Limits set to `nothing` are chosen automatically.
+</td>
+</tr>
 
 </tr><tr><td> spine_style </td><td> Style </td>
 <td></td></tr>

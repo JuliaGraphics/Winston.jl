@@ -59,7 +59,7 @@ Declarative interface
     p = FramedPlot()
     add(p, Curve(x, y))
 
-    Winston.display(p)      # Display the plot on-screen
+    display(p)              # Display the plot on-screen
     file(p, "winston.eps")  # Save the plot to a file
 
 Documentation is a bit sparse at the moment, but see the

@@ -13,7 +13,7 @@ cd(dirdump)
 
 for i = 1:6
     include(joinpath(direxample, "example"*string(i)*".jl"))
-    Winston.display(i == 3 ? t2 : p)
+    display(i == 3 ? t2 : p)
 end
 
 cd(cwd)

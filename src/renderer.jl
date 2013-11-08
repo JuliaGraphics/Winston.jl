@@ -255,7 +255,7 @@ function curve(self::CairoRenderer, x::AbstractVector, y::AbstractVector)
     end
 end
 
-image(r::CairoRenderer, src, x, y, w, h) = image(r.ctx, src, x, y, w, h)
+image(r::CairoRenderer, src, x, y, w, h) = Cairo.image(r.ctx, src, x, y, w, h)
 
 function polygon(self::CairoRenderer, points::Vector)
     polygon(self.ctx, points)

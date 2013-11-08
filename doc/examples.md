@@ -19,7 +19,8 @@ add(p, FillBetween(x, c, x, s))
 add(p, Curve(x, c, color="red"))
 add(p, Curve(x, s, color="blue"))
 
-file(p, "example1.png")
+Winston.display(p) # render the plot on-screen
+file(p, "example1.png") # save the plot to file
 ```
 
 Example 2
@@ -54,6 +55,7 @@ l = Legend(.1, .9, {a,b,s})
 
 add(p, s, a, b, l)
 
+Winston.display(p) 
 file(p, "example2.png")
 ```
 
@@ -81,6 +83,7 @@ t2 = Table(2, 1)
 t2[1,1] = t1
 t2[2,1] = p
 
+Winston.display(p) 
 file(t2, "example3.png")
 ```
 
@@ -108,6 +111,7 @@ add(p, SymmetricErrorBarsY(x, s, 0.2*ones(length(x))))
 add(p, Points(x, s, color="red"))
 add(p, PlotInset((.6,.6), (.95,.95), inset))
 
+Winston.display(p) 
 file(p, "example4.png")
 ```
 
@@ -137,6 +141,7 @@ add(p[1,2], Curve(x, .50*y))
 add(p[2,1], Curve(x, .75*y))
 add(p[2,2], Curve(x, y))
 
+Winston.display(p) 
 file(p, "example5.png")
 ```
 
@@ -165,6 +170,7 @@ setattr(p.y2, label="right", draw_ticks=false,
 add(p, Curve(x, c, kind="dash"))
 add(p, Curve(x, s))
 
+Winston.display(p) 
 file(p, "example6.png")
 ```
 

@@ -1794,16 +1794,20 @@ function write_svg(p::PlotContainer, io::IO, width, height)
     write_to_surface(p, surface)
 end
 
+function write_svg(p::PlotContainer, filename::String, width, height)
+    io = Base.FS.open(filename, Base.JL_O_CREAT|Base.JL_O_TRUNC|Base.JL_O_WRONLY, 0o644)
+    write_svg(p, io, width, height)
+    close(io)
+    nothing
+end
+
 function write_eps(self::PlotContainer, filename::String, width::String, height::String)
     write_eps(self, filename, _str_size_to_pts(width), _str_size_to_pts(height))
 end
 
 function write_eps(self::PlotContainer, filename::String, width::Real, height::Real)
     surface = CairoEPSSurface(filename, width, height)
-    r = CairoRenderer(surface)
-    page_compose(self, r)
-    show_page(r.ctx)
-    finish(surface)
+    write_to_surface(self, surface)
 end
 
 function write_pdf(self, filename::String, width::String, height::String)
@@ -1812,10 +1816,7 @@ end
 
 function write_pdf(self::PlotContainer, filename::String, width::Real, height::Real)
     surface = CairoPDFSurface(filename, width, height)
-    r = CairoRenderer(surface)
-    page_compose(self, r)
-    show_page(r.ctx)
-    finish(surface)
+    write_to_surface(self, surface)
 end
 
 function write_pdf{T<:PlotContainer}(plots::Vector{T}, filename::String, width::Real, height::Real)
@@ -1854,6 +1855,10 @@ function file(self::PlotContainer, filename::String, args...; kvs...)
         width = get(opts,:width,config_value("window","width"))
         height = get(opts,:height,config_value("window","height"))
         write_png(self, filename, width, height)
+    elseif extn == "svg"
+        width = get(opts, :width, config_value("svg","width"))
+        height = get(opts, :height, config_value("svg","height"))
+        write_svg(self, filename, width, height)
     else
         error("I can't export .$extn, sorry.")
     end
@@ -1877,12 +1882,7 @@ function svg(self::PlotContainer, args...; kvs...)
     height = get(opts,:height,config_value("window","height"))
     stream = IOBuffer()
 
-    surface = CairoSVGSurface(stream, width, height)
-    r = CairoRenderer(surface)
-
-    page_compose(self, r)
-    show_page(r.ctx)
-    finish(surface)
+    write_svg(self, stream, width, height)
 
     s = takebuf_string(stream)
     a,b = search(s, "<svg")

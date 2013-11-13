@@ -1,6 +1,3 @@
-output_surface = Winston.config_value("default","output_surface")
-output_surface = symbol(lowercase(get(ENV, "WINSTON_OUTPUT", output_surface)))
-
 export errorbar,
        file,
        imagesc,
@@ -20,25 +17,10 @@ export errorbar,
        ylabel,
        ylim
 
-type WinstonDisplay <: Display end
-pushdisplay(WinstonDisplay())
-
-import Base.display
-if output_surface == :gtk
-    include("gtk.jl")
-    display(::WinstonDisplay, p::PlotContainer) = gtk(p)
-elseif output_surface == :tk
-    include("tk.jl")
-    display(::WinstonDisplay, p::PlotContainer) = tk(p)
-else
-    assert(false)
-end
-
 _pwinston = FramedPlot()
 
 #system functions
 file(fname::String, args...; kvs...) = file(_pwinston, fname, args...; kvs...)
-display() = display(_pwinston)
 
 for f in (:xlabel,:ylabel,:title)
     @eval $f(s::String) = (setattr(_pwinston, $f=s); _pwinston)

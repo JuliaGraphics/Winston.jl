@@ -8,6 +8,9 @@ using IniFile
 import Base.getindex, Base.setindex!, Base.+, Base.-, Base.add, Base.isempty,
        Base.copy, Base.(*), Base.(/), Base.get, Base.show
 
+import Base: display,
+             writemime
+
 export PlotContainer
 export Curve, FillAbove, FillBelow, FillBetween, Histogram, Image, Legend,
     LineX, LineY, PlotInset, PlotLabel, Points, Slope,
@@ -1779,16 +1782,17 @@ function page_compose(self::PlotContainer, device::Renderer)
     restore(device.ctx)
 end
 
-# function x11(self::PlotContainer, args...)
-#     println("sorry, not implemented yet")
-#     return
-#     opts = args2dict(args...)
-#     width = has(opts,"width") ? opts["width"] : config_value("window","width")
-#     height = has(opts,"height") ? opts["height"] : config_value("window","height")
-#     reuse_window = isinteractive() && config_value("window","reuse")
-#     device = ScreenRenderer(reuse_window, width, height)
-#     page_compose(self, device)
-# end
+function write_to_surface(p::PlotContainer, surface)
+    r = CairoRenderer(surface)
+    page_compose(p, r)
+    show_page(r.ctx)
+    finish(surface)
+end
+
+function write_svg(p::PlotContainer, io::IO, width, height)
+    surface = CairoSVGSurface(io, width, height)
+    write_to_surface(p, surface)
+end
 
 function write_eps(self::PlotContainer, filename::String, width::String, height::String)
     write_eps(self, filename, _str_size_to_pts(width), _str_size_to_pts(height))
@@ -2597,5 +2601,28 @@ end
 
 include("plot.jl")
 include("plot_interfaces.jl")
+
+############################################################################
+
+writemime(io::IO, ::MIME"image/svg+xml", p::PlotContainer) =
+    write_svg(p, io, 450, 300)
+
+output_surface = Winston.config_value("default","output_surface")
+output_surface = symbol(lowercase(get(ENV, "WINSTON_OUTPUT", output_surface)))
+
+type WinstonDisplay <: Display end
+
+if !isdefined(Main, :IJulia)
+    if output_surface == :gtk
+        include("gtk.jl")
+        display(::WinstonDisplay, p::PlotContainer) = gtk(p)
+    elseif output_surface == :tk
+        include("tk.jl")
+        display(::WinstonDisplay, p::PlotContainer) = tk(p)
+    else
+        assert(false)
+    end
+    pushdisplay(WinstonDisplay())
+end
 
 end # module

@@ -2,13 +2,19 @@
 # http://sphinx.pocoo.org/domains.html
 
 import docutils.nodes
-import docutils.parsers.rst.directives.body
 import hashlib
 import os, os.path
 import re
 import sphinx.domains.python
 from sphinx.util.osutil import ensuredir
 import tempfile
+
+try:
+    from docutils.parsers.rst.directives.body import CodeBlock
+    oldstyle_code_block = False
+except:
+    from sphinx.directives.code import CodeBlock
+    oldstyle_code_block = True
 
 sphinx.domains.python.py_sig_re = re.compile(
     r'''^ ([\w.]+\.)?            # class name(s)
@@ -58,25 +64,16 @@ def html_visit_winston(self, node):
     self.body.append('<img src="' + url + '"/>')
     raise docutils.nodes.SkipNode
 
-class WinstonDirective(docutils.parsers.rst.directives.body.CodeBlock):
+class WinstonDirective(CodeBlock):
+
+    required_arguments = 0
 
     def run(self):
+	if oldstyle_code_block and len(self.arguments) == 0:
+	    self.arguments.append('julia')
+
         node = winston()
         node['script'] = '\n'.join(self.content)
-
-#        sha1 = hashlib.sha1(script).hexdigest()
-#        fn = "%s.png" % sha1
-#
-#        if 'READTHEDOCS' in os.environ:
-#            fn = "http://example.com/" + fn
-#        else:
-#            fn = os.path.join(self.builder.imgpath, fn)
-#            var = "Winston._pwinston"
-#            script = 'using Winston\n%s\nfile(%s,"%s")' % (script,var,fn)
-#            try:
-#                run_julia_script(script)
-#            except:
-#                pass
 
         nodes = super(WinstonDirective,self).run()
         return nodes + [node]

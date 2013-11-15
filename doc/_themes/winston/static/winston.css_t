@@ -1,0 +1,12 @@
+@import url("css/theme.css");
+
+.rst-content dl:not(.docutils) {
+    border-top: solid 3px #6ab0de;
+}
+
+.rst-content dl:not(.docutils) dt {
+    border-top: none;
+    display: block;
+    margin: 1px 0;
+}
+

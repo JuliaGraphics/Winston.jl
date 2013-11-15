@@ -16,7 +16,7 @@ import sys, os
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-#sys.path.insert(0, os.path.abspath('.'))
+sys.path.insert(0, os.path.abspath('_ext'))
 
 # -- General configuration -----------------------------------------------------
 
@@ -25,7 +25,7 @@ import sys, os
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.mathjax']
+extensions = ['sphinx.ext.mathjax', 'julia']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -40,8 +40,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'winston'
-copyright = u'2012, Mike Nolta'
+project = u'Winston'
+copyright = u'2012-13, Mike Nolta'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -86,6 +86,8 @@ pygments_style = 'sphinx'
 # A list of ignored prefixes for module index sorting.
 #modindex_common_prefix = []
 
+primary_domain = 'jl'
+highlight_language = 'julia'
 
 # -- Options for HTML output ---------------------------------------------------
 
@@ -183,7 +185,7 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'winston.tex', u'winston Documentation',
+  ('index', 'winston.tex', u'Winston Documentation',
    u'Mike Nolta', 'manual'),
 ]
 
@@ -213,7 +215,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'winston', u'winston Documentation',
+    ('index', 'winston', u'Winston Documentation',
      [u'Mike Nolta'], 1)
 ]
 
@@ -227,8 +229,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'winston', u'winston Documentation',
-   u'Mike Nolta', 'winston', 'One line description of project.',
+  ('index', 'winston', u'Winston Documentation',
+   u'Mike Nolta', 'Winston', 'One line description of project.',
    'Miscellaneous'),
 ]
 

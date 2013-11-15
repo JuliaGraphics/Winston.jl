@@ -1,4 +1,4 @@
-@import url("sphinx_rtd_theme.css");
+@import url("css/theme.css");
 
 .rst-content dl:not(.docutils) {
     border-top: solid 3px #6ab0de;

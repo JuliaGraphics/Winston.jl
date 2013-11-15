@@ -5,8 +5,16 @@
 ******
 
 .. function:: plot(y [,spec])
-              plot(x, y [,spec])
-              plot(x, y, [spec,] x2, y2, [spec,] ...)
+
+    blah
+
+.. function:: plot(x, y [,spec])
+
+    blah
+
+.. function:: plot(x, y, [spec,] x2, y2, [spec,] ...)
+
+    blah
 
 Examples
 --------

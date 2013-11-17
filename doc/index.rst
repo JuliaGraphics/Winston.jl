@@ -5,7 +5,7 @@
 
 .. warning::
 
-   Please pardon out dust! Docs under construction.
+   Please pardon our dust! Docs under construction.
 
 .. toctree::
    :maxdepth: 2

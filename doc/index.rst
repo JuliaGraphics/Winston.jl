@@ -8,3 +8,8 @@
 
    fun/index
 
+.. toctree::
+   :maxdepth: 1
+
+   examples
+

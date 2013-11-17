@@ -2,6 +2,7 @@
 # http://sphinx.pocoo.org/domains.html
 
 import docutils.nodes
+from docutils.parsers.rst import directives
 import hashlib
 import os, os.path
 import re
@@ -44,6 +45,7 @@ class winston(docutils.nodes.Inline, docutils.nodes.TextElement):
 
 def html_visit_winston(self, node):
     script = node['script']
+    var = node.get('var', 'Winston._pwinston')
     sha1 = hashlib.sha1(script).hexdigest()
     fn = "winston/%s.png" % sha1
 
@@ -53,7 +55,6 @@ def html_visit_winston(self, node):
         url = os.path.join(self.builder.imgpath, fn)
         fn = os.path.join(self.builder.outdir, '_images', fn)
         if not os.path.isfile(fn):
-            var = "Winston._pwinston"
             ensuredir(os.path.dirname(fn))
             script = 'using Winston\n%s\nfile(%s,"%s")' % (script,var,fn)
             try:
@@ -67,12 +68,16 @@ def html_visit_winston(self, node):
 class WinstonDirective(CodeBlock):
 
     required_arguments = 0
+    optional_arguments = 1
+    option_spec = {
+        'var' : directives.unchanged,
+    }
 
     def run(self):
 	if oldstyle_code_block and len(self.arguments) == 0:
 	    self.arguments.append('julia')
 
-        node = winston()
+        node = winston(**self.options)
         node['script'] = '\n'.join(self.content)
 
         nodes = super(WinstonDirective,self).run()

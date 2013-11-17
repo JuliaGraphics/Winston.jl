@@ -48,23 +48,6 @@ julia> plot(x, y, "b:", x2, y2, "g^")
 
 which creates a blue dotted line and green triangles.
  
-Declarative interface
----------------------
-
-    using Winston
-
-    x = [-pi:0.2:pi]
-    y = sin(x)
-
-    p = FramedPlot()
-    add(p, Curve(x, y))
-
-    display(p)              # Display the plot on-screen
-    file(p, "winston.eps")  # Save the plot to a file
-
-Documentation is a bit sparse at the moment, but see the
-[examples](https://github.com/nolta/Winston.jl/blob/master/doc/examples.md).
-
 Documentation
 -------------
 

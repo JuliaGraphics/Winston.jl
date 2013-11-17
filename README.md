@@ -64,3 +64,8 @@ Declarative interface
 
 Documentation is a bit sparse at the moment, but see the
 [examples](https://github.com/nolta/Winston.jl/blob/master/doc/examples.md).
+
+Documentation
+-------------
+
+Hosted by [Read The Docs](http://winston.rtfd.org/).

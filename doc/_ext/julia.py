@@ -68,8 +68,9 @@ def html_visit_winston(self, node):
 class WinstonDirective(CodeBlock):
 
     required_arguments = 0
-    optional_arguments = 1
+    optional_arguments = 2
     option_spec = {
+        'preamble' : directives.unchanged,
         'var' : directives.unchanged,
     }
 
@@ -77,8 +78,13 @@ class WinstonDirective(CodeBlock):
 	if oldstyle_code_block and len(self.arguments) == 0:
 	    self.arguments.append('julia')
 
-        node = winston(**self.options)
+        node = winston()
         node['script'] = '\n'.join(self.content)
+        if 'preamble' in self.options:
+            node['script'] = self.options['preamble'] \
+                           + '\n' + node['script']
+        if 'var' in self.options:
+            node['var'] = self.options['var']
 
         nodes = super(WinstonDirective,self).run()
         return nodes + [node]

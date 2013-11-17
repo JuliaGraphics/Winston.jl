@@ -10,9 +10,10 @@ Example
 -------
 
 .. winston::
+   :preamble: srand(802)
 
-   walk(n) = (r = randn(n); [sum(r[1:i]) for i=1:n])
+   randomwalk(n) = (r = randn(n); [sum(r[1:i]) for i=1:n])
    plot()
-   oplot(walk(100))
-   oplot(walk(100))
+   oplot(randomwalk(300))
+   oplot(randomwalk(300))
 

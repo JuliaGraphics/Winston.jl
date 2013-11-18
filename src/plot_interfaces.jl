@@ -16,9 +16,10 @@ errs_to_nan(f) = (x) -> try f(x) catch e NaN end
 
 typealias ScatterPlotPoints{T<:Real, S<:Real} (Vector{T}, Vector{S})
 
-function plot(p::FramedPlot, x::ScatterPlotPoints, args...; symbolkind="circle",kwargs...)
-    #XXX: check if args have symbolkind options
-    plot(p, x[1], x[2], args...; symbolkind=symbolkind, kwargs...)
+## plot a scatterplot (verbose alternative to plot(x, y, "o") 
+## use named argument symbol to pass in symbol -- not args)
+function plot(p::FramedPlot, x::ScatterPlotPoints, args...; symbol="o", kwargs...)
+    plot(p, x[1], x[2], symbol, args...;  kwargs...)
 end
 
 function plot(p::FramedPlot, f::Function, a::Real, b::Real, args...;  kwargs...)

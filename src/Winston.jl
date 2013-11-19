@@ -69,49 +69,20 @@ upperleft(bb::BoundingBox) = Point(bb.xmin, bb.ymax)
 lowerright(bb::BoundingBox) = Point(bb.xmax, bb.ymin)
 upperright(bb::BoundingBox) = Point(bb.xmax, bb.ymax)
 
-maxfinite(A) = maximum(A)
-maxfinite(x, y) = max(x, y)
-function maxfinite{T<:FloatingPoint}(A::AbstractArray{T})
-    ret = nan(T)
-    for a in A
-        ret = isfinite(a) ? (ret > a ? ret : a) : ret
+function bounds_within(x, y, window::BoundingBox)
+    xmin, xmax, ymin, ymax = NaN, NaN, NaN, NaN
+    for i = 1:min(length(x),length(y))
+        xi = x[i]
+        yi = y[i]
+        if (window.xmin < xi < window.xmax) && (window.ymin < yi < window.ymax)
+            xmin = min(xmin, xi)
+            xmax = max(xmax, xi)
+            ymin = min(ymin, yi)
+            ymax = max(ymax, yi)
+        end
     end
-    ret
+    BoundingBox(xmin, xmax, ymin, ymax)
 end
-function maxfinite(x::FloatingPoint, y::FloatingPoint)
-    ifx = isfinite(x)
-    ify = isfinite(y)
-    if ifx && ify
-        return max(x, y)
-    elseif ifx
-        return x
-    end
-    y
-end
-maxfinite(x::FloatingPoint, y) = isfinite(x) ? max(x, y) : y
-maxfinite(x, y::FloatingPoint) = isfinite(y) ? max(x, y) : x
-
-minfinite(A) = minimum(A)
-minfinite(x, y) = min(x, y)
-function minfinite{T<:FloatingPoint}(A::AbstractArray{T})
-    ret = nan(T)
-    for a in A
-        ret = isfinite(a) ? (ret < a ? ret : a) : ret
-    end
-    ret
-end
-function minfinite(x::FloatingPoint, y::FloatingPoint)
-    ifx = isfinite(x)
-    ify = isfinite(y)
-    if ifx && ify
-        return min(x, y)
-    elseif ifx
-        return x
-    end
-    y
-end
-minfinite(x::FloatingPoint, y) = isfinite(x) ? min(x, y) : y
-minfinite(x, y::FloatingPoint) = isfinite(y) ? min(x, y) : x
 
 include("geom.jl")
 
@@ -319,12 +290,9 @@ type ErrorBarsX <: ErrorBar
     end
 end
 
-function limits(self::ErrorBarsX)
-    return BoundingBox(minfinite(minfinite(self.lo), minfinite(self.hi)),
-                       maxfinite(maxfinite(self.lo), maxfinite(self.hi)),
-                       minfinite(self.y),
-                       maxfinite(self.y))
-end
+limits(self::ErrorBarsX, window::BoundingBox) =
+    bounds_within(self.lo, self.y, window) +
+    bounds_within(self.hi, self.y, window)
 
 function make(self::ErrorBarsX, context)
     l = _size_relative(getattr(self, "barsize"), context.dev_bbox)
@@ -359,12 +327,9 @@ type ErrorBarsY <: ErrorBar
     end
 end
 
-function limits(self::ErrorBarsY)
-    return BoundingBox(minfinite(self.x),
-                       maxfinite(self.x),
-                       minfinite(minfinite(self.lo), minfinite(self.hi)),
-                       maxfinite(maxfinite(self.lo), maxfinite(self.hi)))
-end
+limits(self::ErrorBarsY, window::BoundingBox) =
+    bounds_within(self.x, self.lo, window) +
+    bounds_within(self.x, self.hi, window)
 
 function make(self::ErrorBarsY, context)
     objs = {}
@@ -416,7 +381,7 @@ function boundingbox(self::DataInset, context::PlotContext)
     return BoundingBox(p, q)
 end
 
-function limits(self::DataInset)
+function limits(self::DataInset, window::BoundingBox)
     return self.plot_limits
 end
 
@@ -433,7 +398,7 @@ function boundingbox(self::PlotInset, context::PlotContext)
     return BoundingBox(p, q)
 end
 
-function limits(self::PlotInset)
+function limits(self::PlotInset, window::BoundingBox)
     return self.plot_limits
 end
 
@@ -984,10 +949,10 @@ function isempty(self::PlotComposite)
     return isempty(self.components)
 end
 
-function limits(self::PlotComposite)
+function limits(self::PlotComposite, window::BoundingBox)
     bb = BoundingBox()
     for obj in self.components
-        bb += limits(obj)
+        bb += limits(obj, window)
     end
     return bb
 end
@@ -1191,13 +1156,28 @@ function add2(self::FramedPlot, args::PlotComponent...)
     add(self.content2, args...)
 end
 
+function user_limits(xrange, yrange)
+    xmin, xmax, ymin, ymax = -Inf, Inf, -Inf, Inf
+    if xrange !== nothing
+        xrange[1] !== nothing && (xmin = prevfloat(float64(xrange[1])))
+        xrange[2] !== nothing && (xmax = nextfloat(float64(xrange[2])))
+    end
+    if yrange !== nothing
+        yrange[1] !== nothing && (ymin = prevfloat(float64(yrange[1])))
+        yrange[2] !== nothing && (ymax = nextfloat(float64(yrange[2])))
+    end
+    BoundingBox(xmin, xmax, ymin, ymax)
+end
+
 function _context1(self::FramedPlot, device::Renderer, region::BoundingBox)
     xlog = getattr(self.x1, "log")
     ylog = getattr(self.y1, "log")
+    xr = getattr(self.x1, "range")
+    yr = getattr(self.y1, "range")
     gutter = getattr(self, "gutter")
-    l1 = limits(self.content1)
-    xr = _limits_axis(xrange(l1), gutter, getattr(self.x1,"range"), xlog)
-    yr = _limits_axis(yrange(l1), gutter, getattr(self.y1,"range"), ylog)
+    l1 = limits(self.content1, user_limits(xr, yr))
+    xr = _limits_axis(xrange(l1), gutter, xr, xlog)
+    yr = _limits_axis(yrange(l1), gutter, yr, ylog)
     lims = BoundingBox(xr[1], xr[2], yr[1], yr[2])
     proj = PlotGeometry(xr..., yr..., region, xlog, ylog)
     return PlotContext(device, region, lims, proj, xlog, ylog)
@@ -1207,9 +1187,15 @@ function _context2(self::FramedPlot, device::Renderer, region::BoundingBox)
     xlog = _first_not_none(getattr(self.x2, "log"), getattr(self.x1, "log"))
     ylog = _first_not_none(getattr(self.y2, "log"), getattr(self.y1, "log"))
     gutter = getattr(self, "gutter")
-    l2 = isempty(self.content2) ? limits(self.content1) : limits(self.content2)
-    xr = _first_not_none(getattr(self.x2, "range"), getattr(self.x1, "range"))
-    yr = _first_not_none(getattr(self.y2, "range"), getattr(self.y1, "range"))
+    xr1 = getattr(self.x1, "range")
+    yr1 = getattr(self.y1, "range")
+    xr2 = getattr(self.x2, "range")
+    yr2 = getattr(self.y2, "range")
+    bb1 = user_limits(xr1, yr1)
+    bb2 = user_limits(xr2, yr2)
+    l2 = isempty(self.content2) ? limits(self.content1, bb1) : limits(self.content2, bb2)
+    xr = _first_not_none(xr2, xr1)
+    yr = _first_not_none(yr2, yr1)
     xr = _limits_axis(xrange(l2), gutter, xr, xlog)
     yr = _limits_axis(yrange(l2), gutter, yr, ylog)
     lims = BoundingBox(xr[1], xr[2], yr[1], yr[2])
@@ -1368,8 +1354,8 @@ function add(self::Plot, args::PlotComponent...)
     add(self.content, args...)
 end
 
-function limits(self::Plot)
-    return _limits(limits(self.content), getattr(self,"gutter"),
+function limits(self::Plot, window::BoundingBox)
+    return _limits(limits(self.content,window), getattr(self,"gutter"),
                    getattr(self,"xlog"), getattr(self,"ylog"),
                    getattr(self,"xrange"), getattr(self,"yrange"))
 end
@@ -1430,7 +1416,7 @@ function _range_union(a, b)
     if is(b,nothing)
         return a
     end
-    return minfinite(a[1],b[1]), maxfinite(a[2],b[2])
+    return min(a[1],b[1]), max(a[2],b[2])
 end
 
 type FramedArray <: PlotContainer
@@ -1486,11 +1472,13 @@ function _limits(self::FramedArray, i, j)
     end
 end
 
-function _limits_uniform(self)
+function _limits_uniform(self::FramedArray)
     lmts = BoundingBox()
     for i in 1:self.nrows, j=1:self.ncols
         obj = self.content[i,j]
-        lmts += limits(obj)
+        # XXX:fixme
+        window = BoundingBox(-Inf, Inf, -Inf, Inf)
+        lmts += limits(obj, window)
     end
     return lmts
 end
@@ -1498,12 +1486,16 @@ end
 function _limits_nonuniform(self::FramedArray, i, j)
     lx = nothing
     for k in 1:self.nrows
-        l = limits(self.content[k,j])
+        # XXX:fixme
+        window = BoundingBox(-Inf, Inf, -Inf, Inf)
+        l = limits(self.content[k,j], window)
         lx = _range_union(xrange(l), lx)
     end
     ly = nothing
     for k in 1:self.ncols
-        l = limits(self.content[i,k])
+        # XXX:fixme
+        window = BoundingBox(-Inf, Inf, -Inf, Inf)
+        l = limits(self.content[i,k], window)
         ly = _range_union(yrange(l), ly)
     end
     return BoundingBox(lx[1], lx[2], ly[1], ly[2])
@@ -1935,9 +1927,7 @@ type Curve <: LineComponent
     end
 end
 
-function limits(self::Curve)
-    return BoundingBox(minfinite(self.x), maxfinite(self.x), minfinite(self.y), maxfinite(self.y))
-end
+limits(self::Curve, window::BoundingBox) = bounds_within(self.x, self.y, window)
 
 function make(self::Curve, context)
     objs = {}
@@ -2015,14 +2005,13 @@ type Histogram <: LineComponent
     end
 end
 
-function limits(self::Histogram)
+function limits(self::Histogram, window::BoundingBox)
     if getattr(self, "drop_to_zero")
-        p = Point(minfinite(self.edges), minfinite(0, minfinite(self.values)))
+        return bounds_within(self.edges, self.values, window) +
+               bounds_within(self.edges, zeros(length(self.values)), window)
     else
-        p = Point(minfinite(self.edges), minfinite(self.values))
+        return bounds_within(self.edges, self.values, window)
     end
-    q = Point(maxfinite(self.edges), maxfinite(self.values))
-    return BoundingBox(p, q)
 end
 
 function make(self::Histogram, context::PlotContext)
@@ -2051,7 +2040,7 @@ end
 
 type LineX <: LineComponent
     attr::PlotAttributes
-    x
+    x::Float64
 
     function LineX(x, args...; kvs...)
         self = new(Dict())
@@ -2062,7 +2051,7 @@ type LineX <: LineComponent
     end
 end
 
-function limits(self::LineX)
+function limits(self::LineX, window::BoundingBox)
     return BoundingBox(self.x, self.x, NaN, NaN)
 end
 
@@ -2075,7 +2064,7 @@ end
 
 type LineY <: LineComponent
     attr::PlotAttributes
-    y
+    y::Float64
 
     function LineY(y, args...; kvs...)
         self = new(Dict())
@@ -2086,7 +2075,7 @@ type LineY <: LineComponent
     end
 end
 
-function limits(self::LineY)
+function limits(self::LineY, window::BoundingBox)
     return BoundingBox(NaN, NaN, self.y, self.y)
 end
 
@@ -2278,9 +2267,7 @@ type FillAbove <: FillComponent
     end
 end
 
-function limits(self::FillAbove)
-    return BoundingBox(minfinite(self.x), maxfinite(self.x), minfinite(self.y), maxfinite(self.y))
-end
+limits(self::FillAbove, window::BoundingBox) = bounds_within(self.x, self.y, window)
 
 function make(self::FillAbove, context)
     coords = map((a,b)->project(context.geom,Point(a,b)), self.x, self.y)
@@ -2305,9 +2292,7 @@ type FillBelow <: FillComponent
     end
 end
 
-function limits(self::FillBelow)
-    return BoundingBox(minfinite(self.x), maxfinite(self.x), minfinite(self.y), maxfinite(self.y))
-end
+limits(self::FillBelow, window::BoundingBox) = bounds_within(self.x, self.y, window)
 
 function make(self::FillBelow, context)
     coords = map((a,b)->project(context.geom,Point(a,b)), self.x, self.y)
@@ -2336,13 +2321,9 @@ type FillBetween <: FillComponent
     end
 end
 
-function limits(self::FillBetween)
-    min_x = minfinite(minfinite(self.x1), minfinite(self.x2))
-    max_x = maxfinite(maxfinite(self.x1), maxfinite(self.x2))
-    min_y = minfinite(minfinite(self.y1), minfinite(self.y2))
-    max_y = maxfinite(maxfinite(self.y1), maxfinite(self.y2))
-    return BoundingBox(min_x, max_x, min_y, max_y)
-end
+limits(self::FillBetween, window::BoundingBox) =
+    bounds_within(self.x1, self.y1, window) +
+    bounds_within(self.x2, self.y2, window)
 
 function make(self::FillBetween, context)
     x = [self.x1, reverse(self.x2)]
@@ -2375,9 +2356,8 @@ type Image <: ImageComponent
     end
 end
 
-function limits(self::Image)
-    return BoundingBox(self.x, self.x+self.w, self.y, self.y+self.h)
-end
+limits(self::Image, window::BoundingBox) =
+    bounds_within([self.x, self.x+self.w], [self.y, self.y+self.h], window)
 
 function make(self::Image, context)
     a = project(context.geom, Point(self.x, self.y))
@@ -2423,9 +2403,8 @@ kw_defaults(::SymbolDataComponent) = [
     :symbolsize => config_value("Points","symbolsize"),
 ]
 
-function limits(self::SymbolDataComponent)
-    return BoundingBox(minfinite(self.x), maxfinite(self.x), minfinite(self.y), maxfinite(self.y))
-end
+limits(self::SymbolDataComponent, window::BoundingBox) =
+    bounds_within(self.x, self.y, window)
 
 function make(self::SymbolDataComponent, context::PlotContext)
     x, y = project(context.geom, self.x, self.y)
@@ -2458,9 +2437,8 @@ kw_defaults(::ColoredPoints) = [
     :symbolsize => config_value("Points","symbolsize"),
 ]
 
-function limits(self::ColoredPoints)
-    return BoundingBox(minfinite(self.x), maxfinite(self.x), minfinite(self.y), maxfinite(self.y))
-end
+limits(self::ColoredPoints, window::BoundingBox) =
+    bounds_within(self.x, self.y, window)
 
 function make(self::ColoredPoints, context::PlotContext)
     x, y = project(context.geom, self.x, self.y)
@@ -2477,7 +2455,7 @@ function show(io::IO, self::PlotComponent)
     print(io, typeof(self), "(...)")
 end
 
-function limits(self::PlotComponent)
+function limits(self::PlotComponent, window::BoundingBox)
     return BoundingBox()
 end
 
@@ -2488,8 +2466,7 @@ function boundingbox(self::PlotComponent, context::PlotContext)
     objs = make(self, context)
     bb = BoundingBox()
     for obj in objs
-        x = boundingbox(obj, context)
-        bb += x
+        bb += boundingbox(obj, context)
     end
     return bb
 end

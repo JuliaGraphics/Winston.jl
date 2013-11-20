@@ -1821,14 +1821,14 @@ function write_pdf{T<:PlotContainer}(plots::Vector{T}, filename::String, width::
     finish(surface)
 end
 
-function write_png(self::PlotContainer, filename::String, width::Int, height::Int)
+function write_png(self::PlotContainer, io_or_filename::Union(IO,String), width::Int, height::Int)
     surface = CairoRGBSurface(width, height)
     r = CairoRenderer(surface)
     set_source_rgb(r.ctx, 1.,1.,1.)
     paint(r.ctx)
     set_source_rgb(r.ctx, 0.,0.,0.)
     page_compose(self, r)
-    write_to_png(surface, filename)
+    write_to_png(surface, io_or_filename)
     finish(surface)
 end
 
@@ -2581,8 +2581,10 @@ include("plot_interfaces.jl")
 
 ############################################################################
 
-writemime(io::IO, ::MIME"image/svg+xml", p::PlotContainer) =
-    write_svg(p, io, 450, 300)
+_ijulia_width = 450
+_ijulia_height = 300
+writemime(io::IO, ::MIME"image/png", p::PlotContainer) =
+    write_png(p, io, _ijulia_width, _ijulia_height)
 
 output_surface = Winston.config_value("default","output_surface")
 output_surface = symbol(lowercase(get(ENV, "WINSTON_OUTPUT", output_surface)))

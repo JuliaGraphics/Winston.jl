@@ -16,34 +16,35 @@ errs_to_nan(f) = (x) -> try f(x) catch e NaN end
 
 typealias ScatterPlotPoints{T<:Real, S<:Real} (Vector{T}, Vector{S})
 
-function _plot(p::FramedPlot, x::ScatterPlotPoints, args...; symbolkind="circle",kwargs...)
-    #XXX: check if args have symbolkind options
-    _plot(p, x[1], x[2], args...; symbolkind=symbolkind, kwargs...)
+## plot a scatterplot (verbose alternative to plot(x, y, "o") 
+## use named argument symbol to pass in symbol -- not args)
+function plot(p::FramedPlot, x::ScatterPlotPoints, args...; symbol="o", kwargs...)
+    plot(p, x[1], x[2], symbol, args...;  kwargs...)
 end
 
-function _plot(p::FramedPlot, f::Function, a::Real, b::Real, args...;  kwargs...)
+function plot(p::FramedPlot, f::Function, a::Real, b::Real, args...;  kwargs...)
     xs = adaptive_points(f, a, b)
     ys = map(errs_to_nan(f), xs)
-    _plot(p, xs, ys, args...; kwargs...)
+    plot(p, xs, ys, args...; kwargs...)
 end
 
 ## multiple plots on one
 ## kwargs vectorized, not recycled
 ## e.g.:  plot([sin, cos], 0, 2pi, color=["blue", "red"]) 
-function _plot(p::FramedPlot, fs::Vector{Function}, a::Real, b::Real, args...; kwargs...)
+function plot(p::FramedPlot, fs::Vector{Function}, a::Real, b::Real, args...; kwargs...)
    
     f = fs[1]
 
     xs = adaptive_points(f, a, b)
     ys = map(errs_to_nan(f), xs)
     kws = [(k, v[1]) for (k,v) in kwargs]
-    _plot(p, xs, ys, args...; kws...)
+    plot(p, xs, ys, args...; kws...)
 
     for i in 2:length(fs)
         xs = adaptive_points(fs[i], a, b)
         ys = map(errs_to_nan(fs[i]), xs)
         kws = [(k, v[i]) for (k,v) in kwargs]
-        _plot(p, xs, ys, args...;  kws...)
+        plot(p, xs, ys, args...;  kws...)
     end
 
     p
@@ -52,11 +53,11 @@ end
 
 ## parametric plot
 typealias ParametricFunctionPair (Function, Function)
-function _plot(p::FramedPlot, fs::ParametricFunctionPair, a::Real, b::Real, args...; npoints::Int=500, kwargs...)
+function plot(p::FramedPlot, fs::ParametricFunctionPair, a::Real, b::Real, args...; npoints::Int=500, kwargs...)
     us = linspace(a, b, npoints)
     xs = map(errs_to_nan(fs[1]), us)
     ys = map(errs_to_nan(fs[2]), us)
-    _plot(p, xs, ys, args...; kwargs...)
+    plot(p, xs, ys, args...; kwargs...)
 end
 
 

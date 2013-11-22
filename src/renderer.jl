@@ -60,6 +60,7 @@ end
 
 color_to_rgb(i::Integer) = convert(RGB, RGB24(unsigned(i)))
 color_to_rgb(s::String) = color(s)
+color_to_rgb(rgb::(Real,Real,Real)) = RGB(rgb...)
 
 set_color(ctx::CairoContext, color) = set_source(ctx, color_to_rgb(color))
 

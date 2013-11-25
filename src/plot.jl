@@ -61,6 +61,10 @@ const chartokens = [
 ]
 
 function _parse_spec(spec::String)
+    try
+        return { :color => Color.color(spec) }
+    end
+
     style = Dict()
 
     for (k,v) in [ "--" => "dashed", "-." => "dotdashed" ]

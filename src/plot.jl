@@ -91,14 +91,14 @@ end
 function plot(p::FramedPlot, args...; kvs...)
     args = {args...}
     components = {}
-    i = 0
+    color_idx = 0
 
     while length(args) > 0
-        local x, y, sopts
+        local x, y, ys, sopts
 
         if length(args) == 1 || typeof(args[2]) <: String
             y = shift!(args)
-            x = 1:length(y)
+            x = 1:size(y,1)
         else
             x = shift!(args)
             y = shift!(args)
@@ -109,16 +109,27 @@ function plot(p::FramedPlot, args...; kvs...)
         else
             sopts = {:linekind => "solid"}
         end
-        if !haskey(sopts, :color)
-            i += 1
-            sopts[:color] = default_color(i)
+        no_color = !haskey(sopts, :color)
+        add_curve = haskey(sopts, :linekind) || !haskey(sopts, :symbolkind)
+        add_points = haskey(sopts, :symbolkind)
+
+        if size(y,2) > 1
+            ys = { sub(y,:,j) for j = 1:size(y,2) }
+        else
+            ys = {y}
         end
 
-        if haskey(sopts, :linekind) || !haskey(sopts, :symbolkind)
-            push!(components, Curve(x, y, sopts))
-        end
-        if haskey(sopts, :symbolkind)
-            push!(components, Points(x, y, sopts))
+        for y in ys
+            if no_color
+                color_idx += 1
+                sopts[:color] = default_color(color_idx)
+            end
+            if add_curve
+                push!(components, Curve(x, y, sopts))
+            end
+            if add_points
+                push!(components, Points(x, y, sopts))
+            end
         end
     end
 

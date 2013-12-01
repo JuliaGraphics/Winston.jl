@@ -939,6 +939,7 @@ function add(self::PlotComposite, args::PlotComponent...)
     for arg in args
         push!(self.components, arg)
     end
+    self
 end
 
 function clear(self::PlotComposite)
@@ -1150,10 +1151,12 @@ end
 
 function add(self::FramedPlot, args::PlotComponent...)
     add(self.content1, args...)
+    self
 end
 
 function add2(self::FramedPlot, args::PlotComponent...)
     add(self.content2, args...)
+    self
 end
 
 function user_limits(xrange, yrange)
@@ -1352,6 +1355,7 @@ end
 
 function add(self::Plot, args::PlotComponent...)
     add(self.content, args...)
+    self
 end
 
 function limits(self::Plot, window::BoundingBox)
@@ -1601,6 +1605,7 @@ function add(self::FramedArray, args::PlotComponent...)
         obj = self.content[i,j]
         add(obj, args...)
     end
+    self
 end
 
 function compose_interior(self::FramedArray, device::Renderer, int_bbox::BoundingBox)

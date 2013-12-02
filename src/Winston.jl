@@ -1172,6 +1172,18 @@ function user_limits(xrange, yrange)
     BoundingBox(xmin, xmax, ymin, ymax)
 end
 
+function limits(fp::FramedPlot)
+    xr = getattr(fp.x1, "range")
+    yr = getattr(fp.y1, "range")
+    limits(fp.content1, user_limits(xr, yr))
+end
+
+function limits2(fp::FramedPlot)
+    xr = getattr(fp.x2, "range")
+    yr = getattr(fp.y2, "range")
+    limits(fp.content2, user_limits(xr, yr))
+end
+
 function _context1(self::FramedPlot, device::Renderer, region::BoundingBox)
     xlog = getattr(self.x1, "log")
     ylog = getattr(self.y1, "log")

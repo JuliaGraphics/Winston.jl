@@ -1,5 +1,6 @@
 export errorbar,
        file,
+       fplot,
        imagesc,
        loglog,
        oplot,
@@ -330,5 +331,95 @@ function errorbar(p::FramedPlot, x::AbstractVector, y::AbstractVector; xerr=noth
     p
 end
 
+function fplot_points(f::Function, xmin::Real, xmax::Real;
+        max_recursion::Int=6, min_points::Int=10, tol::Float64=0.01)
+    @assert xmin < xmax
+    @assert min_points > 1
+    @assert max_recursion >= 0
 
+    xs = Float64[]
+    ys = Float64[]
+    cs = Array(Float64, max_recursion)
+    fcs = Array(Float64, max_recursion)
+    ls = Array(Int, max_recursion)
 
+    local c::Float64
+    local fc::Float64
+
+    function good(a, b, c, fa, fb, fc, tol)
+        u = b - a
+        fu = fb - fa
+        v = c - b
+        fv = fc - fb
+        n = u*v + fu*fv
+        d2 = (u*u + fu*fu)*(v*v + fv*fv)
+        n*n > d2*(1. - tol)
+    end
+
+    p = linspace(xmin, xmax, min_points)
+    q = [f(x) for x in p]
+
+    if max_recursion == 0
+        return p, q
+    end
+
+    for i = 1:length(p)-1
+        a::Float64  = p[i]
+        fa::Float64 = q[i]
+        c  = p[i+1]
+        fc = q[i+1]
+        level::Int = 0
+        n::Int = 0
+        while true
+            b::Float64 = 0.5(a + c)
+            fb::Float64 = f(b)
+            g1::Bool = good(a,b,c,fa,fb,fc,tol)
+            g2::Bool = length(xs) > 0 ? good(xs[end],a,b,ys[end],fa,fb,tol) : true
+            if (g1 && g2) || level == max_recursion
+                push!(xs, a, b)
+                push!(ys, fa, fb)
+                a = c
+                fa = fc
+                n == 0 && break
+                c = cs[n]
+                fc = fcs[n]
+                level = ls[n]
+                n -= 1
+            else
+                level += 1
+                n += 1
+                ls[n] = level
+                cs[n] = c
+                fcs[n] = fc
+                c = b
+                fc = fb
+            end
+        end
+    end
+
+    push!(xs, c)
+    push!(ys, fc)
+
+    xs, ys
+end
+
+function fplot(p::FramedPlot, f::Function, limits, args...; kvs...)
+    pargs = []
+    fopts = Dict()
+    for arg in args
+        if typeof(arg) <: String
+            pargs = [arg]
+        elseif typeof(arg) <: Integer
+            fopts[:min_points] = arg
+        elseif typeof(arg) <: FloatingPoint
+            fopts[:tol] = arg
+        else
+            error("unrecognized argument ", arg)
+        end
+    end
+    xmin = limits[1]
+    xmax = limits[2]
+    x,y = fplot_points(f, xmin, xmax; fopts...)
+    plot(p, x, y, pargs...; kvs...)
+end
+fplot(args...; kvs...) = fplot(_pwinston, args...; kvs...)

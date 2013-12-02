@@ -1,11 +1,10 @@
 export errorbar,
        file,
        fplot,
+       hold,
        imagesc,
        loglog,
        oplot,
-       oplothist,
-       oplothist2d,
        plot,
        plothist,
        plothist2d,
@@ -19,6 +18,17 @@ export errorbar,
        ylim
 
 _pwinston = FramedPlot()
+
+_hold = false
+hold() = (global _hold = !_hold)
+hold(h::Bool) = (global _hold = h)
+
+function ghf()
+    if !_hold
+        global _pwinston = FramedPlot()
+    end
+    _pwinston
+end
 
 #system functions
 file(fname::String, args...; kvs...) = file(_pwinston, fname, args...; kvs...)
@@ -155,7 +165,7 @@ function plot(p::FramedPlot, args...; kvs...)
     global _pwinston = p
     p
 end
-plot(args...; kvs...) = plot(FramedPlot(), args...; kvs...)
+plot(args...; kvs...) = plot(ghf(), args...; kvs...)
 
 # shortcut for overplotting
 oplot(args...; kvs...) = plot(_pwinston, args...; kvs...)
@@ -254,10 +264,7 @@ function plothist(p::FramedPlot, h::(Range,Vector); kvs...)
     p
 end
 plothist(p::FramedPlot, args...; kvs...) = plothist(p::FramedPlot, hist(args...); kvs...)
-plothist(args...; kvs...) = plothist(FramedPlot(), args...; kvs...)
-
-# shortcut for overplotting
-oplothist(args...; kvs...) = plothist(_pwinston, args...; kvs...)
+plothist(args...; kvs...) = plothist(ghf(), args...; kvs...)
 
 # 3x3 gaussian
 #_default_kernel2d=[.05 .1 .05; .1 .4 .1; .05 .1 .05]
@@ -288,14 +295,10 @@ function plothist2d(p::FramedPlot, h::(Union(Range,Vector),Union(Range,Vector),A
     p
 end
 plothist2d(p::FramedPlot, args...; kvs...) = plothist2d(p::FramedPlot, hist2d(args...); kvs...)
-plothist2d(args...; kvs...) = plothist2d(FramedPlot(), args...; kvs...)
-
-#shortcut for overplotting
-oplothist2d(args...; kvs...) = plothist2d(_pwinston, args..., kvs...)
-
+plothist2d(args...; kvs...) = plothist2d(ghf(), args...; kvs...)
 
 #errorbar
-errorbar(args...; kvs...) = errorbar(_pwinston, args...; kvs...)
+errorbar(args...; kvs...) = errorbar(ghf(), args...; kvs...)
 function errorbar(p::FramedPlot, x::AbstractVector, y::AbstractVector; xerr=nothing, yerr=nothing, kvs...)
 
     xn=length(x)
@@ -422,4 +425,4 @@ function fplot(p::FramedPlot, f::Function, limits, args...; kvs...)
     x,y = fplot_points(f, xmin, xmax; fopts...)
     plot(p, x, y, pargs...; kvs...)
 end
-fplot(args...; kvs...) = fplot(_pwinston, args...; kvs...)
+fplot(args...; kvs...) = fplot(ghf(), args...; kvs...)

@@ -8,6 +8,8 @@
 .. toctree::
    :maxdepth: 1
 
+   hold
+   fplot
    loglog
    oplot
    plot

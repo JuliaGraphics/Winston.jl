@@ -1159,15 +1159,18 @@ function add2(self::FramedPlot, args::PlotComponent...)
     self
 end
 
+myprevfloat(x::Float64) = x - eps(x)
+mynextfloat(x::Float64) = x + eps(x)
+
 function user_limits(xrange, yrange)
     xmin, xmax, ymin, ymax = -Inf, Inf, -Inf, Inf
     if xrange !== nothing
-        xrange[1] !== nothing && (xmin = prevfloat(float64(xrange[1])))
-        xrange[2] !== nothing && (xmax = nextfloat(float64(xrange[2])))
+        xrange[1] !== nothing && (xmin = myprevfloat(float64(xrange[1])))
+        xrange[2] !== nothing && (xmax = mynextfloat(float64(xrange[2])))
     end
     if yrange !== nothing
-        yrange[1] !== nothing && (ymin = prevfloat(float64(yrange[1])))
-        yrange[2] !== nothing && (ymax = nextfloat(float64(yrange[2])))
+        yrange[1] !== nothing && (ymin = myprevfloat(float64(yrange[1])))
+        yrange[2] !== nothing && (ymax = mynextfloat(float64(yrange[2])))
     end
     BoundingBox(xmin, xmax, ymin, ymax)
 end

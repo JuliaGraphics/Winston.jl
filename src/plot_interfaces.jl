@@ -51,6 +51,10 @@ function plot(p::FramedPlot, fs::Vector{Function}, a::Real, b::Real, args...; kw
     
 end
 
+## complex argument plot
+plot{T<:Complex}(z::AbstractVector{T}, args...; kvs...) =
+    plot(real(z), imag(z), args...; kvs...)
+
 ## parametric plot
 typealias ParametricFunctionPair (Function, Function)
 function plot(p::FramedPlot, fs::ParametricFunctionPair, a::Real, b::Real, args...; npoints::Int=500, kwargs...)

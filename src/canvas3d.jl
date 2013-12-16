@@ -285,9 +285,9 @@ function plot3d(o::Polygons3D)
         push!(w, c)
     end
 
-    xmin = min(o.V[1,:]); xmax = max(o.V[1,:])
-    ymin = min(o.V[2,:]); ymax = max(o.V[2,:])
-    zmin = min(o.V[3,:]); zmax = max(o.V[3,:])
+    xmin = minimum(o.V[1,:]); xmax = maximum(o.V[1,:])
+    ymin = minimum(o.V[2,:]); ymax = maximum(o.V[2,:])
+    zmin = minimum(o.V[3,:]); zmax = maximum(o.V[3,:])
 
     c3d = Canvas3D(c, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax,
                    zmin=zmin, zmax=zmax)

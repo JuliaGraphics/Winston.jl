@@ -217,7 +217,7 @@ function imagesc{T<:Real}(xrange::Interval, yrange::Interval, data::AbstractArra
     p
 end
 
-imagesc(xrange, yrange, data) = imagesc(xrange, yrange, data, (min(data),max(data)+1))
+imagesc(xrange, yrange, data) = imagesc(xrange, yrange, data, (minimum(data),maximum(data)+1))
 imagesc(data) = ((h, w) = size(data); imagesc((0,w), (0,h), data))
 imagesc{T}(data::AbstractArray{T,2}, clims::Interval) = ((h, w) = size(data); imagesc((0,w), (0,h), data, clims))
 

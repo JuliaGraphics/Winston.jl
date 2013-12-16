@@ -149,10 +149,10 @@ type SymbolsObject <: RenderObject
 end
 
 function boundingbox(self::SymbolsObject, context::PlotContext)
-    xmin = min(self.x)
-    xmax = max(self.x)
-    ymin = min(self.y)
-    ymax = max(self.y)
+    xmin = minimum(self.x)
+    xmax = maximum(self.x)
+    ymin = minimum(self.y)
+    ymax = maximum(self.y)
     return BoundingBox(xmin, xmax, ymin, ymax)
 end
 
@@ -211,10 +211,10 @@ type PathObject <: RenderObject
 end
 
 function boundingbox(self::PathObject, context)
-    xmin = min(self.x)
-    xmax = max(self.x)
-    ymin = min(self.y)
-    ymax = max(self.y)
+    xmin = minimum(self.x)
+    xmax = maximum(self.x)
+    ymin = minimum(self.y)
+    ymax = maximum(self.y)
     return BoundingBox(xmin, xmax, ymin, ymax)
 end
 

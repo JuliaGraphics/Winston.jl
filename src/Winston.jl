@@ -2431,7 +2431,7 @@ function make(self::SymbolDataComponent, context::PlotContext)
     [ SymbolsObject(x, y) ]
 end
 
-function Point(x::Real, y::Real, args...)
+function Points(x::Real, y::Real, args...)
     return Points([x], [y], args...)
 end
 

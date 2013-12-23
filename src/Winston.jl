@@ -2465,7 +2465,7 @@ function make(self::ColoredPoints, context::PlotContext)
     [ ColoredSymbolsObject(x, y, self.c) ]
 end
 
-function ColoredPoint(x::Real, y::Real, args...)
+function ColoredPoints(x::Real, y::Real, args...)
     return ColoredPoints([x], [y], args...)
 end
 

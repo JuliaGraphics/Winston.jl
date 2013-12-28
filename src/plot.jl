@@ -112,8 +112,14 @@ function plot(p::FramedPlot, args...; kvs...)
         local x, y, ys, sopts
 
         if length(args) == 1 || typeof(args[2]) <: String
-            y = shift!(args)
-            x = 1:size(y,1)
+            if eltype(args[1]) <: Complex
+                z = shift!(args)
+                x = real(z)
+                y = imag(z)
+            else
+                y = shift!(args)
+                x = 1:size(y,1)
+            end
         else
             x = shift!(args)
             y = shift!(args)

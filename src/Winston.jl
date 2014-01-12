@@ -1176,28 +1176,22 @@ function user_limits(xrange, yrange)
 end
 
 function limits(fp::FramedPlot)
-    xr = getattr(fp.x1, "range")
-    yr = getattr(fp.y1, "range")
-    limits(fp.content1, user_limits(xr, yr))
-end
-
-function limits2(fp::FramedPlot)
-    xr = getattr(fp.x2, "range")
-    yr = getattr(fp.y2, "range")
-    limits(fp.content2, user_limits(xr, yr))
+    xr = getattr(fp.x1, :range)
+    yr = getattr(fp.y1, :range)
+    l1 = limits(fp.content1, user_limits(xr, yr))
+    gutter = getattr(fp, :gutter)
+    xlog = getattr(fp.x1, :log)
+    ylog = getattr(fp.y1, :log)
+    xr = _limits_axis(xrange(l1), gutter, xr, xlog)
+    yr = _limits_axis(yrange(l1), gutter, yr, ylog)
+    BoundingBox(xr[1], xr[2], yr[1], yr[2])
 end
 
 function _context1(self::FramedPlot, device::Renderer, region::BoundingBox)
-    xlog = getattr(self.x1, "log")
-    ylog = getattr(self.y1, "log")
-    xr = getattr(self.x1, "range")
-    yr = getattr(self.y1, "range")
-    gutter = getattr(self, "gutter")
-    l1 = limits(self.content1, user_limits(xr, yr))
-    xr = _limits_axis(xrange(l1), gutter, xr, xlog)
-    yr = _limits_axis(yrange(l1), gutter, yr, ylog)
-    lims = BoundingBox(xr[1], xr[2], yr[1], yr[2])
-    proj = PlotGeometry(xr..., yr..., region, xlog, ylog)
+    xlog = getattr(self.x1, :log)
+    ylog = getattr(self.y1, :log)
+    lims = limits(self)
+    proj = PlotGeometry(xrange(lims)..., yrange(lims)..., region, xlog, ylog)
     return PlotContext(device, region, lims, proj, xlog, ylog)
 end
 

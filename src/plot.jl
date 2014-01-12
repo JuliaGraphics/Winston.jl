@@ -39,6 +39,7 @@ end
 for (f,k) in ((:xlim,:xrange),(:ylim,:yrange))
     @eval $f(a, b) = (setattr(_pwinston, $k=(a,b)); _pwinston)
     @eval $f(a) = (setattr(_pwinston, $k=(a[1],a[2])); _pwinston)
+    @eval $f() = $k(limits(_pwinston))
 end
 
 #shortcuts for creating log-scale plots

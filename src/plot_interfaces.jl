@@ -100,7 +100,7 @@ function evalrule(f, a, b; depth::Int=0)
     y = [try f(x) catch e NaN end for x in xs]
 
     if all(map(isnan,y))
-        error("Function does not evaluate to a real number at initial set of points in the interval ($a, $b)")
+        return(Segment(a, b, 0, 0))
     end
 
     wiggles(x,y,z) = any(map(u->isinf(u) | isnan(u), [x,y,z])) || (y < min(x,z)) || (y > max(x,z)) ? 1 : 0

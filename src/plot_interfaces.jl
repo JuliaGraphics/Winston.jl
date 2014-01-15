@@ -5,13 +5,13 @@
 
 ## plot(x, [y], args..., kwargs...) lineplot
 ## plot(x::Tuple{Vector}, args...; symboltype::String="o", kwargs...) scatter plot
-## plot(f, a::Real, b::Real, args...; kwargs...)  function plot using adaptive point, a, b length two atleast
+## plot(f, a::Real, b::Real, args...; kwargs...)  function plot using 
 ## plot(fs::Tuple{Function}, a, b; kwargs) parametric plot
 ## plot(fs::Vector{Function}, a::Real, b::Real, args...; kwargs...) function plot, overlay
 ## plot(fs::Array{Function, 2}, a::Real, b::Real, args...; kwargs...) table of plots
 
 
-errs_to_nan(f) = (x) -> try f(x) catch e NaN end
+
 
 
 typealias ScatterPlotPoints{T<:Real, S<:Real} (Vector{T}, Vector{S})
@@ -22,9 +22,9 @@ function plot(p::FramedPlot, x::ScatterPlotPoints, args...; symbol="o", kwargs..
     plot(p, x[1], x[2], symbol, args...;  kwargs...)
 end
 
+## function plot
 function plot(p::FramedPlot, f::Function, a::Real, b::Real, args...;  kwargs...)
-    xs = adaptive_points(f, a, b)
-    ys = map(errs_to_nan(f), xs)
+    xs, ys = fplot_points(f, a, b, min_points=100)
     plot(p, xs, ys, args...; kwargs...)
 end
 
@@ -35,14 +35,12 @@ function plot(p::FramedPlot, fs::Vector{Function}, a::Real, b::Real, args...; kw
    
     f = fs[1]
 
-    xs = adaptive_points(f, a, b)
-    ys = map(errs_to_nan(f), xs)
+    xs, ys = fplot_points(f, a, b, min_points=100)
     kws = [(k, v[1]) for (k,v) in kwargs]
     plot(p, xs, ys, args...; kws...)
 
     for i in 2:length(fs)
-        xs = adaptive_points(fs[i], a, b)
-        ys = map(errs_to_nan(fs[i]), xs)
+        xs, ys = fplot_points(fs[i], a, b, tol=1e-3)
         kws = [(k, v[i]) for (k,v) in kwargs]
         plot(p, xs, ys, args...;  kws...)
     end
@@ -50,6 +48,8 @@ function plot(p::FramedPlot, fs::Vector{Function}, a::Real, b::Real, args...; kw
     p
     
 end
+
+errs_to_nan(f) = (x) -> try f(x) catch e NaN end
 
 ## parametric plot
 typealias ParametricFunctionPair (Function, Function)
@@ -76,78 +76,6 @@ function plot(fs::Array{Function, 2}, a::Real, b::Real, args...; kwargs...)
 
     tbl
 end
-
-## adaptive plotting
-## algorithm from http://yacas.sourceforge.net/Algochapter4.html
-## use of heaps follows roughly quadgk.jl
-
-
-using Base.Collections
-import Base.isless, Base.Order.Reverse
-
-
-immutable Segment
-    a::Number
-    b::Number
-    depth::Int
-    E::Real
-end
-
-isless(i::Segment, j::Segment) = isless(i.E, j.E)
-
-function evalrule(f, a, b; depth::Int=0)
-    xs = linspace(a, b, 7)[2:6] # avoid edges?
-    y = [try f(x) catch e NaN end for x in xs]
-
-    if all(map(isnan,y))
-        return(Segment(a, b, 0, 0))
-    end
-
-    wiggles(x,y,z) = any(map(u->isinf(u) | isnan(u), [x,y,z])) || (y < min(x,z)) || (y > max(x,z)) ? 1 : 0
-    wiggly = [wiggles(y[i:i+2]...) for i in 1:3]
-    
-    if depth < 0
-        E = 0
-    elseif sum(wiggly) > 2 
-        E = 1
-    else
-        ## not too wiggly, but may not approximate well enough
-        g = y - minimum(y)
-        E = (1/3)*abs( (y[1] + 4*y[2] + y[3]) - (y[3] + 4*y[4] + y[5])) # no h = (b-a)/2
-    end
-    Segment(a, b, depth, E)
-end
-        
-
-function adaptive_points(f::Function, a::Real, b::Real;
-                             tol::Real=1e-3,
-                             max_depth::Int=6)
-            
-    n = 100
-    s = (a+b)/2 + (b-a)/2* cos((n:-1:0) * pi/n) # non even, to avoid antialiasing. Overkill?
-    segs = Segment[]
-    for i in 1:n
-        heappush!(segs, evalrule(f, s[i], s[i+1], depth=max_depth), Reverse)
-    end
-
-    E = segs[1].E
-    
-    while E > tol
-        s = heappop!(segs, Reverse)
-        mid = (s.a + s.b) * 0.5
-        s1 = evalrule(f, s.a, mid, depth=s.depth - 1)
-        s2 = evalrule(f, mid, s.b, depth=s.depth - 1)
-        heappush!(segs, s1, Reverse)
-        heappush!(segs, s2, Reverse)
-        E = segs[1].E
-    end
-    
-    x = Float64[]
-    [append!(x, [s.a, s.b]) for s in segs]
-    x = sort!(x)
-    x
-end
-    
 
 
 

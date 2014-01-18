@@ -1,4 +1,5 @@
-export errorbar,
+export colormap,
+       errorbar,
        file,
        fplot,
        hold,
@@ -209,17 +210,24 @@ function jetrgb(x)
     RGB(clamp(r,0.,1.), clamp(g,0.,1.), clamp(b,0.,1.))
 end
 
-JetColormap() = Uint32[ convert(RGB24,jetrgb(i/256)) for i = 1:256 ]
-
-_default_colormap = JetColormap()
-
-GrayColormap() = Uint32[ convert(RGB24,RGB(i/255,i/255,i/255)) for i = 0:255 ]
+colormap() = (global _current_colormap; _current_colormap)
+colormap(c::Array{Uint32,1}) = (global _current_colormap = c; nothing)
+colormap{C<:ColorValue}(cs::Array{C,1}) =
+    colormap(Uint32[convert(RGB24,c) for c in cs])
+function colormap(name::String, n::Int=256)
+    if name == "jet"
+        colormap([jetrgb(x) for x in linspace(0.,1.,n)])
+    else
+        colormap(Color.colormap(name, n))
+    end
+end
+colormap("jet")
 
 function imagesc{T<:Real}(xrange::Interval, yrange::Interval, data::AbstractArray{T,2}, clims::Interval)
     p = FramedPlot()
     setattr(p, :xrange, xrange)
     setattr(p, :yrange, reverse(yrange))
-    img = data2rgb(data, clims, _default_colormap)
+    img = data2rgb(data, clims, _current_colormap)
     add(p, Image(xrange, reverse(yrange), img))
     p
 end
@@ -284,7 +292,7 @@ _default_kernel2d=(1.0/273.)*[1.0 4.0 7.0 4.0 1.0;
                              4.0 16. 26. 16. 4.0]                 
 
 #hist2d
-function plothist2d(p::FramedPlot, h::(Union(Range,Vector),Union(Range,Vector),Array{Int,2}); colormap=_default_colormap, smooth=0, kernel=_default_kernel2d, kvs...)
+function plothist2d(p::FramedPlot, h::(Union(Range,Vector),Union(Range,Vector),Array{Int,2}); colormap=_current_colormap, smooth=0, kernel=_default_kernel2d, kvs...)
     xr, yr, hdata = h
 
     for i in 1:smooth

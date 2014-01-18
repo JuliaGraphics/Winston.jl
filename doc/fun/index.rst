@@ -8,6 +8,7 @@
 .. toctree::
    :maxdepth: 1
 
+   colormap
    hold
    fplot
    loglog

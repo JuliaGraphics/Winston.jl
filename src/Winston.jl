@@ -1283,7 +1283,6 @@ type Table <: PlotContainer
     rows::Int
     cols::Int
     content
-    modified
 
     function Table(rows, cols, args...)
         self = new(Dict())
@@ -1291,7 +1290,6 @@ type Table <: PlotContainer
         self.rows = rows
         self.cols = cols
         self.content = cell(rows, cols)
-        self.modified = false # XXX:fixme
         self
     end
 end
@@ -1302,10 +1300,16 @@ end
 
 function setindex!(self::Table, obj::PlotContainer, row::Int, col::Int)
     self.content[row,col] = obj
-    self.modified = true # XXX:fixme
 end
 
-isempty(self::Table) = !self.modified
+function isempty(self::Table)
+    for i = 1:self.rows
+        for j = 1:self.cols
+            isdefined(self.content, i, j) && return false
+        end
+    end
+    true
+end
 
 function exterior(self::Table, device::Renderer, intbbox::BoundingBox)
     ext = intbbox
@@ -1316,9 +1320,11 @@ function exterior(self::Table, device::Renderer, intbbox::BoundingBox)
 
         for i = 1:self.rows
             for j = 1:self.cols
-                obj = self.content[i,j]
-                subregion = cellbb(g, i, j)
-                ext += exterior(obj, device, subregion)
+                if isdefined(self.content, i, j)
+                    obj = self.content[i,j]
+                    subregion = cellbb(g, i, j)
+                    ext += exterior(obj, device, subregion)
+                end
             end
         end
     end
@@ -1333,12 +1339,14 @@ function compose_interior(self::Table, device::Renderer, intbbox::BoundingBox)
 
     for i = 1:self.rows
         for j = 1:self.cols
-            obj = self.content[i,j]
-            subregion = cellbb(g, i, j)
-            if getattr(self, "align_interiors")
-                compose_interior(obj, device, subregion)
-            else
-                compose(obj, device, subregion)
+            if isdefined(self.content, i, j)
+                obj = self.content[i,j]
+                subregion = cellbb(g, i, j)
+                if getattr(self, "align_interiors")
+                    compose_interior(obj, device, subregion)
+                else
+                    compose(obj, device, subregion)
+                end
             end
         end
     end

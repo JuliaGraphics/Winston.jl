@@ -262,11 +262,7 @@ function draw(self::ImageObject, context)
     ll = lowerleft(self.bbox)
     w = width(self.bbox)
     h = height(self.bbox)
-    if context.geom.yflipped
-        image(context.draw, self.img, ll.x, ll.y+h, w, -h)
-    else
-        image(context.draw, self.img, ll.x, ll.y, w, h)
-    end
+    image(context.draw, self.img, ll.x, ll.y, w, h)
 end
 
 # defaults

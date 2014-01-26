@@ -45,6 +45,7 @@ end
 
 width(r::CairoRenderer) = width(r.ctx.surface)
 height(r::CairoRenderer) = height(r.ctx.surface)
+boundingbox(c::CairoRenderer) = BoundingBox(0., width(c), 0., height(c))
 
 # convert to postscipt pt = in/72
 const xx2pt = [ "in"=>72., "pt"=>1., "mm"=>2.835, "cm"=>28.35 ]
@@ -136,13 +137,6 @@ function line(self::CairoRenderer, px, py, qx, qy)
     line_to(self.ctx, qx, qy)
     stroke(self.ctx)
 end
-
-rect(self::CairoRenderer, px, py, qx, qy) = rectangle(self.ctx, px, py, qx-px, qy-py)
-
-circle(self::CairoRenderer, px, py, r) = circle(self.ctx, px, py, r)
-
-arc(self::CairoRenderer, cx, cy, px, py, qx, qy) =
-    arc(self.ctx, cx, cy, px, py, qx, qy)
 
 const symbol_funcs = {
     "asterisk" => (c, x, y, r) -> (

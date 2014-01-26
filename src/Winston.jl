@@ -19,6 +19,10 @@ export FramedArray, FramedPlot, Table
 export file, getattr, setattr, style, svg
 export get_context, device_to_data, data_to_device
 
+type WinstonException <: Exception
+    msg::ByteString
+end
+
 abstract HasAttr
 abstract HasStyle <: HasAttr
 abstract PlotComponent <: HasStyle
@@ -27,6 +31,7 @@ abstract PlotContainer <: HasAttr
 typealias PlotAttributes Associative # TODO: does Associative need {K,V}?
 
 include("config.jl")
+include("geom.jl")
 include("renderer.jl")
 
 # utils -----------------------------------------------------------------------
@@ -53,15 +58,6 @@ function args2dict(args...; kvs...)
     opts
 end
 
-function _first_not_none(args...)
-    for arg in args
-	if !is(arg,nothing)
-	    return arg
-        end
-    end
-    return nothing
-end
-
 # NOTE: these are not standard, since where a coordinate falls on the screen
 # depends on the current transformation.
 lowerleft(bb::BoundingBox) = Point(bb.xmin, bb.ymin)
@@ -84,18 +80,18 @@ function bounds_within(x, y, window::BoundingBox)
     BoundingBox(xmin, xmax, ymin, ymax)
 end
 
-include("geom.jl")
-
 # relative size ---------------------------------------------------------------
 
-function _size_relative(relsize, bbox::BoundingBox)
+typealias Box Union(BoundingBox,Rectangle)
+
+function _size_relative(relsize, bbox::Box)
     w = width(bbox)
     h = height(bbox)
     yardstick = sqrt(8.) * w * h / (w + h)
-    return (float(relsize)/100.) * yardstick
+    return 0.01 * relsize * yardstick
 end
 
-function _fontsize_relative(relsize, bbox::BoundingBox, device_bbox::BoundingBox)
+function _fontsize_relative(relsize, bbox::Box, device_bbox::Box)
     devsize = _size_relative(relsize, bbox)
     fontsize_min = config_value("default", "fontsize_min")
     devsize_min = _size_relative(fontsize_min, device_bbox)
@@ -105,27 +101,31 @@ end
 # PlotContext -------------------------------------------------------------
 
 type PlotContext
-    draw
+    draw::Renderer
     dev_bbox::BoundingBox
     data_bbox::BoundingBox
     xlog::Bool
     ylog::Bool
-    geom::Projection
-    plot_geom::Projection
+    xflipped::Bool
+    yflipped::Bool
+    geom::AbstractProjection2
+    plot_geom::AbstractProjection2
 
-    function PlotContext(device::Renderer, dev::BoundingBox, data::BoundingBox, proj::Projection, xlog, ylog)
+    function PlotContext(device::Renderer, dev::BoundingBox, data::Rectangle, proj::AbstractProjection2, xlog=false, ylog=false)
+        xflipped = data.x0 > data.x1
+        yflipped = data.y0 > data.y1
         new(
             device,
             dev,
-            data,
+            BoundingBox(data),
             xlog,
             ylog,
+            xflipped,
+            yflipped,
             proj,
-            PlotGeometry(0, 1, 0, 1, dev)
+            PlotGeometry(Rectangle(0,1,0,1), dev)
        )
     end
-
-    PlotContext(device, dev, data, proj) = PlotContext(device, dev, data, proj, false, false)
 end
 
 function _kw_func_relative_fontsize(context::PlotContext, key, value)
@@ -184,19 +184,11 @@ function _get_context(device::Renderer, ext_bbox::BoundingBox, pc::PlotContainer
 end
 
 function device_to_data(ctx::PlotContext, x::Real, y::Real)
-    aff = ctx.geom.aff
-    h = height(ctx.draw)
-    xu = (x - aff.t[1])/aff.m[1,1]
-    yu = ((h-y) - aff.t[2])/aff.m[2,2]
-    xu, yu
+    deproject(ctx.geom, x, y)
 end
 
 function data_to_device{T<:Real}(ctx::PlotContext, x::Union(T,AbstractArray{T}), y::Union(T,AbstractArray{T}))
-    aff = ctx.geom.aff
-    h = height(ctx.draw)
-    xdev = aff.t[1] + x*aff.m[1,1]
-    ydev = h - (aff.t[2] + y*aff.m[2,2])
-    xdev, ydev
+    project(ctx.geom, x, y)
 end
 
 include("paint.jl")
@@ -462,13 +454,11 @@ function _format_ticklabel(x, range)
     endswith(s, ".0") ? s[1:end-2] : s
 end
 
-range(a::Integer, b::Integer) = (a <= b) ? (a:b) : (a:-1:b)
+range(a::Real, b::Real) = (a <= b) ? (iceil(a):ifloor(b)) : (ifloor(a):-1:iceil(b))
 
-_ticklist_linear(lo, hi, sep) = _ticklist_linear(lo, hi, sep, 0.)
-function _ticklist_linear(lo, hi, sep, origin)
-    l = (lo - origin)/sep
-    h = (hi - origin)/sep
-    a, b = (l <= h) ? (iceil(l),ifloor(h)) : (ifloor(l),iceil(h))
+function _ticklist_linear(lo, hi, sep, origin=0.)
+    a = (lo - origin)/sep
+    b = (hi - origin)/sep
     [ origin + i*sep for i in range(a,b) ]
 end
 
@@ -489,35 +479,25 @@ function _ticks_default_linear(lim)
 end
 
 function _ticks_default_log(lim)
-    log_lim = log10(lim[1]), log10(lim[2])
-    nlo = iceil(log10(lim[1]))
-    nhi = ifloor(log10(lim[2]))
-    nn = nhi - nlo +1
+    a = log10(lim[1])
+    b = log10(lim[2])
+    r = range(a, b)
+    nn = length(r)
 
     if nn >= 10
-        return [ 10.0^x for x=_ticks_default_linear(log_lim) ]
+        return 10.0 .^ _ticks_default_linear((a,b))
     elseif nn >= 2
-        return [ 10.0^i for i=nlo:nhi ]
+        return 10.0 .^ r
     else
         return _ticks_default_linear(lim)
     end
 end
 
-function _ticks_num_linear(lim, num)
-    a = lim[1]
-    b = (lim[2] - lim[1])/float(num-1)
-    [ a + i*b for i=0:num-1 ]
-end
+_ticks_num_linear(lim, num) = linspace(lim[1], lim[2], num)
+_ticks_num_log(lim, num) = logspace(log10(lim[1]), log10(lim[2]), num)
 
-function _ticks_num_log(lim, num)
-    a = log10(lim[1])
-    b = (log10(lim[2]) - a)/float(num - 1)
-    [ 10.0^(a + i*b) for i=0:num-1 ]
-end
-
-_subticks_linear(lim, ticks) = _subticks_linear(lim, ticks, nothing)
-function _subticks_linear(lim, ticks, num)
-    major_div = (ticks[end] - ticks[1])/float(length(ticks) - 1)
+function _subticks_linear(lim, ticks, num=nothing)
+    major_div = abs(ticks[end] - ticks[1])/float(length(ticks) - 1)
     if is(num,nothing)
         _num = 4
         a, b = _magform(major_div)
@@ -531,21 +511,20 @@ function _subticks_linear(lim, ticks, num)
     return _ticklist_linear(lim[1], lim[2], minor_div, ticks[1])
 end
 
-_subticks_log(lim, ticks) = _subticks_log(lim, ticks, nothing)
-function _subticks_log(lim, ticks, num)
-    log_lim = log10(lim[1]), log10(lim[2])
-    nlo = iceil(log10(lim[1]))
-    nhi = ifloor(log10(lim[2]))
-    nn = nhi - nlo +1
+function _subticks_log(lim, ticks, num=nothing)
+    a = log10(lim[1])
+    b = log10(lim[2])
+    r = range(a, b)
+    nn = length(r)
 
     if nn >= 10
-        return [ 10.0^x for x in _subticks_linear(log_lim, map(log10,ticks), num) ]
+        return 10.0 .^ _subticks_linear((a,b), map(log10,ticks), num)
     elseif nn >= 2
         minor_ticks = Float64[]
-        for i in (nlo-1):nhi
+        for i in (minimum(r)-1):maximum(r)
             for j in 1:9
                 z = j * 10.0^i
-                if lim[1] <= z && z <= lim[2]
+                if (lim[1] <= z <= lim[2]) || (lim[1] >= z >= lim[2])
                     push!(minor_ticks, z)
                 end
             end
@@ -620,7 +599,7 @@ function _intercept(self::HalfAxisX, context)
         return getattr(self, "intercept")
     end
     limits = context.data_bbox
-    if (getattr(self, "ticklabels_dir") < 0) #$ context.geom.yflipped
+    if (getattr(self, "ticklabels_dir") < 0) $ context.yflipped
         return yrange(limits)[1]
     else
         return yrange(limits)[2]
@@ -718,7 +697,7 @@ function _intercept(self::HalfAxisY, context)
         return intercept
     end
     limits = context.data_bbox
-    if (getattr(self, "ticklabels_dir") > 0) $ context.geom.xflipped
+    if (getattr(self, "ticklabels_dir") > 0) $ context.xflipped
         return xrange(limits)[2]
     else
         return xrange(limits)[1]
@@ -982,55 +961,6 @@ function render(self::PlotComposite, context)
     pop_style(context)
 end
 
-# -----------------------------------------------------------------------------
-
-function _limits_axis(content_range, gutter, user_range, is_log::Bool)
-
-    r0, r1 = 0, 1
-
-    if !is(content_range,nothing)
-        a, b = content_range
-        if !is(a,nothing)
-            r0 = a
-        end
-        if !is(b,nothing)
-            r1 = b
-        end
-    end
-
-    if !is(gutter,nothing)
-        dx = 0.5 * gutter * (r1 - r0)
-        a = r0 - dx
-        if ! is_log || a > 0
-            r0 = a
-        end
-        r1 = r1 + dx
-    end
-
-    if !is(user_range,nothing)
-        a, b = user_range
-        if !is(a,nothing)
-            r0 = a
-        end
-        if !is(b,nothing)
-            r1 = b
-        end
-    end
-
-    if r0 == r1
-        r0 = r0 - 1
-        r1 = r1 + 1
-    end
-
-    return r0, r1
-end
-
-function _limits(content_bbox::BoundingBox, gutter, xlog, ylog, xr0, yr0)
-    xr = _limits_axis(xrange(content_bbox), gutter, xr0, xlog)
-    yr = _limits_axis(yrange(content_bbox), gutter, yr0, ylog)
-    return BoundingBox(xr[1], xr[2], yr[1], yr[2])
-end
-
 # FramedPlot ------------------------------------------------------------------
 
 type _Alias <: HasAttr
@@ -1038,31 +968,11 @@ type _Alias <: HasAttr
     _Alias(args...) = new(args)
 end
 
-#function project(self, args...) #,  args...)
-#    for obj in self.objs
-#        apply(obj, args, args...)
-#    end
-#end
-
-#function getattr(self::_Alias, name)
-#    objs = []
-#    for obj in self.objs
-#        objs.append(getattr(obj, name))
-#    end
-#    return apply(_Alias, objs)
-#end
-
 function setattr(self::_Alias, name::Symbol, value)
     for obj in self.objs
         setattr(obj, name, value)
     end
 end
-
-#function __setitem__(self, key, value)
-#    for obj in self.objs
-#        obj[key] = value
-#    end
-#end
 
 type FramedPlot <: PlotContainer
     attr::Associative # TODO: does Associative need {K,V}?
@@ -1121,10 +1031,6 @@ function getattr(self::FramedPlot, name::Symbol)
     am = _attr_map(self)
     if haskey(am, name)
         a,b = am[name]
-        #obj = self
-        #for x in xs[:-1]
-        #    obj = getattr(obj, x)
-        #end
         return getattr(a, b)
     else
         return self.attr[name]
@@ -1135,10 +1041,6 @@ function setattr(self::FramedPlot, name::Symbol, value)
     am = _attr_map(self)
     if haskey(am, name)
         a,b = am[name]
-        #obj = self
-        #for x in xs[:-1]
-        #    obj = getattr(obj, x)
-        #end
         setattr(a, b, value)
     else
         self.attr[name] = value
@@ -1162,56 +1064,128 @@ end
 myprevfloat(x::Float64) = x - eps(x)
 mynextfloat(x::Float64) = x + eps(x)
 
-function user_limits(xrange, yrange)
-    xmin, xmax, ymin, ymax = -Inf, Inf, -Inf, Inf
-    if xrange !== nothing
-        xrange[1] !== nothing && (xmin = myprevfloat(float64(xrange[1])))
-        xrange[2] !== nothing && (xmax = mynextfloat(float64(xrange[2])))
+function user_range(range)
+    lo = NaN
+    hi = NaN
+    flipped = false
+    if range !== nothing
+        b1 = typeof(range[1]) <: Real
+        b2 = typeof(range[2]) <: Real
+        if b1 && b2
+            x1 = float64(range[1])
+            x2 = float64(range[2])
+            lo = myprevfloat(min(x1, x2))
+            hi = mynextfloat(max(x1, x2))
+            flipped = x1 > x2
+        else
+            b1 && (lo = myprevfloat(float64(range[1])))
+            b2 && (hi = mynextfloat(float64(range[2])))
+        end
     end
-    if yrange !== nothing
-        yrange[1] !== nothing && (ymin = myprevfloat(float64(yrange[1])))
-        yrange[2] !== nothing && (ymax = mynextfloat(float64(yrange[2])))
+    lo, hi, flipped
+end
+
+function bbox_to_rect(bbox::BoundingBox, xflipped::Bool, yflipped::Bool)
+    a = xflipped ? (bbox.xmax,bbox.xmin) : (bbox.xmin,bbox.xmax)
+    b = yflipped ? (bbox.ymax,bbox.ymin) : (bbox.ymin,bbox.ymax)
+    Rectangle(a..., b...)
+end
+
+function margin_expand(margin::Real, a::Real, b::Real, islog::Bool)
+    if islog
+        f = a == b ? 1.1 : 10.0^(0.5*margin*(log10(b) - log10(a)))
+        return a/f, b*f
+    else
+        d = a == b ? 1. : 0.5*margin*(b - a)
+        return a-d, b+d
     end
-    BoundingBox(xmin, xmax, ymin, ymax)
+end
+
+function override(bb1::BoundingBox, bb2::BoundingBox)
+    BoundingBox(
+        isnan(bb1.xmin) ? bb2.xmin : bb1.xmin,
+        isnan(bb1.xmax) ? bb2.xmax : bb1.xmax,
+        isnan(bb1.ymin) ? bb2.ymin : bb1.ymin,
+        isnan(bb1.ymax) ? bb2.ymax : bb1.ymax)
+end
+
+function limits(margin, xrange, yrange, xlog, ylog, content)
+    xmin,xmax,xflipped = user_range(xrange)
+    ymin,ymax,yflipped = user_range(yrange)
+    user_bbox = BoundingBox(xmin, xmax, ymin, ymax)
+    geom_bbox = BoundingBox(xlog ? 0. : -Inf, Inf, ylog ? 0. : -Inf, Inf)
+
+    # check that user values are valid
+    user_bbox.xmin <= geom_bbox.xmin && throw(WinstonException("bad xmin"))
+    user_bbox.xmax >= geom_bbox.xmax && throw(WinstonException("bad xmax"))
+    user_bbox.ymin <= geom_bbox.ymin && throw(WinstonException("bad ymin"))
+    user_bbox.ymax >= geom_bbox.ymax && throw(WinstonException("bad ymax"))
+
+    if !isincomplete(user_bbox)
+        return bbox_to_rect(user_bbox, xflipped, yflipped)
+    end
+
+    data_bbox = limits(content, geom_bbox & user_bbox)
+    isincomplete(data_bbox) && throw(WinstonException("no data in range"))
+
+    a,b = margin_expand(margin, data_bbox.xmin, data_bbox.xmax, xlog)
+    c,d = margin_expand(margin, data_bbox.ymin, data_bbox.ymax, ylog)
+    computed_bbox = BoundingBox(a, b, c, d)
+
+    # user trumps computed
+    bbox = override(user_bbox, computed_bbox)
+
+    bbox_to_rect(bbox, xflipped, yflipped)
 end
 
 function limits(fp::FramedPlot)
-    xr = getattr(fp.x1, :range)
-    yr = getattr(fp.y1, :range)
-    l1 = limits(fp.content1, user_limits(xr, yr))
-    gutter = getattr(fp, :gutter)
-    xlog = getattr(fp.x1, :log)
-    ylog = getattr(fp.y1, :log)
-    xr = _limits_axis(xrange(l1), gutter, xr, xlog)
-    yr = _limits_axis(yrange(l1), gutter, yr, ylog)
-    BoundingBox(xr[1], xr[2], yr[1], yr[2])
+    margin = getattr(fp,    :gutter)
+    xrange = getattr(fp.x1, :range)
+    yrange = getattr(fp.y1, :range)
+    xlog   = getattr(fp.x1, :log)
+    ylog   = getattr(fp.y1, :log)
+    limits(margin, xrange, yrange, xlog, ylog, fp.content1)
+end
+
+function limits2(fp::FramedPlot)
+    xrange = getattr(fp.x2, :range)
+    yrange = getattr(fp.y2, :range)
+
+    if !isempty(fp.content2)
+        margin = getattr(fp,    :gutter)
+        xlog   = getattr(fp.x2, :log)
+        ylog   = getattr(fp.y2, :log)
+        return limits(margin, xrange, yrange, xlog, ylog, fp.content2)
+    end
+
+    rect = limits(fp)
+    computed_bbox = BoundingBox(rect)
+
+    xmin,xmax,xflipped = user_range(xrange)
+    ymin,ymax,yflipped = user_range(yrange)
+    user_bbox = BoundingBox(xmin, xmax, ymin, ymax)
+
+    bbox = override(user_bbox, computed_bbox)
+    Rectangle(bbox, xflipped, yflipped)
 end
 
 function _context1(self::FramedPlot, device::Renderer, region::BoundingBox)
     xlog = getattr(self.x1, :log)
     ylog = getattr(self.y1, :log)
     lims = limits(self)
-    proj = PlotGeometry(xrange(lims)..., yrange(lims)..., region, xlog, ylog)
+    proj = PlotGeometry(lims, region, xlog, ylog)
     return PlotContext(device, region, lims, proj, xlog, ylog)
 end
 
 function _context2(self::FramedPlot, device::Renderer, region::BoundingBox)
-    xlog = _first_not_none(getattr(self.x2, "log"), getattr(self.x1, "log"))
-    ylog = _first_not_none(getattr(self.y2, "log"), getattr(self.y1, "log"))
-    gutter = getattr(self, "gutter")
-    xr1 = getattr(self.x1, "range")
-    yr1 = getattr(self.y1, "range")
-    xr2 = getattr(self.x2, "range")
-    yr2 = getattr(self.y2, "range")
-    bb1 = user_limits(xr1, yr1)
-    bb2 = user_limits(xr2, yr2)
-    l2 = isempty(self.content2) ? limits(self.content1, bb1) : limits(self.content2, bb2)
-    xr = _first_not_none(xr2, xr1)
-    yr = _first_not_none(yr2, yr1)
-    xr = _limits_axis(xrange(l2), gutter, xr, xlog)
-    yr = _limits_axis(yrange(l2), gutter, yr, ylog)
-    lims = BoundingBox(xr[1], xr[2], yr[1], yr[2])
-    proj = PlotGeometry(xr..., yr..., region, xlog, ylog)
+    xlog = getattr(self.x2, :log)
+    ylog = getattr(self.y2, :log)
+    if isempty(self.content2)
+        xlog === nothing && (xlog = getattr(self.x1, :log))
+        ylog === nothing && (ylog = getattr(self.y1, :log))
+    end
+    lims = limits2(self)
+    proj = PlotGeometry(lims, region, xlog, ylog)
     return PlotContext(device, region, lims, proj, xlog, ylog)
 end
 
@@ -1389,7 +1363,7 @@ function compose_interior(self::Plot, device, region, lmts)
     end
     xlog = getattr(self,"xlog")
     ylog = getattr(self,"ylog")
-    proj = PlotGeometry(xrange(lmts)..., yrange(lmts)..., region, xlog, ylog)
+    proj = PlotGeometry(lmts, region, xlog, ylog)
     context = PlotContext(device, region, lmts, proj, xlog, ylog)
     render(self.content, context)
 end
@@ -1410,9 +1384,7 @@ function _frame_draw(obj, device, region, limits, labelticks)
     frame = Frame(labelticks)
     xlog = getattr(obj, "xlog")
     ylog = getattr(obj, "ylog")
-    xr = xrange(limits)
-    yr = yrange(limits)
-    proj = PlotGeometry(xr..., yr..., region, xlog, ylog)
+    proj = PlotGeometry(limits, region, xlog, ylog)
     context = PlotContext(device, region, limits, proj, xlog, ylog)
     render(frame, context)
 end
@@ -1423,9 +1395,7 @@ function _frame_bbox(obj, device, region, limits, labelticks)
     frame = Frame(labelticks)
     xlog = getattr(obj, "xlog")
     ylog = getattr(obj, "ylog")
-    xr = xrange(limits)
-    yr = yrange(limits)
-    proj = PlotGeometry(xr..., yr..., region, xlog, ylog)
+    proj = PlotGeometry(limits, region, xlog, ylog)
     context = PlotContext(device, region, limits, proj, xlog, ylog)
     return boundingbox(frame, context)
 end
@@ -1746,12 +1716,12 @@ end
 function compose_interior(self::PlotContainer, device::Renderer, int_bbox::BoundingBox)
     # XXX: separate out into its own component
     if hasattr(self, :title)
-        offset = _size_relative(getattr(self, "title_offset"), int_bbox)
+        offset = _size_relative(getattr(self, :title_offset), int_bbox)
         ext_bbox = exterior(self, device, int_bbox)
         x = center(int_bbox).x
         y = ymax(ext_bbox) + offset
         style = Dict()
-        for (k,v) in getattr(self, "title_style")
+        for (k,v) in getattr(self, :title_style)
             style[k] = v
         end
         style[:fontsize] = _fontsize_relative(
@@ -1778,8 +1748,6 @@ function compose(self::PlotContainer, device::Renderer, region::BoundingBox)
     compose_interior(self, device, int_bbox)
 end
 
-boundingbox(device::Renderer) = BoundingBox(0, width(device), 0, height(device))
-
 page_compose(self::PlotContainer, device::GraphicsDevice) =
     page_compose(self, CairoRenderer(device))
 
@@ -1788,7 +1756,7 @@ function page_compose(self::PlotContainer, device::Renderer)
     for (key,val) in config_options("defaults")
         set(device, key, val)
     end
-    bb *= 1 - getattr(self, "page_margin")
+    bb *= 1.0 - getattr(self, :page_margin)
     save(device.ctx)
     Cairo.scale(device.ctx,1.0,-1.0)
     Cairo.translate(device.ctx,0.0,-height(device))

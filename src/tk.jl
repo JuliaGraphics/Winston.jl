@@ -35,11 +35,20 @@ function tk(self::PlotContainer, args...)
 end
 
 function display(c::Tk.Canvas, pc::PlotContainer)
-    c.draw = function (_)
-        ctx = getgc(c)
-        set_source_rgb(ctx, 1, 1, 1)
-        paint(ctx)
-        Winston.page_compose(pc, Tk.cairo_surface(c))
+    c.draw = let bad=false
+        function (_)
+            bad && return
+            ctx = getgc(c)
+            set_source_rgb(ctx, 1, 1, 1)
+            paint(ctx)
+            try
+                Winston.page_compose(pc, Tk.cairo_surface(c))
+            catch e
+                bad = true
+                isa(e, WinstonException) || rethrow(e)
+                println("Winston: ", e.msg)
+            end
+        end
     end
     Tk.draw(c)
     Tk.update()

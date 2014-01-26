@@ -1,76 +1,138 @@
 
-abstract Projection
-
-type AffineTransformation
-    t :: Array{Float64,1}
-    m :: Array{Float64,2}
+#
+#  y1 +------+
+#     |      |
+#     |      |
+#     |      |
+#  y0 +------+
+#     x0     x1
+#
+immutable Rectangle
+    x0::Float64
+    x1::Float64
+    y0::Float64
+    y1::Float64
 end
 
-function AffineTransformation(x0, x1, y0, y1, dest::BoundingBox)
-    sx = width(dest) / (x1 - x0)
-    sy = height(dest) / (y1 - y0)
-    p = lowerleft(dest)
-    tx = p.x - sx * x0
-    ty = p.y - sy * y0
-    t = [tx, ty]
-    m = diagm([sx, sy])
-    AffineTransformation(t, m)
+Rectangle() = Rectangle(NaN, NaN, NaN, NaN)
+Rectangle(lowerleft::Point, upperright::Point) =
+    Rectangle(lowerleft.x, lowerleft.y, upperright.x, upperright.y)
+function Rectangle(bb::BoundingBox, xflipped::Bool, yflipped::Bool)
+    p = xflipped ? Point(bb.xmax, bb.xmin) : Point(bb.xmin, bb.xmax)
+    q = yflipped ? Point(bb.ymax, bb.ymin) : Point(bb.ymin, bb.ymax)
+    Rectangle(p, q)
 end
 
-function project(self::AffineTransformation, x::Real, y::Real)
-    #self.m*[x,y] + self.t
-    u = self.t[1] + self.m[1,1] * x #+ self.m[1,2] * y
-    v = self.t[2] + self.m[2,2] * y #+ self.m[2,1] * x
-    u, v
+BoundingBox(r::Rectangle) = BoundingBox(min(r.x0,r.x1), max(r.x0,r.x1),
+                                        min(r.y0,r.y1), max(r.y0,r.y1))
+
+isincomplete(bb::BoundingBox) = isnan(bb.xmin) || isnan(bb.xmax) ||
+                                isnan(bb.ymin) || isnan(bb.ymax)
+
+
+lowerleft(r::Rectangle) = Point(r.x0, r.y0)
+upperleft(r::Rectangle) = Point(r.x0, r.y1)
+lowerright(r::Rectangle) = Point(r.x1, r.y0)
+upperright(r::Rectangle) = Point(r.x1, r.y1)
+
+width(r::Rectangle) = abs(r.x1 - r.x0)
+height(r::Rectangle) = abs(r.y1 - r.y0)
+diagonal(r::Rectangle) = hypot(r.x1 - r.x0, r.y1 - r.y0)
+
+function deform(r::Rectangle, dl::Real, dr::Real, dt::Real, db::Real)
+    Rectangle(r.x0 + dl, r.x1 + dr, r.y0 + dt, r.y1 + db)
 end
 
-project(proj::Projection, p::Point) = Point(project(proj, p.x, p.y)...)
-
-function project(self::AffineTransformation, x::Vector, y::Vector)
-    p = self.t[1] + self.m[1,1] * x #+ self.m[1,2] * y
-    q = self.t[2] + self.m[2,2] * y #+ self.m[2,1] * x
-    return p, q
+# shift center by (dx,dy), keeping width & height fixed
+function shift(r::Rectangle, dx::Real, dy::Real)
+    Rectangle(r.x0 + dx, r.x1 + dx, r.y0 + dy, r.y1 + dy)
 end
 
-project(self::AffineTransformation, x::AbstractArray, y::AbstractArray) =
-    project(self, collect(x), collect(y))
+# scale width & height, keeping center fixed
+function (*)(r::Rectangle, s::Real)
+    dw = 0.5*(s - 1.)*(r.x1 - r.x0)
+    dh = 0.5*(s - 1.)*(r.y1 - r.y0)
+    deform(r, -dw, dw, -dh, dh)
+end
+(*)(s::Real, r::Rectangle) = r*s
 
-#function compose(self::AffineTransformation, other::AffineTransformation)
-#    self.t = call(other.t[1], other.t[2])
-#    self.m = self.m * other.m
-#end
+# --------------------------------------------------------------------------
 
-type PlotGeometry <: Projection
-    dest_bbox::BoundingBox
-    xlog::Bool
-    ylog::Bool
-    aff::AffineTransformation
-    xflipped::Bool
-    yflipped::Bool
+abstract AbstractProjection1
+abstract AbstractProjection2
 
-    function PlotGeometry(x0, x1, y0, y1, dest::BoundingBox, xlog, ylog)
-        if xlog
-            x0 = log10(x0)
-            x1 = log10(x1)
-        end
-        if ylog
-            y0 = log10(y0)
-            y1 = log10(y1)
-        end
-        new(dest, xlog, ylog, AffineTransformation(x0,x1,y0,y1,dest), x0 > x1, y0 > y1)
+project(p::AbstractProjection2, pt::Point) = Point(project(p, pt.x, pt.y)...)
+
+immutable LinearProjection <: AbstractProjection1
+    a::Float64
+    b::Float64
+end
+
+project(p::LinearProjection, u) = p.a .+ p.b .* u
+deproject(p::LinearProjection, x) = (x .- p.a) ./ p.b
+
+immutable LogProjection <: AbstractProjection1
+    a::Float64
+    b::Float64
+end
+
+project(p::LogProjection, u) = p.a .+ p.b .* log10(u)
+deproject(p::LinearProjection, x) = 10.0 .^ ((x .- p.a) ./ p.b)
+
+immutable SeparableProjection2{P1<:AbstractProjection1,
+                               P2<:AbstractProjection1} <: AbstractProjection2
+    x::P1
+    y::P2
+end
+
+project(p::SeparableProjection2, u, v) = (project(p.x,u), project(p.y,v))
+deproject(p::SeparableProjection2, u, v) = (deproject(p.x,u), deproject(p.y,v))
+
+immutable PolarProjection
+    x0::Float64
+    y0::Float64
+    sx::Float64
+    sy::Float64
+end
+
+function project(p::PolarProjection, r, θ)
+    x = p.x0 .+ p.sx .* r .* cos(θ)
+    y = p.y0 .+ p.sy .* r .* sin(θ)
+    x, y
+end
+
+function deproject(p::PolarProjection, x, y)
+    r = hypot(x, y)
+    θ = atan2(y, x)
+    hypot
+end
+
+function PlotGeometry(orig::Rectangle, dest::BoundingBox, xlog, ylog)
+    x0 = orig.x0
+    x1 = orig.x1
+    y0 = orig.y0
+    y1 = orig.y1
+
+    px = LinearProjection
+    py = LinearProjection
+    if xlog
+        x0 = log10(x0)
+        x1 = log10(x1)
+        px = LogProjection
+    end
+    if ylog
+        y0 = log10(y0)
+        y1 = log10(y1)
+        py = LogProjection
     end
 
-    PlotGeometry(x0, x1, y0, y1, dest) = PlotGeometry(x0, x1, y0, y1, dest, false, false)
+    sx = width(dest)/(x1 - x0)
+    sy = height(dest)/(y1 - y0)
+    tx = lowerleft(dest).x - sx * x0
+    ty = lowerleft(dest).y - sy * y0
+
+    SeparableProjection2(px(tx,sx), py(ty,sy))
 end
 
-function project(self::PlotGeometry, x, y)
-    u, v = x, y
-    if self.xlog
-        u = log10(x)
-    end
-    if self.ylog
-        v = log10(y)
-    end
-    return project(self.aff, u, v)
-end
+PlotGeometry(orig::Rectangle, dest::BoundingBox) = PlotGeometry(orig, dest, false, false)
 

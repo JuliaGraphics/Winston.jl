@@ -9,8 +9,9 @@
    :maxdepth: 1
 
    colormap
-   hold
    fplot
+   hold
+   imagesc
    loglog
    oplot
    plot

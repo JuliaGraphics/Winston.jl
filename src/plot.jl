@@ -229,6 +229,7 @@ function imagesc{T<:Real}(xrange::Interval, yrange::Interval, data::AbstractArra
     setattr(p, :yrange, reverse(yrange))
     img = data2rgb(data, clims, _current_colormap)
     add(p, Image(xrange, reverse(yrange), img))
+    global _pwinston = p
     p
 end
 

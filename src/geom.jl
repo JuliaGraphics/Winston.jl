@@ -14,6 +14,11 @@ immutable Rectangle
     y1::Float64
 end
 
+if VERSION < v"0.3-"
+    Rectangle(x0::Real, x1::Real, y0::Real, y1::Real) =
+        Rectangle(float64(x0), float64(x1), float64(y0), float64(y1))
+end
+
 Rectangle() = Rectangle(NaN, NaN, NaN, NaN)
 Rectangle(lowerleft::Point, upperright::Point) =
     Rectangle(lowerleft.x, lowerleft.y, upperright.x, upperright.y)

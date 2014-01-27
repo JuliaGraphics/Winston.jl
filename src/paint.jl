@@ -1,55 +1,72 @@
 
-abstract RenderObject
-typealias RenderStyle Dict{Symbol,Union(Integer,FloatingPoint,String)}
+abstract AbstractPainter
 
-function kw_init(self::RenderObject, args...)
-    for (key, value) in args2dict(args...)
-        self.style[key] = value
-    end
+immutable GroupPainter <: AbstractPainter
+    style::Dict{Symbol,Any}
+    children::Array{AbstractPainter,1}
 end
 
-type LineObject <: RenderObject
-    style::RenderStyle
+GroupPainter(d::Dict{Symbol,Any}, args::AbstractPainter...) =
+    GroupPainter(d, AbstractPainter[arg for arg in args])
+
+function GroupPainter(args::AbstractPainter...; kvs...)
+    self = GroupPainter(Dict{Symbol,Any}(), {args...})
+    for (k,v) in kvs
+        self.style[k] = v
+    end
+    self
+end
+
+Base.push!(g::GroupPainter, p::AbstractPainter...) = push!(g.children, p...)
+
+function boundingbox(g::GroupPainter, context)
+    push_style(context, g.style)
+    bbox = BoundingBox()
+    for child in g.children
+        bbox += boundingbox(child, context)
+    end
+    pop_style(context)
+    bbox
+end
+
+function paint(g::GroupPainter, context)
+    push_style(context, g.style)
+    for child in g.children
+        paint(child, context)
+    end
+    pop_style(context)
+end
+
+immutable LinePainter <: AbstractPainter
     p::Point
     q::Point
-
-    function LineObject(p, q, args...)
-        self = new(RenderStyle(), p, q)
-        kw_init(self, args...)
-        self
-    end
 end
 
-function boundingbox(self::LineObject, context)
+function boundingbox(self::LinePainter, context)
     BoundingBox(self.p, self.q)
 end
 
-function draw(self::LineObject, context)
+function paint(self::LinePainter, context)
     line(context.draw, self.p.x, self.p.y, self.q.x, self.q.y)
 end
 
-type LabelsObject <: RenderObject
-    style::RenderStyle
+immutable LabelsPainter <: AbstractPainter
     points::Vector{Point}
     labels::Vector
     angle::Float64
     halign::ASCIIString
     valign::ASCIIString
+end
 
-    function LabelsObject(points, labels, args...; angle=0., halign="center", valign="center")
-        self = new(RenderStyle(), points, labels, angle, halign, valign)
-        kw_init(self, args...)
-        self
-    end
+function LabelsPainter(points, labels; angle=0., halign="center", valign="center")
+    LabelsPainter(points, labels, angle, halign, valign)
 end
 
 __halign_offset = [ "right"=>Vec2(-1,0), "center"=>Vec2(-.5,.5), "left"=>Vec2(0,1) ]
 __valign_offset = [ "top"=>Vec2(-1,0), "center"=>Vec2(-.5,.5), "bottom"=>Vec2(0,1) ]
 
-function boundingbox(self::LabelsObject, context)
+function boundingbox(self::LabelsPainter, context)
     bb = BoundingBox()
-    push_style(context, self.style)
-
     angle = self.angle * pi/180.
 
     height = textheight(context.draw, self.labels[1])
@@ -70,11 +87,10 @@ function boundingbox(self::LabelsObject, context)
         bb += bb_label
     end
 
-    pop_style(context)
     return bb
 end
 
-function draw(self::LabelsObject, context)
+function paint(self::LabelsPainter, context)
     for i in 1:length(self.labels)
         p = self.points[i]
         text(context.draw, p.x, p.y, self.labels[i];
@@ -82,25 +98,16 @@ function draw(self::LabelsObject, context)
     end
 end
 
-type CombObject <: RenderObject
-    style::RenderStyle
+immutable CombPainter <: AbstractPainter
     points::Vector{Point}
     dp
-
-    function CombObject(points, dp, args...)
-        self = new(RenderStyle())
-        kw_init(self, args...)
-        self.points = points
-        self.dp = dp
-        self
-    end
 end
 
-function boundingbox(self::CombObject, context::PlotContext)
+function boundingbox(self::CombPainter, context::PlotContext)
     return BoundingBox(self.points...)
 end
 
-function draw(self::CombObject, context::PlotContext)
+function paint(self::CombPainter, context::PlotContext)
     for p in self.points
         move_to(context.draw, p.x, p.y)
         rel_line_to(context.draw, self.dp.x, self.dp.y)
@@ -108,21 +115,12 @@ function draw(self::CombObject, context::PlotContext)
     stroke(context.draw)
 end
 
-type SymbolObject <: RenderObject
-    style::RenderStyle
+immutable SymbolPainter <: AbstractPainter
     pos::Point
-
-    function SymbolObject(pos, args...)
-        self = new(RenderStyle(), pos)
-        kw_init(self, args...)
-        self
-    end
 end
 
-function boundingbox(self::SymbolObject, context)
-    push_style(context, self.style)
+function boundingbox(self::SymbolPainter, context)
     symbolsize = get(context.draw, "symbolsize")
-    pop_style(context)
 
     x = self.pos.x
     y = self.pos.y
@@ -130,25 +128,16 @@ function boundingbox(self::SymbolObject, context)
     return BoundingBox(x-d, x+d, y-d, y+d)
 end
 
-function draw(self::SymbolObject, context)
+function paint(self::SymbolPainter, context)
     symbols(context.draw, [self.pos.x], [self.pos.y])
 end
 
-type SymbolsObject <: RenderObject
-    style::RenderStyle
+immutable SymbolsPainter <: AbstractPainter
     x
     y
-
-    function SymbolsObject(x, y, args...)
-        self = new(RenderStyle())
-        kw_init(self, args...)
-        self.x = x
-        self.y = y
-        self
-    end
 end
 
-function boundingbox(self::SymbolsObject, context::PlotContext)
+function boundingbox(self::SymbolsPainter, context::PlotContext)
     xmin = minimum(self.x)
     xmax = maximum(self.x)
     ymin = minimum(self.y)
@@ -156,31 +145,26 @@ function boundingbox(self::SymbolsObject, context::PlotContext)
     return BoundingBox(xmin, xmax, ymin, ymax)
 end
 
-function draw(self::SymbolsObject, context::PlotContext)
+function paint(self::SymbolsPainter, context::PlotContext)
     symbols(context.draw, self.x, self.y)
 end
 
-type TextObject <: RenderObject
-    style::RenderStyle
+immutable TextPainter <: AbstractPainter
     pos::Point
-    str::String
+    str::ByteString
     angle::Float64
     halign::ASCIIString
     valign::ASCIIString
-
-    function TextObject(pos, str, args...; angle=0., halign="center", valign="center")
-        self = new(RenderStyle(), pos, str, angle, halign, valign)
-        kw_init(self, args...)
-        self
-    end
 end
 
-function boundingbox(self::TextObject, context::PlotContext)
-    push_style(context, self.style)
+function TextPainter(pos, str; angle=0., halign="center", valign="center")
+    TextPainter(pos, str, angle, halign, valign)
+end
+
+function boundingbox(self::TextPainter, context::PlotContext)
     angle = self.angle * pi/180.
     width = textwidth(context.draw, self.str)
     height = textheight(context.draw, self.str)
-    pop_style(context)
 
     hvec = width * __halign_offset[self.halign]
     vvec = height * __valign_offset[self.valign]
@@ -191,26 +175,17 @@ function boundingbox(self::TextObject, context::PlotContext)
     return bb
 end
 
-function draw(self::TextObject, context::PlotContext)
+function paint(self::TextPainter, context::PlotContext)
     text(context.draw, self.pos.x, self.pos.y, self.str;
          angle=self.angle, halign=self.halign, valign=self.valign)
 end
 
-type PathObject <: RenderObject
-    style::RenderStyle
+immutable PathPainter <: AbstractPainter
     x::Vector{Float64}
     y::Vector{Float64}
-
-    function PathObject(x, y, args...)
-        self = new(RenderStyle())
-        kw_init(self, args...)
-        self.x = x
-        self.y = y
-        self
-    end
 end
 
-function boundingbox(self::PathObject, context)
+function boundingbox(self::PathPainter, context)
     xmin = minimum(self.x)
     xmax = maximum(self.x)
     ymin = minimum(self.y)
@@ -218,62 +193,35 @@ function boundingbox(self::PathObject, context)
     return BoundingBox(xmin, xmax, ymin, ymax)
 end
 
-function draw(self::PathObject, context)
+function paint(self::PathPainter, context)
     curve(context.draw, self.x, self.y)
 end
 
-type PolygonObject <: RenderObject
-    style::RenderStyle
+immutable PolygonPainter <: AbstractPainter
     points::Vector{Point}
-
-    function PolygonObject(points, args...)
-        self = new(RenderStyle())
-        kw_init(self, args...)
-        self.points = points
-        self
-    end
 end
 
-function boundingbox(self::PolygonObject, context)
+function boundingbox(self::PolygonPainter, context)
     return BoundingBox(self.points...)
 end
 
-function draw(self::PolygonObject, context)
+function paint(self::PolygonPainter, context)
     polygon(context.draw, self.points)
 end
 
-type ImageObject <: RenderObject
-    style::RenderStyle
+immutable ImagePainter <: AbstractPainter
     img
     bbox
-
-    function ImageObject(img, bbox, args...)
-        self = new(RenderStyle(), img, bbox)
-        kw_init(self, args...)
-        self
-    end
 end
 
-function boundingbox(self::ImageObject, context)
+function boundingbox(self::ImagePainter, context)
     return self.bbox
 end
 
-function draw(self::ImageObject, context)
+function paint(self::ImagePainter, context)
     ll = lowerleft(self.bbox)
     w = width(self.bbox)
     h = height(self.bbox)
     image(context.draw, self.img, ll.x, ll.y, w, h)
-end
-
-# defaults
-
-#function boundingbox(self::RenderObject, context)
-#    return BoundingBox()
-#end
-
-function render(self::RenderObject, context)
-    push_style(context, self.style)
-    draw(self, context)
-    pop_style(context)
 end
 

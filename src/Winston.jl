@@ -193,12 +193,6 @@ end
 
 include("paint.jl")
 
-# =============================================================================
-#
-# PlotObjects
-#
-# =============================================================================
-
 # Legend ----------------------------------------------------------------------
 
 type Legend <: PlotComponent
@@ -243,10 +237,10 @@ function make(self::Legend, context::PlotContext)
                        key_pos[2]-key_height/2, key_pos[2]+key_height/2)
     dp = Vec2(0., -(key_vsep + key_height))
 
-    objs = {}
+    objs = GroupPainter(getattr(self,:style))
     for comp in self.components
         s = getattr(comp, "label", "")
-        t = TextObject(text_pos, s, getattr(self,"style"); halign=halign)
+        t = TextPainter(text_pos, s; halign=halign)
         push!(objs, t)
         push!(objs, make_key(comp,bbox))
         text_pos = text_pos + dp
@@ -288,13 +282,13 @@ limits(self::ErrorBarsX, window::BoundingBox) =
 
 function make(self::ErrorBarsX, context)
     l = _size_relative(getattr(self, "barsize"), context.dev_bbox)
-    objs = {}
+    objs = GroupPainter(getattr(self,:style))
     for i = 1:length(self.y)
         p = project(context.geom, self.lo[i], self.y[i])
         q = project(context.geom, self.hi[i], self.y[i])
-        l0 = LineObject(Point(p[1],p[2]), Point(q[1],q[2]))
-        l1 = LineObject(Point(p[1],p[2]-l), Point(p[1],p[2]+l))
-        l2 = LineObject(Point(q[1],q[2]-l), Point(q[1],q[2]+l))
+        l0 = LinePainter(Point(p[1],p[2]), Point(q[1],q[2]))
+        l1 = LinePainter(Point(p[1],p[2]-l), Point(p[1],p[2]+l))
+        l2 = LinePainter(Point(q[1],q[2]-l), Point(q[1],q[2]+l))
         push!(objs, l0)
         push!(objs, l1)
         push!(objs, l2)
@@ -324,14 +318,14 @@ limits(self::ErrorBarsY, window::BoundingBox) =
     bounds_within(self.x, self.hi, window)
 
 function make(self::ErrorBarsY, context)
-    objs = {}
+    objs = GroupPainter(getattr(self,:style))
     l = _size_relative(getattr(self, "barsize"), context.dev_bbox)
     for i = 1:length(self.x)
         p = project(context.geom, self.x[i], self.lo[i])
         q = project(context.geom, self.x[i], self.hi[i])
-        l0 = LineObject(Point(p[1],p[2]), Point(q[1],q[2]))
-        l1 = LineObject(Point(p[1]-l,p[2]), Point(p[1]+l,p[2]))
-        l2 = LineObject(Point(q[1]-l,q[2]), Point(q[1]+l,q[2]))
+        l0 = LinePainter(Point(p[1],p[2]), Point(q[1],q[2]))
+        l1 = LinePainter(Point(p[1]-l,p[2]), Point(p[1]+l,p[2]))
+        l2 = LinePainter(Point(q[1]-l,q[2]), Point(q[1]+l,q[2]))
         push!(objs, l0)
         push!(objs, l1)
         push!(objs, l2)
@@ -535,23 +529,6 @@ function _subticks_log(lim, ticks, num=nothing)
     end
 end
 
-type _Group
-    objs
-
-    function _Group(objs)
-        #self.objs = objs[:]
-        new(copy(objs))
-    end    
-end
-
-function boundingbox(self::_Group, context)
-    bb = BoundingBox()
-    for obj in self.objs
-        bb += boundingbox(obj, context)
-    end
-    return bb
-end
-
 abstract HalfAxis <: PlotComponent
 
 type HalfAxisX <: HalfAxis
@@ -642,12 +619,13 @@ function _range(self::HalfAxisX, context)
 end
 
 function _make_grid(self::HalfAxisX, context, ticks)
+    objs = GroupPainter(getattr(self,:grid_style))
     if isequal(ticks,nothing)
-        return
+        return objs
     end
-    objs = {}
     for tick in ticks
-        push!(objs, LineX(tick,getattr(self, "grid_style")))
+        l = LineX(tick)
+        push!(objs, make(l,context))
     end
     objs
 end
@@ -740,12 +718,13 @@ function _range(self::HalfAxisY, context)
 end
 
 function _make_grid(self::HalfAxisY, context, ticks)
+    objs = GroupPainter(getattr(self,:grid_style))
     if isequal(ticks,nothing)
-        return
+        return objs
     end
-    objs = {}
     for tick in ticks
-        push!(objs, LineY(tick,getattr(self,"grid_style")))
+        l = LineY(tick)
+        push!(objs, make(l,context))
     end
     objs
 end
@@ -796,7 +775,7 @@ end
 
 function _make_ticklabels(self::HalfAxis, context, pos, labels)
     if isequal(labels,nothing) || length(labels) <= 0
-        return
+        return GroupPainter()
     end
 
     dir = getattr(self, "ticklabels_dir")
@@ -819,19 +798,20 @@ function _make_ticklabels(self::HalfAxis, context, pos, labels)
         style[k] = v
     end
 
-    LabelsObject(labelpos, labels, style; halign=style[:texthalign], valign=style[:textvalign])
+    l = LabelsPainter(labelpos, labels; halign=style[:texthalign], valign=style[:textvalign])
+    GroupPainter(style, l)
 end
 
 function _make_spine(self::HalfAxis, context)
     a, b = _range(self, context)
     p = _pos(self, context, a)
     q = _pos(self, context, b)
-    LineObject(p, q, getattr(self, "spine_style"))
+    GroupPainter(getattr(self,:spine_style), LinePainter(p,q))
 end
 
 function _make_ticks(self::HalfAxis, context, ticks, size, style)
     if isequal(ticks,nothing) || length(ticks) <= 0
-        return
+        return GroupPainter()
     end
 
     dir = getattr(self, "tickdir") * getattr(self, "ticklabels_dir")
@@ -839,12 +819,13 @@ function _make_ticks(self::HalfAxis, context, ticks, size, style)
 
     tickpos = Point[ _pos(self, context, tick) for tick in ticks ]
 
-    CombObject(tickpos, ticklen, style)
+    GroupPainter(style, CombPainter(tickpos, ticklen))
 end
 
 function make(self::HalfAxis, context)
+    objs = GroupPainter(getattr(self,:style))
     if getattr(self, "draw_nothing")
-        return {}
+        return objs
     end
 
     ticks = _ticks(self, context)
@@ -859,9 +840,8 @@ function make(self::HalfAxis, context)
     implicit_draw_ticklabels = is(draw_ticklabels,nothing) &&
         (!is(getattr(self, "range"),nothing) || !is(getattr(self, "ticklabels"),nothing))
 
-    objs = {}
     if getattr(self, "draw_grid")
-        objs = _make_grid(self, context, ticks)
+        push!(objs, _make_grid(self, context, ticks))
     end
 
     if getattr(self, "draw_axis")
@@ -889,12 +869,13 @@ function make(self::HalfAxis, context)
     # has to be made last
     if hasattr(self, "label")
         if !is(getattr(self, "label"),nothing) # XXX:remove
-            push!(objs, BoxLabel(
-                _Group(objs),
+            bl = BoxLabel(
+                objs,
                 getattr(self, "label"),
                 _side(self),
                 getattr(self, "label_offset"),
-                getattr(self, "label_style")))
+                getattr(self, "label_style"))
+            push!(objs, make(bl,context))
         end
     end
     objs
@@ -1008,7 +989,7 @@ type FramedPlot <: PlotContainer
             _Alias(x1, x2),
             _Alias(y1, y2),
         )
-        setattr(self.frame, :grid_style, ["linekind" => "dot"])
+        setattr(self.frame, :grid_style, (Symbol=>Any)[:linekind => "dot"])
         setattr(self.frame, :tickdir, -1)
         setattr(self.frame1, :draw_grid, false)
         iniattr(self, args...; kvs...)
@@ -1900,7 +1881,7 @@ function make_key(self::LineComponent, bbox::BoundingBox)
     y = center(bbox).y
     p = Point(xmin(bbox), y)
     q = Point(xmax(bbox), y)
-    return LineObject(p, q, getattr(self,"style"))
+    GroupPainter(getattr(self,:style), LinePainter(p, q))
 end
 
 type Curve <: LineComponent
@@ -1920,10 +1901,8 @@ end
 limits(self::Curve, window::BoundingBox) = bounds_within(self.x, self.y, window)
 
 function make(self::Curve, context)
-    objs = {}
     x, y = project(context.geom, self.x, self.y)
-    push!(objs, PathObject(x, y))
-    objs
+    GroupPainter(getattr(self,:style), PathPainter(x,y))
 end
 
 type Slope <: LineComponent
@@ -1971,11 +1950,11 @@ function make(self::Slope, context::PlotContext)
         end
     end
     #sort!(m)
-    objs = {}
+    objs = GroupPainter(getattr(self,:style))
     if length(m) > 1
         a = project(context.geom, m[1])
         b = project(context.geom, m[end])
-        push!(objs, LineObject(a, b))
+        push!(objs, LinePainter(a, b))
     end
     objs
 end
@@ -2025,7 +2004,7 @@ function make(self::Histogram, context::PlotContext)
         push!(y, 0.)
     end
     u, v = project(context.geom, x, y)
-    [ PathObject(u, v) ]
+    GroupPainter(getattr(self,:style), PathPainter(u, v))
 end
 
 type LineX <: LineComponent
@@ -2049,7 +2028,7 @@ function make(self::LineX, context::PlotContext)
     yr = yrange(context.data_bbox)
     a = project(context.geom, Point(self.x, yr[1]))
     b = project(context.geom, Point(self.x, yr[2]))
-    [ LineObject(a, b) ]
+    GroupPainter(getattr(self,:style), LinePainter(a, b))
 end
 
 type LineY <: LineComponent
@@ -2073,7 +2052,7 @@ function make(self::LineY, context::PlotContext)
     xr = xrange(context.data_bbox)
     a = project(context.geom, Point(xr[1], self.y))
     b = project(context.geom, Point(xr[2], self.y))
-    [ LineObject(a, b) ]
+    GroupPainter(getattr(self,:style), LinePainter(a, b))
 end
 
 type BoxLabel <: PlotComponent
@@ -2122,9 +2101,8 @@ function make(self::BoxLabel, context)
     pos = midpoint + offset*direction
 
     valign = (offset > 0) ? "bottom" : "top"
-    t = TextObject(pos, self.str, getattr(self, "style");
-                   angle=angle*180./pi, valign=valign)
-    [ t ]
+    tp = TextPainter(pos, self.str; angle=angle*180./pi, valign=valign)
+    GroupPainter(getattr(self,:style), tp)
 end
 
 # LabelComponent --------------------------------------------------------------
@@ -2165,8 +2143,8 @@ function make(self::DataLabel, context)
     texthalign=kw_get(self,:texthalign,"center")
     textvalign=kw_get(self,:textvalign,"center")
 
-    t = TextObject(xy, self.str, getattr(self, "style"); angle=textangle,halign=texthalign,valign=textvalign)
-    [ t ]
+    tp = TextPainter(xy, self.str; angle=textangle,halign=texthalign,valign=textvalign)
+    GroupPainter(getattr(self,:style), tp)
 end
 
 type PlotLabel <: LabelComponent
@@ -2191,8 +2169,8 @@ function make(self::PlotLabel, context)
     texthalign=kw_get(self,:texthalign,"center")
     textvalign=kw_get(self,:textvalign,"center")
 
-    t = TextObject(pos, self.str, getattr(self, "style"); angle=textangle,halign=texthalign,valign=textvalign)
-    [ t ]
+    tp = TextPainter(pos, self.str; angle=textangle,halign=texthalign,valign=textvalign)
+    GroupPainter(getattr(self,:style), tp)
 end
 
 # LabelsComponent ------------------------------------------------------------
@@ -2223,7 +2201,7 @@ end
 #
 #function make(self::Labels, context::PlotContext)
 #    x, y = project(context.geom, self.x, self.y)
-#    l = LabelsObject(zip(x,y), self.labels, self.kw_style)
+#    l = LabelsPainter(zip(x,y), self.labels, self.kw_style)
 #    add(self, l)
 #end
 
@@ -2234,7 +2212,7 @@ abstract FillComponent <: PlotComponent
 function make_key(self::FillComponent, bbox::BoundingBox)
     p = lowerleft(bbox)
     q = upperright(bbox)
-    return BoxObject(p, q, getattr(self,"style"))
+    return GroupPainter(getattr(self,:style), BoxPainter(p,q))
 end
 
 kw_defaults(::FillComponent) = [
@@ -2264,7 +2242,7 @@ function make(self::FillAbove, context)
     max_y = ymax(context.data_bbox)
     push!(coords, project(context.geom, Point(self.x[end], max_y)))
     push!(coords, project(context.geom, Point(self.x[1], max_y)))
-    [ PolygonObject(coords) ]
+    GroupPainter(getattr(self,:style), PolygonPainter(coords))
 end
 
 type FillBelow <: FillComponent
@@ -2289,7 +2267,7 @@ function make(self::FillBelow, context)
     min_y = ymin(context.data_bbox)
     push!(coords, project(context.geom, Point(self.x[end], min_y)))
     push!(coords, project(context.geom, Point(self.x[1], min_y)))
-    [ PolygonObject(coords) ]
+    GroupPainter(getattr(self,:style), PolygonPainter(coords))
 end
 
 type FillBetween <: FillComponent
@@ -2319,7 +2297,7 @@ function make(self::FillBetween, context)
     x = [self.x1, reverse(self.x2)]
     y = [self.y1, reverse(self.y2)]
     coords = map((a,b) -> project(context.geom,Point(a,b)), x, y)
-    [ PolygonObject(coords) ]
+    GroupPainter(getattr(self,:style), PolygonPainter(coords))
 end
 
 # ImageComponent -------------------------------------------------------------
@@ -2353,7 +2331,7 @@ function make(self::Image, context)
     a = project(context.geom, Point(self.x, self.y))
     b = project(context.geom, Point(self.x+self.w, self.y+self.h))
     bbox = BoundingBox(a, b)
-    [ ImageObject(self.img, bbox) ]
+    GroupPainter(getattr(self,:style), ImagePainter(self.img, bbox))
 end
 
 # SymbolDataComponent --------------------------------------------------------
@@ -2370,7 +2348,7 @@ _kw_rename(::SymbolDataComponent) = [
 
 function make_key(self::SymbolDataComponent, bbox::BoundingBox)
     pos = center(bbox)
-    return SymbolObject(pos, getattr(self,"style"))
+    return GroupPainter(getattr(self,:style), SymbolPainter(pos))
 end
 
 type Points <: SymbolDataComponent
@@ -2398,7 +2376,7 @@ limits(self::SymbolDataComponent, window::BoundingBox) =
 
 function make(self::SymbolDataComponent, context::PlotContext)
     x, y = project(context.geom, self.x, self.y)
-    [ SymbolsObject(x, y) ]
+    GroupPainter(getattr(self,:style), SymbolsPainter(x,y))
 end
 
 function Points(x::Real, y::Real, args...)
@@ -2432,7 +2410,7 @@ limits(self::ColoredPoints, window::BoundingBox) =
 
 function make(self::ColoredPoints, context::PlotContext)
     x, y = project(context.geom, self.x, self.y)
-    [ ColoredSymbolsObject(x, y, self.c) ]
+    GroupPainter(getattr(self,:style), ColoredSymbolsPainter(x, y, self.c))
 end
 
 function ColoredPoints(x::Real, y::Real, args...)
@@ -2454,20 +2432,12 @@ end
 
 function boundingbox(self::PlotComponent, context::PlotContext)
     objs = make(self, context)
-    bb = BoundingBox()
-    for obj in objs
-        bb += boundingbox(obj, context)
-    end
-    return bb
+    boundingbox(objs, context)
 end
 
 function render(self::PlotComponent, context)
     objs = make(self, context)
-    push_style(context, getattr(self,"style"))
-    for obj in objs
-        render(obj, context)
-    end
-    pop_style(context)
+    paint(objs, context)
 end
 
 # HasAttr ---------------------------------------------------------------------

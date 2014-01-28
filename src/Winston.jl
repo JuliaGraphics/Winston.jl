@@ -33,6 +33,7 @@ typealias PlotAttributes Associative # TODO: does Associative need {K,V}?
 include("config.jl")
 include("geom.jl")
 include("renderer.jl")
+include("paint.jl")
 
 # utils -----------------------------------------------------------------------
 
@@ -110,10 +111,12 @@ type PlotContext
     yflipped::Bool
     geom::AbstractProjection2
     plot_geom::AbstractProjection2
+    paintc::PaintContext
 
     function PlotContext(device::Renderer, dev::BoundingBox, data::Rectangle, proj::AbstractProjection2, xlog=false, ylog=false)
         xflipped = data.x0 > data.x1
         yflipped = data.y0 > data.y1
+        paintc = PaintContext(device, _size_relative(1,dev), _fontsize_relative(0,dev,boundingbox(device)))
         new(
             device,
             dev,
@@ -123,47 +126,10 @@ type PlotContext
             xflipped,
             yflipped,
             proj,
-            PlotGeometry(Rectangle(0,1,0,1), dev)
+            PlotGeometry(Rectangle(0,1,0,1), dev),
+            paintc
        )
     end
-end
-
-function _kw_func_relative_fontsize(context::PlotContext, key, value)
-    device_size = _fontsize_relative(value, context.dev_bbox, boundingbox(context.draw))
-    set(context.draw, key, device_size)
-end
-
-function _kw_func_relative_size(context::PlotContext, key, value)
-    device_size = _size_relative(value, context.dev_bbox)
-    set(context.draw, key, device_size)
-end
-
-function _kw_func_relative_width(context::PlotContext, key, value)
-    device_width = _size_relative(value/10., context.dev_bbox)
-    set(context.draw, key, device_width)
-end
-
-_kw_func = [
-    :fontsize => _kw_func_relative_fontsize,
-    :linewidth => _kw_func_relative_width,
-    :symbolsize => _kw_func_relative_size,
-]
-function push_style(context::PlotContext, style)
-    save_state(context.draw)
-    if !is(style,nothing)
-        for (key, value) in style
-            if haskey(_kw_func, key)
-                method = _kw_func[key]
-                method(context, key, value)
-            else
-                set(context.draw, key, value)
-            end
-        end
-    end
-end
-
-function pop_style(context::PlotContext)
-    restore_state(context.draw)
 end
 
 function _get_context(device::Renderer, ext_bbox::BoundingBox, pc::PlotContainer)
@@ -190,8 +156,6 @@ end
 function data_to_device{T<:Real}(ctx::PlotContext, x::Union(T,AbstractArray{T}), y::Union(T,AbstractArray{T}))
     project(ctx.geom, x, y)
 end
-
-include("paint.jl")
 
 # Legend ----------------------------------------------------------------------
 
@@ -932,14 +896,14 @@ end
 
 function render(self::PlotComposite, context)
     make(self, context)
-    push_style(context, getattr(self,"style"))
+    push_style(context.paintc, getattr(self,"style"))
     if !self.dont_clip
         set(context.draw, "cliprect", context.dev_bbox)
     end
     for obj in self.components
         render(obj, context)
     end
-    pop_style(context)
+    pop_style(context.paintc)
 end
 
 # FramedPlot ------------------------------------------------------------------
@@ -2076,7 +2040,7 @@ _kw_rename(::BoxLabel) = [
 ]
 
 function make(self::BoxLabel, context)
-    bb = boundingbox(self.obj, context)
+    bb = boundingbox(self.obj, context.paintc)
     offset = _size_relative(self.offset, context.dev_bbox)
     if self.side == "top"
         p = upperleft(bb)
@@ -2432,12 +2396,12 @@ end
 
 function boundingbox(self::PlotComponent, context::PlotContext)
     objs = make(self, context)
-    boundingbox(objs, context)
+    boundingbox(objs, context.paintc)
 end
 
 function render(self::PlotComponent, context)
     objs = make(self, context)
-    paint(objs, context)
+    paint(objs, context.paintc)
 end
 
 # HasAttr ---------------------------------------------------------------------

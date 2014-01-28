@@ -1,4 +1,30 @@
 
+immutable PaintContext
+    device
+    yardstick::Float64
+    min_fontsize::Float64
+end
+
+function push_style(context::PaintContext, style)
+    save_state(context.device)
+    if style !== nothing
+        for (key, value) in style
+            if key == :fontsize
+                value = max(value*context.yardstick, context.min_fontsize)
+            elseif key == :linewidth
+                value *= 0.1*context.yardstick
+            elseif key == :symbolsize
+                value *= context.yardstick
+            end
+            set(context.device, key, value)
+        end
+    end
+end
+
+function pop_style(context::PaintContext)
+    restore_state(context.device)
+end
+
 abstract AbstractPainter
 
 immutable GroupPainter <: AbstractPainter
@@ -19,7 +45,7 @@ end
 
 Base.push!(g::GroupPainter, p::AbstractPainter...) = push!(g.children, p...)
 
-function boundingbox(g::GroupPainter, context)
+function boundingbox(g::GroupPainter, context::PaintContext)
     push_style(context, g.style)
     bbox = BoundingBox()
     for child in g.children
@@ -29,7 +55,7 @@ function boundingbox(g::GroupPainter, context)
     bbox
 end
 
-function paint(g::GroupPainter, context)
+function paint(g::GroupPainter, context::PaintContext)
     push_style(context, g.style)
     for child in g.children
         paint(child, context)
@@ -42,12 +68,12 @@ immutable LinePainter <: AbstractPainter
     q::Point
 end
 
-function boundingbox(self::LinePainter, context)
+function boundingbox(self::LinePainter, context::PaintContext)
     BoundingBox(self.p, self.q)
 end
 
-function paint(self::LinePainter, context)
-    line(context.draw, self.p.x, self.p.y, self.q.x, self.q.y)
+function paint(self::LinePainter, context::PaintContext)
+    line(context.device, self.p.x, self.p.y, self.q.x, self.q.y)
 end
 
 immutable LabelsPainter <: AbstractPainter
@@ -65,17 +91,17 @@ end
 __halign_offset = [ "right"=>Vec2(-1,0), "center"=>Vec2(-.5,.5), "left"=>Vec2(0,1) ]
 __valign_offset = [ "top"=>Vec2(-1,0), "center"=>Vec2(-.5,.5), "bottom"=>Vec2(0,1) ]
 
-function boundingbox(self::LabelsPainter, context)
+function boundingbox(self::LabelsPainter, context::PaintContext)
     bb = BoundingBox()
     angle = self.angle * pi/180.
 
-    height = textheight(context.draw, self.labels[1])
+    height = textheight(context.device, self.labels[1])
     ho = __halign_offset[self.halign]
     vo = __valign_offset[self.valign]
 
     for i = 1:length(self.labels)
         pos = self.points[i]
-        width = textwidth(context.draw, self.labels[i])
+        width = textwidth(context.device, self.labels[i])
 
         p = Point(pos.x + width * ho.x, pos.y + height * vo.x)
         q = Point(pos.x + width * ho.y, pos.y + height * vo.y)
@@ -90,10 +116,10 @@ function boundingbox(self::LabelsPainter, context)
     return bb
 end
 
-function paint(self::LabelsPainter, context)
+function paint(self::LabelsPainter, context::PaintContext)
     for i in 1:length(self.labels)
         p = self.points[i]
-        text(context.draw, p.x, p.y, self.labels[i];
+        text(context.device, p.x, p.y, self.labels[i];
              angle=self.angle, halign=self.halign, valign=self.valign)
     end
 end
@@ -103,24 +129,24 @@ immutable CombPainter <: AbstractPainter
     dp
 end
 
-function boundingbox(self::CombPainter, context::PlotContext)
+function boundingbox(self::CombPainter, context::PaintContext)
     return BoundingBox(self.points...)
 end
 
-function paint(self::CombPainter, context::PlotContext)
+function paint(self::CombPainter, context::PaintContext)
     for p in self.points
-        move_to(context.draw, p.x, p.y)
-        rel_line_to(context.draw, self.dp.x, self.dp.y)
+        move_to(context.device, p.x, p.y)
+        rel_line_to(context.device, self.dp.x, self.dp.y)
     end
-    stroke(context.draw)
+    stroke(context.device)
 end
 
 immutable SymbolPainter <: AbstractPainter
     pos::Point
 end
 
-function boundingbox(self::SymbolPainter, context)
-    symbolsize = get(context.draw, "symbolsize")
+function boundingbox(self::SymbolPainter, context::PaintContext)
+    symbolsize = get(context.device, "symbolsize")
 
     x = self.pos.x
     y = self.pos.y
@@ -128,8 +154,8 @@ function boundingbox(self::SymbolPainter, context)
     return BoundingBox(x-d, x+d, y-d, y+d)
 end
 
-function paint(self::SymbolPainter, context)
-    symbols(context.draw, [self.pos.x], [self.pos.y])
+function paint(self::SymbolPainter, context::PaintContext)
+    symbols(context.device, [self.pos.x], [self.pos.y])
 end
 
 immutable SymbolsPainter <: AbstractPainter
@@ -137,7 +163,7 @@ immutable SymbolsPainter <: AbstractPainter
     y
 end
 
-function boundingbox(self::SymbolsPainter, context::PlotContext)
+function boundingbox(self::SymbolsPainter, context::PaintContext)
     xmin = minimum(self.x)
     xmax = maximum(self.x)
     ymin = minimum(self.y)
@@ -145,8 +171,8 @@ function boundingbox(self::SymbolsPainter, context::PlotContext)
     return BoundingBox(xmin, xmax, ymin, ymax)
 end
 
-function paint(self::SymbolsPainter, context::PlotContext)
-    symbols(context.draw, self.x, self.y)
+function paint(self::SymbolsPainter, context::PaintContext)
+    symbols(context.device, self.x, self.y)
 end
 
 immutable TextPainter <: AbstractPainter
@@ -161,10 +187,10 @@ function TextPainter(pos, str; angle=0., halign="center", valign="center")
     TextPainter(pos, str, angle, halign, valign)
 end
 
-function boundingbox(self::TextPainter, context::PlotContext)
+function boundingbox(self::TextPainter, context::PaintContext)
     angle = self.angle * pi/180.
-    width = textwidth(context.draw, self.str)
-    height = textheight(context.draw, self.str)
+    width = textwidth(context.device, self.str)
+    height = textheight(context.device, self.str)
 
     hvec = width * __halign_offset[self.halign]
     vvec = height * __valign_offset[self.valign]
@@ -175,8 +201,8 @@ function boundingbox(self::TextPainter, context::PlotContext)
     return bb
 end
 
-function paint(self::TextPainter, context::PlotContext)
-    text(context.draw, self.pos.x, self.pos.y, self.str;
+function paint(self::TextPainter, context::PaintContext)
+    text(context.device, self.pos.x, self.pos.y, self.str;
          angle=self.angle, halign=self.halign, valign=self.valign)
 end
 
@@ -185,7 +211,7 @@ immutable PathPainter <: AbstractPainter
     y::Vector{Float64}
 end
 
-function boundingbox(self::PathPainter, context)
+function boundingbox(self::PathPainter, context::PaintContext)
     xmin = minimum(self.x)
     xmax = maximum(self.x)
     ymin = minimum(self.y)
@@ -193,20 +219,20 @@ function boundingbox(self::PathPainter, context)
     return BoundingBox(xmin, xmax, ymin, ymax)
 end
 
-function paint(self::PathPainter, context)
-    curve(context.draw, self.x, self.y)
+function paint(self::PathPainter, context::PaintContext)
+    curve(context.device, self.x, self.y)
 end
 
 immutable PolygonPainter <: AbstractPainter
     points::Vector{Point}
 end
 
-function boundingbox(self::PolygonPainter, context)
+function boundingbox(self::PolygonPainter, context::PaintContext)
     return BoundingBox(self.points...)
 end
 
-function paint(self::PolygonPainter, context)
-    polygon(context.draw, self.points)
+function paint(self::PolygonPainter, context::PaintContext)
+    polygon(context.device, self.points)
 end
 
 immutable ImagePainter <: AbstractPainter
@@ -214,14 +240,14 @@ immutable ImagePainter <: AbstractPainter
     bbox
 end
 
-function boundingbox(self::ImagePainter, context)
+function boundingbox(self::ImagePainter, context::PaintContext)
     return self.bbox
 end
 
-function paint(self::ImagePainter, context)
+function paint(self::ImagePainter, context::PaintContext)
     ll = lowerleft(self.bbox)
     w = width(self.bbox)
     h = height(self.bbox)
-    image(context.draw, self.img, ll.x, ll.y, w, h)
+    image(context.device, self.img, ll.x, ll.y, w, h)
 end
 

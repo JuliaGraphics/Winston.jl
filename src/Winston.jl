@@ -5,18 +5,43 @@ using Color
 importall Base.Graphics
 using IniFile
 
-import Base.getindex, Base.setindex!, Base.+, Base.-, Base.add, Base.isempty,
-       Base.copy, Base.(*), Base.(/), Base.get, Base.show
+export #FramedArray,
+       FramedPlot,
+       Plot,
+       Table,
 
-import Base: display,
+       Curve,
+       FillAbove,
+       FillBelow,
+       FillBetween,
+       Histogram,
+       Image,
+       Legend,
+       LineX,
+       LineY,
+       PlotInset,
+       PlotLabel,
+       Points,
+       Slope,
+       SymmetricErrorBarsX,
+       SymmetricErrorBarsY,
+
+       file,
+       getattr,
+       setattr,
+       style,
+       svg
+
+import Base: add,
+             copy,
+             display,
+             get,
+             getindex,
+             isempty,
+             setindex!,
+             show,
              writemime
 
-export PlotContainer
-export Curve, FillAbove, FillBelow, FillBetween, Histogram, Image, Legend,
-    LineX, LineY, PlotInset, PlotLabel, Points, Slope,
-    SymmetricErrorBarsX, SymmetricErrorBarsY
-export FramedArray, FramedPlot, Table
-export file, getattr, setattr, style, svg
 export get_context, device_to_data, data_to_device
 
 type WinstonException <: Exception

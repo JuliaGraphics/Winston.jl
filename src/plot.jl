@@ -120,9 +120,6 @@ function plot(p::FramedPlot, args...; kvs...)
                 y = imag(z)
             else
                 y = shift!(args)
-                if ndims(y) == 2 && (size(y,1) == 1 || size(y,2) == 1)
-                    y = vec(y)
-                end
                 x = 1:size(y,1)
             end
         else
@@ -139,10 +136,11 @@ function plot(p::FramedPlot, args...; kvs...)
         add_curve = haskey(sopts, :linekind) || !haskey(sopts, :symbolkind)
         add_points = haskey(sopts, :symbolkind)
 
+        x = vec(x)
         if size(y,2) > 1
             ys = { sub(y,:,j) for j = 1:size(y,2) }
         else
-            ys = {y}
+            ys = { vec(y) }
         end
 
         for y in ys

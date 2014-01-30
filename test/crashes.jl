@@ -18,3 +18,9 @@ display(loglog([1]))
 t = Table(2,2)
 t[1,1] = plot(1:3)
 display(t)
+
+# row & col vectors
+x = 1:10
+y = 1:10
+display(plot(x',y'))
+display(plot(x'',y''))

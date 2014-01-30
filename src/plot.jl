@@ -120,6 +120,9 @@ function plot(p::FramedPlot, args...; kvs...)
                 y = imag(z)
             else
                 y = shift!(args)
+                if ndims(y) == 2 && (size(y,1) == 1 || size(y,2) == 1)
+                    y = vec(y)
+                end
                 x = 1:size(y,1)
             end
         else

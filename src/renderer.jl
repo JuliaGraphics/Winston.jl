@@ -116,20 +116,7 @@ end
 stroke(cr::CairoRenderer) = stroke(cr.ctx)
 
 move_to(self::CairoRenderer, px, py) = move_to(self.ctx, px, py)
-
-let lastfinite = true
-global line_to
-function line_to(self::CairoRenderer, px, py)
-    nextfinite = isfinite(px) && isfinite(py)
-    if lastfinite && nextfinite
-        line_to(self.ctx, px, py)
-    elseif nextfinite
-        move_to(self.ctx, px, py)
-    end
-    lastfinite = nextfinite
-end
-end
-
+line_to(self::CairoRenderer, px, py) = line_to(self.ctx, px, py)
 rel_line_to(self::CairoRenderer, px, py) = rel_line_to(self.ctx, px, py)
 
 function line(self::CairoRenderer, px, py, qx, qy)
@@ -229,25 +216,34 @@ end
 
 function curve(self::CairoRenderer, x::AbstractVector, y::AbstractVector)
     n = min(length(x), length(y))
-    if n <= 0
-        return
-    end
+    n > 0 || return
     new_path(self.ctx)
-    i = 1
-    while i <= length(x) && (!isfinite(x[i]) || !isfinite(y[i]))
-        i += 1
-    end
-    if i <= length(x)
-        move_to(self.ctx, x[i], y[i])
-        for i = i+1:n
-            line_to(self, x[i], y[i])
-            if i == n || (i&127)==0
-                stroke(self.ctx)
-                if i < n
+
+    lo = 1
+    while lo < n
+        while lo <= n && !(isfinite(x[lo]) && isfinite(y[lo]))
+            lo += 1
+        end
+
+        hi = lo + 1
+        while hi <= n &&  (isfinite(x[hi]) && isfinite(y[hi]))
+            hi += 1
+        end
+        hi -= 1
+
+        if lo < hi
+            move_to(self, x[lo], y[lo])
+            for i = (lo+1):hi
+                line_to(self, x[i], y[i])
+                if i < hi && (i & 127) == 0
+                    stroke(self.ctx)
                     move_to(self, x[i], y[i])
                 end
             end
+            stroke(self.ctx)
         end
+
+        lo = hi + 1
     end
 end
 

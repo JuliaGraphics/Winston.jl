@@ -395,8 +395,7 @@ function _magform(x)
     return a, b
 end
 
-_format_ticklabel(x) = _format_ticklabel(x, 0.)
-function _format_ticklabel(x, range)
+function _format_ticklabel(x, range=0.; min_pow10=4)
     if x == 0
         return "0"
     end
@@ -410,7 +409,7 @@ function _format_ticklabel(x, range)
         digits = digits[1:n]
     end
     b -= 1
-    if abs(b) > 4
+    if abs(b) >= min_pow10
         s = IOBuffer()
         if neg write(s, '-') end
         if digits != [0x31]

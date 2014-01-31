@@ -30,6 +30,7 @@ function ghf()
     end
     _pwinston
 end
+ghf(p) = (global _pwinston = p)
 
 #system functions
 file(fname::String, args...; kvs...) = file(_pwinston, fname, args...; kvs...)
@@ -236,13 +237,14 @@ end
 colormap("jet")
 
 function imagesc{T<:Real}(xrange::Interval, yrange::Interval, data::AbstractArray{T,2}, clims::Interval)
-    p = FramedPlot()
-    setattr(p, :xrange, xrange)
-    setattr(p, :yrange, reverse(yrange))
+    p = ghf()
+    if !_hold
+        setattr(p, :xrange, xrange)
+        setattr(p, :yrange, reverse(yrange))
+    end
     img = data2rgb(data, clims, _current_colormap)
     add(p, Image(xrange, reverse(yrange), img))
-    global _pwinston = p
-    p
+    ghf(p)
 end
 
 imagesc(xrange, yrange, data) = imagesc(xrange, yrange, data, (minimum(data),maximum(data)+1))

@@ -43,11 +43,6 @@ for (f,k) in ((:xlim,:xrange),(:ylim,:yrange))
     @eval $f() = $k(limits(_pwinston))
 end
 
-#shortcuts for creating log-scale plots
-semilogx(args...; kvs...) = plot(args...; xlog=true, kvs...)
-semilogy(args...; kvs...) = plot(args...; ylog=true, kvs...)
-loglog(args...; kvs...) = plot(args...; xlog=true, ylog=true, kvs...)
-
 const chartokens = [
     '-' => {:linekind => "solid"},
     ':' => {:linekind => "dotted"},
@@ -105,7 +100,9 @@ function default_color(i::Int)
     cs[mod1(i,length(cs))]
 end
 
-function plot(p::FramedPlot, args::Union(String,AbstractVector,AbstractMatrix)...; kvs...)
+typealias PlotArg Union(String,AbstractVector,AbstractMatrix)
+
+function plot(p::FramedPlot, args::PlotArg...; kvs...)
     args = {args...}
     components = {}
     color_idx = 0
@@ -183,10 +180,15 @@ function plot(p::FramedPlot, args::Union(String,AbstractVector,AbstractMatrix)..
     global _pwinston = p
     p
 end
-plot(args...; kvs...) = plot(ghf(), args...; kvs...)
+plot(args::PlotArg...; kvs...) = plot(ghf(), args...; kvs...)
 
 # shortcut for overplotting
-oplot(args...; kvs...) = plot(_pwinston, args...; kvs...)
+oplot(args::PlotArg...; kvs...) = plot(_pwinston, args...; kvs...)
+
+# shortcuts for creating log plots
+semilogx(args::PlotArg...; kvs...) = plot(args...; xlog=true, kvs...)
+semilogy(args::PlotArg...; kvs...) = plot(args...; ylog=true, kvs...)
+loglog(args::PlotArg...; kvs...) = plot(args...; xlog=true, ylog=true, kvs...)
 
 typealias Interval (Real,Real)
 

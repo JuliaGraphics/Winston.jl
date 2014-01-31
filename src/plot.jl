@@ -105,26 +105,35 @@ function default_color(i::Int)
     cs[mod1(i,length(cs))]
 end
 
-function plot(p::FramedPlot, args...; kvs...)
+function plot(p::FramedPlot, args::Union(String,AbstractVector,AbstractMatrix)...; kvs...)
     args = {args...}
     components = {}
     color_idx = 0
 
+    i = 1
     while length(args) > 0
         local x, y, ys, sopts
 
         if length(args) == 1 || typeof(args[2]) <: String
-            if eltype(args[1]) <: Complex
+            elt = eltype(args[1])
+            if elt <: Complex
                 z = shift!(args)
                 x = real(z)
                 y = imag(z)
-            else
+            elseif elt <: Real
                 y = shift!(args)
                 x = 1:size(y,1)
+            else
+                error("eltype of argument #$i is not Real or Complex")
             end
+            i += 1
         else
             x = shift!(args)
+            eltype(x) <: Real || error("eltype of argument #$i is not Real")
+            i += 1
             y = shift!(args)
+            eltype(y) <: Real || error("eltype of argument #$i is not Real")
+            i += 1
         end
 
         if length(args) > 0 && typeof(args[1]) <: String

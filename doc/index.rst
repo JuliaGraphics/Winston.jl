@@ -13,6 +13,11 @@
    fun/index
 
 .. toctree::
+   :maxdepth: 1
+
+   faq
+
+.. toctree::
    :maxdepth: 2
 
    obj/index

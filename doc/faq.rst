@@ -22,7 +22,7 @@ prints nothing. You have to ask for it to be printed::
     s = "a string"
     println(s)
 
-Likewise for ``plot``, if you want it to be displayed, you have to request it:
+Likewise for ``plot``, if you want it to be displayed, you have to request it::
 
     p = plot(...)
     display(p)

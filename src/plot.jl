@@ -9,6 +9,7 @@ export colormap,
        plot,
        plothist,
        plothist2d,
+       scatter,
        semilogx,
        semilogy,
        spy,
@@ -272,6 +273,12 @@ function spy(S::SparseMatrixCSC, nrS::Integer, ncS::Integer)
     end
 
     imagesc((1,m), (1,n), target)
+end
+
+function scatter(x, y)
+    p = ghf()
+    add(p, Points(x, y))
+    ghf(p)
 end
 
 spy(S::SparseMatrixCSC) = spy(S, 100, 100)

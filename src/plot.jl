@@ -155,7 +155,9 @@ function plot(p::FramedPlot, args::PlotArg...; kvs...)
             ys = { vec(y) }
         end
 
+        n = length(x)
         for y in ys
+            length(y) == n || warn("vector length mismatch")
             if no_color
                 color_idx += 1
                 sopts[:color] = default_color(color_idx)

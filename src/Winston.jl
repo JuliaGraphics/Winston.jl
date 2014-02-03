@@ -2375,14 +2375,16 @@ type ColoredPoints <: SymbolDataComponent
     attr::PlotAttributes
     x
     y
+    s
     c
 
-    function ColoredPoints(x, y, c, args...; kvs...)
+    function ColoredPoints(x, y, s, c, args...; kvs...)
         self = new(Dict())
         iniattr(self)
         kw_init(self, args...; kvs...)
         self.x = x
         self.y = y
+        self.s = s
         self.c = c
         self
     end
@@ -2398,7 +2400,7 @@ limits(self::ColoredPoints, window::BoundingBox) =
 
 function make(self::ColoredPoints, context::PlotContext)
     x, y = project(context.geom, self.x, self.y)
-    GroupPainter(getattr(self,:style), ColoredSymbolsPainter(x, y, self.c))
+    GroupPainter(getattr(self,:style), ColoredSymbolsPainter(x, y, self.s, self.c))
 end
 
 function ColoredPoints(x::Real, y::Real, args...)

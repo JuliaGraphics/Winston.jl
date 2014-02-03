@@ -15,6 +15,7 @@
    loglog
    oplot
    plot
+   scatter
    semilogx
    semilogy
    title

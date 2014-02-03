@@ -134,6 +134,10 @@ const symbol_funcs = {
         move_to(c, x+0.866r, y+0.5r);
         line_to(c, x-0.866r, y-0.5r)
     ),
+    "circle" => (c, x, y, r) -> (
+        new_sub_path(c);
+        circle(c, x, y, r)
+    ),
     "cross" => (c, x, y, r) -> (
         move_to(c, x+r, y+r);
         line_to(c, x-r, y-r);
@@ -188,24 +192,21 @@ const symbol_funcs = {
 }
 
 function symbols(self::CairoRenderer, x, y)
-    fullname = get(self.state, :symbolkind, "square")
+    fullname = get(self.state, :symbolkind, "circle")
     size = get(self.state, :symbolsize, 0.01)
 
     splitname = split(fullname)
     name = pop!(splitname)
     filled = "solid" in splitname || "filled" in splitname
 
-    default_symbol_func = (ctx,x,y,r) -> (
-        new_sub_path(ctx);
-        circle(ctx,x,y,r)
-    )
+    default_symbol_func = symbol_funcs["circle"]
     symbol_func = get(symbol_funcs, name, default_symbol_func)
 
     save(self.ctx)
     set_dash(self.ctx, Float64[])
     new_path(self.ctx)
     for i = 1:min(length(x),length(y))
-        symbol_func(self.ctx, x[i], y[i], 0.5*size)
+        symbol_func(self.ctx, x[i], y[i], size)
     end
     if filled
         fill_preserve(self.ctx)

@@ -175,6 +175,43 @@ function paint(self::SymbolsPainter, context::PaintContext)
     symbols(context.device, self.x, self.y)
 end
 
+immutable ColoredSymbolsPainter <: AbstractPainter
+    x::AbstractVecOrMat
+    y::AbstractVecOrMat
+    s::AbstractVecOrMat
+    c::AbstractVecOrMat
+end
+
+function boundingbox(self::ColoredSymbolsPainter, context::PaintContext)
+    xmin,xmax = extrema(self.x)
+    ymin,ymax = extrema(self.y)
+    return BoundingBox(xmin, xmax, ymin, ymax)
+end
+
+function paint(self::ColoredSymbolsPainter, context::PaintContext)
+    fullname = get(context.device.state, :symbolkind, "circle")
+    splitname = split(fullname)
+    name = pop!(splitname)
+    filled = "solid" in splitname || "filled" in splitname
+
+    default_symbol_func = symbol_funcs["circle"]
+    symbol_func = get(symbol_funcs, name, default_symbol_func)
+
+    device = context.device.ctx
+    save(device)
+    set_dash(device, Float64[])
+    new_path(device)
+    for (x,y,s,c) in zip(self.x, self.y, self.s, self.c)
+        set_color(device, c)
+        symbol_func(device, x, y, s*context.yardstick)
+        if filled
+            fill_preserve(device)
+        end
+        stroke(device)
+    end
+    restore(device)
+end
+
 immutable TextPainter <: AbstractPainter
     pos::Point
     str::ByteString

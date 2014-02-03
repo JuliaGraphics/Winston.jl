@@ -90,6 +90,8 @@ function _parse_spec(spec::String)
             for (k,v) in chartokens[char]
                 style[k] = v
             end
+        else
+            warn("unrecognized style '$char'")
         end
     end
 
@@ -194,7 +196,7 @@ loglog(args::PlotArg...; kvs...) = plot(args...; xlog=true, ylog=true, kvs...)
 
 typealias Interval (Real,Real)
 
-function data2rgb{T<:Real}(data::AbstractArray{T,2}, limits::Interval, colormap)
+function data2rgb{T<:Real}(data::AbstractArray{T}, limits::Interval, colormap::Array{Uint32,1})
     img = similar(data, Uint32)
     ncolors = length(colormap)
     limlower = limits[1]
@@ -275,9 +277,49 @@ function spy(S::SparseMatrixCSC, nrS::Integer, ncS::Integer)
     imagesc((1,m), (1,n), target)
 end
 
-function scatter(x, y)
+scatter(x::AbstractVecOrMat, y::AbstractVecOrMat, spec::ASCIIString="o"; kvs...) = scatter(x, y, 1., spec; kvs...)
+function scatter(x::AbstractVecOrMat, y::AbstractVecOrMat,
+                 s::Real, spec::ASCIIString="o"; kvs...)
+    sopts = _parse_spec(spec)
     p = ghf()
-    add(p, Points(x, y))
+    c = Points(x, y, sopts, symbolsize=s)
+    add(p, c)
+    for (k,v) in kvs
+        if k in [:linekind,:symbolkind,:color,:linecolor,:linewidth,:symbolsize]
+            style(c, k, v)
+        else
+            setattr(p, k, v)
+        end
+    end
+    ghf(p)
+end
+function scatter(x::AbstractVecOrMat, y::AbstractVecOrMat,
+                 s::AbstractVecOrMat, spec::ASCIIString="o"; kvs...)
+    c = convert(RGB24, color(get(_parse_spec(spec), :color, RGB(0,0,0))))
+    scatter(x, y, s, fill(c,size(x)...), spec; kvs...)
+end
+function scatter(x::AbstractVecOrMat, y::AbstractVecOrMat,
+                 s::Union(Real,AbstractVecOrMat), c::AbstractVecOrMat,
+                 spec::ASCIIString="o"; kvs...)
+    if typeof(s) <: Real
+        s = fill(s, size(x)...)
+    end
+    if eltype(c) <: Real
+        c = data2rgb(c, extrema(c), _current_colormap)
+    elseif !(eltype(c) <: ColorValue)
+        error("bad color array")
+    end
+    sopts = _parse_spec(spec)
+    p = ghf()
+    c = ColoredPoints(x, y, s, c, sopts)
+    add(p, c)
+    for (k,v) in kvs
+        if k in [:linekind,:symbolkind,:color,:linecolor,:linewidth,:symbolsize]
+            style(c, k, v)
+        else
+            setattr(p, k, v)
+        end
+    end
     ghf(p)
 end
 

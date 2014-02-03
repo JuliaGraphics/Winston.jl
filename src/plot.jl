@@ -106,6 +106,8 @@ end
 
 typealias PlotArg Union(String,AbstractVector,AbstractMatrix)
 
+isrowvec(x::AbstractArray) = ndims(x) == 2 && size(x,1) == 1 && size(x,2) > 1
+
 function plot(p::FramedPlot, args::PlotArg...; kvs...)
     args = {args...}
     components = {}
@@ -123,7 +125,7 @@ function plot(p::FramedPlot, args::PlotArg...; kvs...)
                 y = imag(z)
             elseif elt <: Real
                 y = shift!(args)
-                x = 1:size(y,1)
+                x = 1:(isrowvec(y) ? size(y,2) : size(y,1))
             else
                 error("eltype of argument #$i is not Real or Complex")
             end
@@ -147,7 +149,7 @@ function plot(p::FramedPlot, args::PlotArg...; kvs...)
         add_points = haskey(sopts, :symbolkind)
 
         x = vec(x)
-        if size(y,2) > 1
+        if size(y,1) > 1 && size(y,2) > 1
             ys = { sub(y,:,j) for j = 1:size(y,2) }
         else
             ys = { vec(y) }

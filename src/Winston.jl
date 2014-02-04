@@ -1551,12 +1551,12 @@ function _labels_draw(self::FramedArray, device::Renderer, int_bbox::BoundingBox
     if !is(getattr(self,"xlabel"),nothing)
         x = center(int_bbox).x
         y = ymin(bb) - labeloffset
-        text(device, x, y, getattr(self,"xlabel"); halign="center", valign="top")
+        textdraw(device, x, y, getattr(self,"xlabel"); halign="center", valign="top")
     end
     if !is(getattr(self,"ylabel"),nothing)
         x = xmin(bb) - labeloffset
         y = center(int_bbox).y
-        text(device, x, y, getattr(self,"ylabel"); angle=90., halign="center", valign="bottom")
+        textdraw(device, x, y, getattr(self,"ylabel"); angle=90., halign="center", valign="bottom")
     end
     restore_state(device)
 end
@@ -1704,7 +1704,7 @@ function compose_interior(self::PlotContainer, device::Renderer, int_bbox::Bound
         for (key,val) in style
             set(device, key, val)
         end
-        text(device, x, y, getattr(self,:title); halign="center", valign="bottom")
+        textdraw(device, x, y, getattr(self,:title); halign="center", valign="bottom")
         restore_state(device)
     end
 end

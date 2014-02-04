@@ -13,6 +13,7 @@ export colormap,
        semilogx,
        semilogy,
        spy,
+       text,
        title,
        xlabel,
        xlim,
@@ -102,6 +103,28 @@ function default_color(i::Int)
     cs = [0x000000, 0xED2C30, 0x008C46, 0x1859A9,
           0xF37C21, 0x652B91, 0xA11C20, 0xB33794]
     cs[mod1(i,length(cs))]
+end
+
+function _process_keywords(kvs, p, components...)
+    for (k,v) in kvs
+        if k in [:angle
+                 :color,
+                 :face,
+                 :halign,
+                 :linecolor,
+                 :linekind,
+                 :linewidth,
+                 :size,
+                 :symbolkind,
+                 :symbolsize,
+                 :valign]
+            for c in components
+                style(c, k, v)
+            end
+        else
+            setattr(p, k, v)
+        end
+    end
 end
 
 typealias PlotArg Union(String,AbstractVector,AbstractMatrix)
@@ -325,6 +348,13 @@ function scatter(x::AbstractVecOrMat, y::AbstractVecOrMat,
         end
     end
     ghf(p)
+end
+
+function text(x::Real, y::Real, s::String; kvs...)
+    p = _pwinston
+    c = DataLabel(x, y, s, halign="left")
+    _process_keywords(kvs, p, c)
+    add(p, c)
 end
 
 spy(S::SparseMatrixCSC) = spy(S, 100, 100)

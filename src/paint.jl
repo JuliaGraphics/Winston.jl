@@ -119,8 +119,8 @@ end
 function paint(self::LabelsPainter, context::PaintContext)
     for i in 1:length(self.labels)
         p = self.points[i]
-        text(context.device, p.x, p.y, self.labels[i];
-             angle=self.angle, halign=self.halign, valign=self.valign)
+        textdraw(context.device, p.x, p.y, self.labels[i];
+                 angle=self.angle, halign=self.halign, valign=self.valign)
     end
 end
 
@@ -239,8 +239,8 @@ function boundingbox(self::TextPainter, context::PaintContext)
 end
 
 function paint(self::TextPainter, context::PaintContext)
-    text(context.device, self.pos.x, self.pos.y, self.str;
-         angle=self.angle, halign=self.halign, valign=self.valign)
+    textdraw(context.device, self.pos.x, self.pos.y, self.str;
+             angle=self.angle, halign=self.halign, valign=self.valign)
 end
 
 immutable PathPainter <: AbstractPainter

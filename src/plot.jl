@@ -107,7 +107,7 @@ end
 
 function _process_keywords(kvs, p, components...)
     for (k,v) in kvs
-        if k in [:angle
+        if k in [:angle,
                  :color,
                  :face,
                  :halign,

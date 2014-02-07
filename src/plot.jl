@@ -9,6 +9,7 @@ export colormap,
        plot,
        plothist,
        plothist2d,
+       savefig,
        scatter,
        semilogx,
        semilogy,
@@ -36,6 +37,7 @@ ghf(p) = (global _pwinston = p)
 
 #system functions
 file(fname::String, args...; kvs...) = file(_pwinston, fname, args...; kvs...)
+const savefig = file
 
 for f in (:xlabel,:ylabel,:title)
     @eval $f(s::String) = (setattr(_pwinston, $f=s); _pwinston)

@@ -379,7 +379,7 @@ function boundingbox(self::PlotInset, context::PlotContext)
 end
 
 function limits(self::PlotInset, window::BoundingBox)
-    return self.plot_limits
+    return BoundingBox()
 end
 
 # HalfAxis --------------------------------------------------------------------

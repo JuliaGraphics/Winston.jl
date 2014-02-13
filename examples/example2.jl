@@ -1,4 +1,5 @@
 using Winston
+srand(42)
 
 p = FramedPlot(
         aspect_ratio=1,

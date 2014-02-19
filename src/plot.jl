@@ -521,7 +521,7 @@ function fplot_points(f::Function, xmin::Real, xmax::Real;
     xs, ys
 end
 
-function fplot(p::FramedPlot, f::Function, limits, args...; kvs...)
+function fplot(f::Function, limits, args...; kvs...)
     pargs = []
     fopts = Dict()
     for arg in args
@@ -538,6 +538,5 @@ function fplot(p::FramedPlot, f::Function, limits, args...; kvs...)
     xmin = limits[1]
     xmax = limits[2]
     x,y = fplot_points(f, xmin, xmax; fopts...)
-    plot(p, x, y, pargs...; kvs...)
+    plot(x, y, pargs...; kvs...)
 end
-fplot(args...; kvs...) = fplot(ghf(), args...; kvs...)

@@ -47,6 +47,7 @@ export get_context, device_to_data, data_to_device
 if VERSION < v"0.3-"
     typealias AbstractVecOrMat{T} Union(AbstractVector{T}, AbstractMatrix{T})
     extrema(x) = (minimum(x),maximum(x))
+    Base.push!(x, a, b) = (push!(x, a); push!(x, b))
 end
 
 type WinstonException <: Exception

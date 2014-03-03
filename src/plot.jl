@@ -138,9 +138,25 @@ function plot(p::FramedPlot, args::PlotArg...; kvs...)
     components = {}
     color_idx = 0
 
+    default_style = Dict()
+    attr = {}
+    for (k,v) in kvs
+        if k in (:linestyle, :linetype)
+            default_style[:linekind] = v
+        elseif k in (:marker, :symboltype)
+            default_style[:symbolkind] = v
+        elseif k in (:markersize,)
+            default_style[:symbolsize] = v
+        elseif k in (:color, :linekind, :linewidth, :symbolkind, :symbolsize)
+            default_style[k] = v
+        else
+            push!(attr, (k,v))
+        end
+    end
+
     i = 1
     while length(args) > 0
-        local x, y, ys, sopts
+        local x, y, ys
 
         if length(args) == 1 || typeof(args[2]) <: String
             elt = eltype(args[1])
@@ -164,10 +180,9 @@ function plot(p::FramedPlot, args::PlotArg...; kvs...)
             i += 1
         end
 
+        sopts = copy(default_style)
         if length(args) > 0 && typeof(args[1]) <: String
-            sopts = _parse_spec(shift!(args))
-        else
-            sopts = {:linekind => "solid"}
+            merge!(sopts, _parse_spec(shift!(args)))
         end
         no_color = !haskey(sopts, :color)
         add_curve = haskey(sopts, :linekind) || !haskey(sopts, :symbolkind)
@@ -196,14 +211,8 @@ function plot(p::FramedPlot, args::PlotArg...; kvs...)
         end
     end
 
-    for (k,v) in kvs
-        if k in [:linekind,:symbolkind,:color,:linecolor,:linewidth,:symbolsize]
-            for c in components
-                style(c, k, v)
-            end
-        else
-            setattr(p, k, v)
-        end
+    for (k,v) in attr
+        setattr(p, k, v)
     end
 
     for c in components

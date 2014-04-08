@@ -42,15 +42,18 @@ import Base: add,
              show,
              writemime
 
-using Base:
-    REPL.REPLDisplay
-
 export get_context, device_to_data, data_to_device
 
 if VERSION < v"0.3-"
     typealias AbstractVecOrMat{T} Union(AbstractVector{T}, AbstractMatrix{T})
     extrema(x) = (minimum(x),maximum(x))
     Base.push!(x, a, b) = (push!(x, a); push!(x, b))
+    immutable WinstonDisplay <: Display end
+    if !isdefined(Main, :IJulia)
+        pushdisplay(WinstonDisplay())
+    end
+else
+    typealias WinstonDisplay Base.REPL.REPLDisplay
 end
 
 type WinstonException <: Exception
@@ -2551,10 +2554,10 @@ output_surface = symbol(lowercase(get(ENV, "WINSTON_OUTPUT", output_surface)))
 if !isdefined(Main, :IJulia)
     if output_surface == :gtk
         include("gtk.jl")
-        display(::REPLDisplay, p::PlotContainer) = gtk(p)
+        display(::WinstonDisplay, p::PlotContainer) = gtk(p)
     elseif output_surface == :tk
         include("tk.jl")
-        display(::REPLDisplay, p::PlotContainer) = tk(p)
+        display(::WinstonDisplay, p::PlotContainer) = tk(p)
     else
         assert(false)
     end

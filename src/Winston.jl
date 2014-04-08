@@ -52,8 +52,6 @@ if VERSION < v"0.3-"
     if !isdefined(Main, :IJulia)
         pushdisplay(WinstonDisplay())
     end
-else
-    typealias WinstonDisplay Base.REPL.REPLDisplay
 end
 
 type WinstonException <: Exception
@@ -2554,12 +2552,17 @@ output_surface = symbol(lowercase(get(ENV, "WINSTON_OUTPUT", output_surface)))
 if !isdefined(Main, :IJulia)
     if output_surface == :gtk
         include("gtk.jl")
-        display(::WinstonDisplay, p::PlotContainer) = gtk(p)
+        xtk = gtk
     elseif output_surface == :tk
         include("tk.jl")
-        display(::WinstonDisplay, p::PlotContainer) = tk(p)
+        xtk = tk
     else
         assert(false)
+    end
+    if VERSION < v"0.3-"
+        display(::WinstonDisplay, p::PlotContainer) = xtk(p)
+    else
+        display(::Base.REPL.REPLDisplay, ::MIME"text/plain", p::PlotContainer) = xtk(p)
     end
 end
 

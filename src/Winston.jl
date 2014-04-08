@@ -42,6 +42,9 @@ import Base: add,
              show,
              writemime
 
+using Base:
+    REPL.REPLDisplay
+
 export get_context, device_to_data, data_to_device
 
 if VERSION < v"0.3-"
@@ -2545,19 +2548,16 @@ writemime(io::IO, ::MIME"image/png", p::PlotContainer) =
 output_surface = Winston.config_value("default","output_surface")
 output_surface = symbol(lowercase(get(ENV, "WINSTON_OUTPUT", output_surface)))
 
-type WinstonDisplay <: Display end
-
 if !isdefined(Main, :IJulia)
     if output_surface == :gtk
         include("gtk.jl")
-        display(::WinstonDisplay, p::PlotContainer) = gtk(p)
+        display(::REPLDisplay, p::PlotContainer) = gtk(p)
     elseif output_surface == :tk
         include("tk.jl")
-        display(::WinstonDisplay, p::PlotContainer) = tk(p)
+        display(::REPLDisplay, p::PlotContainer) = tk(p)
     else
         assert(false)
     end
-    pushdisplay(WinstonDisplay())
 end
 
 end # module

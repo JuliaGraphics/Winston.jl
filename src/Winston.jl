@@ -48,10 +48,6 @@ if VERSION < v"0.3-"
     typealias AbstractVecOrMat{T} Union(AbstractVector{T}, AbstractMatrix{T})
     extrema(x) = (minimum(x),maximum(x))
     Base.push!(x, a, b) = (push!(x, a); push!(x, b))
-    immutable WinstonDisplay <: Display end
-    if !isdefined(Main, :IJulia)
-        pushdisplay(WinstonDisplay())
-    end
 end
 
 type WinstonException <: Exception
@@ -2549,6 +2545,8 @@ writemime(io::IO, ::MIME"image/png", p::PlotContainer) =
 output_surface = Winston.config_value("default","output_surface")
 output_surface = symbol(lowercase(get(ENV, "WINSTON_OUTPUT", output_surface)))
 
+immutable WinstonDisplay <: Display end
+
 if !isdefined(Main, :IJulia)
     if output_surface == :gtk
         include("gtk.jl")
@@ -2559,9 +2557,9 @@ if !isdefined(Main, :IJulia)
     else
         assert(false)
     end
-    if VERSION < v"0.3-"
-        display(::WinstonDisplay, p::PlotContainer) = xtk(p)
-    else
+    display(::WinstonDisplay, p::PlotContainer) = xtk(p)
+    pushdisplay(WinstonDisplay())
+    if VERSION >= v"0.3-"
         display(::Base.REPL.REPLDisplay, ::MIME"text/plain", p::PlotContainer) = xtk(p)
     end
 end

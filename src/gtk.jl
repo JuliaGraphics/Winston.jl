@@ -19,9 +19,8 @@ function gtk(self::PlotContainer, args...)
     opts = Winston.args2dict(args...)
     width = get(opts, :width, Winston.config_value("window","width"))
     height = get(opts, :height, Winston.config_value("window","height"))
-    reuse_window = isinteractive() #&& Winston.config_value("window","reuse")
     device = _saved_gtk_renderer
-    if device === nothing || !reuse_window
+    if device === nothing
         device, win = Gtkdrawingwindow("Julia", width, height, _saved_gtk_destroyed)
         _saved_gtk_renderer = device
     end

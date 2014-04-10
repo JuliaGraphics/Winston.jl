@@ -17,9 +17,8 @@ function tk(self::PlotContainer, args...)
     opts = Winston.args2dict(args...)
     width = get(opts, :width, Winston.config_value("window","width"))
     height = get(opts, :height, Winston.config_value("window","height"))
-    reuse_window = isinteractive() #&& Winston.config_value("window","reuse")
     device = _saved_canvas
-    if device === nothing || !reuse_window
+    if device === nothing
         device = drawingwindow("Julia", width, height,
                                (x...)->(_saved_canvas=nothing))
         _saved_canvas = device

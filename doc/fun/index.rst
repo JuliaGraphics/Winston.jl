@@ -15,6 +15,7 @@
    loglog
    oplot
    plot
+   savefig
    scatter
    semilogx
    semilogy

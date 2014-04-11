@@ -1,26 +1,3 @@
-export colormap,
-       errorbar,
-       file,
-       fplot,
-       hold,
-       imagesc,
-       loglog,
-       oplot,
-       plot,
-       plothist,
-       plothist2d,
-       savefig,
-       scatter,
-       semilogx,
-       semilogy,
-       spy,
-       text,
-       title,
-       xlabel,
-       xlim,
-       ylabel,
-       ylim
-
 _pwinston = FramedPlot()
 
 _hold = false

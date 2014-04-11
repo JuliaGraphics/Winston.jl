@@ -316,6 +316,7 @@ function spy(S::SparseMatrixCSC, nrS::Integer, ncS::Integer)
 end
 
 scatter(x::AbstractVecOrMat, y::AbstractVecOrMat, spec::ASCIIString="o"; kvs...) = scatter(x, y, 1., spec; kvs...)
+scatter{C<:Complex}(z::AbstractVecOrMat{C}, spec::ASCIIString="o"; kvs...) = scatter(real(z), imag(z), 1., spec; kvs...)
 function scatter(x::AbstractVecOrMat, y::AbstractVecOrMat,
                  s::Real, spec::ASCIIString="o"; kvs...)
     sopts = _parse_spec(spec)

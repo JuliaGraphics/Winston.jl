@@ -1,4 +1,3 @@
-_pwinston = FramedPlot()
 
 _hold = false
 hold() = (global _hold = !_hold)

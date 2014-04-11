@@ -8,8 +8,9 @@ using IniFile
 export
     colormap,
     errorbar,
-    file,
+    figure,
     fplot,
+    gcf,
     hold,
     imagesc,
     loglog,
@@ -2570,22 +2571,91 @@ writemime(io::IO, ::MIME"image/png", p::PlotContainer) =
 output_surface = Winston.config_value("default","output_surface")
 output_surface = symbol(lowercase(get(ENV, "WINSTON_OUTPUT", output_surface)))
 
-immutable WinstonDisplay <: Display end
+type Figure
+    window
+    plot::PlotContainer
+end
+
+type WinstonDisplay <: Display
+    figs::Dict{Int,Figure}
+    fig_order::Vector{Int}
+    current_fig::Int
+    next_fig::Int
+    WinstonDisplay() = new(Dict{Int,Figure}(), Int[], 0, 1)
+end
+
+function addfig(d::WinstonDisplay, i::Int, fig::Figure)
+    @assert !haskey(d.figs,i)
+    d.figs[i] = fig
+    push!(d.fig_order, i)
+    while haskey(d.figs,d.next_fig)
+        d.next_fig += 1
+    end
+    d.current_fig = i
+end
+
+hasfig(d::WinstonDisplay, i::Int) = haskey(d.figs,i)
+
+function switchfig(d::WinstonDisplay, i::Int)
+    haskey(d.figs,i) && (d.current_fig = i)
+end
+
+function curfig(d::WinstonDisplay)
+    d.figs[d.current_fig]
+end
+
+nextfig(d::WinstonDisplay) = d.next_fig
+
+function dropfig(d::WinstonDisplay, i::Int)
+    haskey(d.figs,i) || return
+    delete!(d.figs, i)
+    splice!(d.fig_order, findfirst(d.fig_order,i))
+    d.next_fig = min(d.next_fig, i)
+    d.current_fig = isempty(d.fig_order) ? 0 : d.fig_order[end]
+end
+
+_display = WinstonDisplay()
+_pwinston = FramedPlot()
+
+function figure(;name::String="Figure $(nextfig(_display))",
+                 width::Integer=Winston.config_value("window","width"),
+                 height::Integer=Winston.config_value("window","height"))
+    i = nextfig(_display)
+    w = window(name, width, height, (x...)->dropfig(_display,i))
+    global _pwinston = FramedPlot()
+    addfig(_display, i, Figure(w,_pwinston))
+end
+
+function figure(i::Integer)
+    switchfig(_display, i)
+    fig = curfig(_display)
+    global _pwinston = fig.plot
+    display(_display, fig)
+    nothing
+end
+
+gcf() = _display.current_fig
 
 if !isdefined(Main, :IJulia)
     if output_surface == :gtk
         include("gtk.jl")
-        xtk = gtk
+        window = gtkwindow
     elseif output_surface == :tk
         include("tk.jl")
-        xtk = tk
+        window = tkwindow
     else
         assert(false)
     end
-    display(::WinstonDisplay, p::PlotContainer) = xtk(p)
-    pushdisplay(WinstonDisplay())
+    display(d::WinstonDisplay, f::Figure) = display(f.window, f.plot)
+    function display(d::WinstonDisplay, p::PlotContainer)
+        isempty(d.figs) && figure()
+        f = curfig(d)
+        f.plot = p
+        display(d, f)
+    end
+    pushdisplay(_display)
     if VERSION >= v"0.3-"
-        display(::Base.REPL.REPLDisplay, ::MIME"text/plain", p::PlotContainer) = xtk(p)
+        display(::Base.REPL.REPLDisplay, ::MIME"text/plain", p::PlotContainer) = display(p)
     end
 end
 

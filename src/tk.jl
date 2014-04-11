@@ -1,6 +1,6 @@
 import Tk
 
-function drawingwindow(name, w, h, closecb=nothing)
+function tkwindow(name, w, h, closecb=nothing)
     win = Tk.Window(name, w, h)
     c = Tk.Canvas(win, w, h)
     Tk.pack(c, expand = true, fill = "both")
@@ -10,30 +10,12 @@ function drawingwindow(name, w, h, closecb=nothing)
     c
 end
 
-_saved_canvas = nothing
-
-function tk(self::PlotContainer, args...)
-    global _saved_canvas
-    opts = Winston.args2dict(args...)
-    width = get(opts, :width, Winston.config_value("window","width"))
-    height = get(opts, :height, Winston.config_value("window","height"))
-    device = _saved_canvas
-    if device === nothing
-        device = drawingwindow("Julia", width, height,
-                               (x...)->(_saved_canvas=nothing))
-        _saved_canvas = device
-    else
-        @osx_only begin
-            device.initialized = false
-            Tk.configure(device)
-            device.initialized = true
-        end
-    end
-    display(device, self)
-    self
-end
-
 function display(c::Tk.Canvas, pc::PlotContainer)
+    @osx_only begin
+        c.initialized = false
+        Tk.configure(c)
+        c.initialized = true
+    end
     c.draw = let bad=false
         function (_)
             bad && return
@@ -59,4 +41,4 @@ function get_context(c::Tk.Canvas, pc::PlotContainer)
     _get_context(device, ext_bbox, pc)
 end
 
-get_context(pc::PlotContainer) = get_context(_saved_canvas, pc)
+get_context(pc::PlotContainer) = get_context(curfig(_display), pc)

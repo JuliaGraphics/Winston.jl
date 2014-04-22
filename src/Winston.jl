@@ -1159,6 +1159,9 @@ function limits2(fp::FramedPlot)
         return limits(margin, xrange, yrange, xlog, ylog, fp.content2)
     end
 
+    xrange === nothing && (xrange = getattr(fp.x1,:range))
+    yrange === nothing && (yrange = getattr(fp.y1,:range))
+
     rect = limits(fp)
     computed_bbox = BoundingBox(rect)
 

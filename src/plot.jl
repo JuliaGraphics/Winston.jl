@@ -338,6 +338,20 @@ function scatter(x::AbstractVecOrMat, y::AbstractVecOrMat,
     ghf(p)
 end
 
+## stem ##
+
+stem(y::AbstractVecOrMat, spec::ASCIIString="o"; kvs...) = stem(1:length(y), y, spec; kvs...)
+function stem(x::AbstractVecOrMat, y::AbstractVecOrMat, spec::ASCIIString="o"; kvs...)
+    p = ghf()
+    sopts = _parse_spec(spec)
+    s = Stems(x, y, sopts)
+    haskey(sopts,:symbolkind) || (sopts[:symbolkind] = "circle")
+    o = Points(x, y, sopts)
+    _process_keywords(kvs, p, s, o)
+    add(p, s, o)
+    ghf(p)
+end
+
 function text(x::Real, y::Real, s::String; kvs...)
     p = _pwinston
     c = DataLabel(x, y, s, halign="left")

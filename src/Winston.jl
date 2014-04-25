@@ -23,6 +23,7 @@ export
     semilogx,
     semilogy,
     spy,
+    stem,
     text,
     title,
     xlabel,
@@ -49,6 +50,7 @@ export
     PlotLabel,
     Points,
     Slope,
+    Stems,
     SymmetricErrorBarsX,
     SymmetricErrorBarsY,
 
@@ -2126,6 +2128,37 @@ function make(self::BoxLabel, context)
     valign = (offset > 0) ? "bottom" : "top"
     tp = TextPainter(pos, self.str; angle=angle*180./pi, valign=valign)
     GroupPainter(getattr(self,:style), tp)
+end
+
+type Stems <: LineComponent
+    attr::PlotAttributes
+    x
+    y
+
+    function Stems(x, y, args...; kvs...)
+        self = new(Dict())
+        iniattr(self)
+        kw_init(self, args...; kvs...)
+        self.x = x
+        self.y = y
+        self
+    end
+end
+
+function limits(self::Stems, window::BoundingBox)
+    return bounds_within(self.x, self.y, window) +
+           bounds_within(self.x, zeros(length(self.y)), window)
+end
+
+function make(self::Stems, context::PlotContext)
+    gp = GroupPainter(getattr(self,:style))
+    n = min(length(self.x),length(self.y))
+    for i = 1:n
+        a = project(context.geom, Point(self.x[i],self.y[i]))
+        b = project(context.geom, Point(self.x[i],0.))
+        push!(gp, LinePainter(a,b))
+    end
+    gp
 end
 
 # LabelComponent --------------------------------------------------------------

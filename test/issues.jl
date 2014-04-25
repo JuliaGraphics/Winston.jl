@@ -2,6 +2,7 @@
 export
     issue008,
     issue010,
+    issue100,
     issue143
 
 function issue008()
@@ -15,6 +16,12 @@ function issue010()
     setattr(p, "ylog", true)
     setattr(p, "yrange", (5e-6,0.2))
     p
+end
+
+function issue100()
+    x = linspace(0, 6pi, 100)
+    y = sin(x)
+    stem(x, y, "b;")
 end
 
 function issue143()

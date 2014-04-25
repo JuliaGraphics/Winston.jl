@@ -11,11 +11,6 @@ function tkwindow(name, w, h, closecb=nothing)
 end
 
 function display(c::Tk.Canvas, pc::PlotContainer)
-    @osx_only begin
-        c.initialized = false
-        Tk.configure(c)
-        c.initialized = true
-    end
     c.draw = let bad=false
         function (_)
             bad && return

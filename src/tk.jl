@@ -10,6 +10,12 @@ function tkwindow(name, w, h, closecb=nothing)
     c
 end
 
+function tkdestroy(c::Tk.Canvas)
+    w = Tk.toplevel(c)
+    Tk.destroy(w)
+    nothing
+end
+
 function display(c::Tk.Canvas, pc::PlotContainer)
     c.draw = let bad=false
         function (_)

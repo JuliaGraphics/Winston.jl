@@ -1,7 +1,7 @@
 v0.11.0 (2014 Apr XX)
 =====================
 
-* Added figure() & gcf() functions for managing multiple windows.
+* Added figure(), gcf(), & closefig() functions for managing multiple windows.
 
 * Added stem() function and Stems component.
 

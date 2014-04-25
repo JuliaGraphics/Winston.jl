@@ -6,6 +6,7 @@ importall Base.Graphics
 using IniFile
 
 export
+    closefig,
     colormap,
     errorbar,
     figure,
@@ -2636,6 +2637,10 @@ function switchfig(d::WinstonDisplay, i::Int)
     haskey(d.figs,i) && (d.current_fig = i)
 end
 
+function getfig(d::WinstonDisplay, i::Int)
+    haskey(d.figs,i) ? d.figs[i] : error("no figure with index $i")
+end
+
 function curfig(d::WinstonDisplay)
     d.figs[d.current_fig]
 end
@@ -2671,14 +2676,17 @@ function figure(i::Integer)
 end
 
 gcf() = _display.current_fig
+closefig() = closefig(_display.current_fig)
 
 if !isdefined(Main, :IJulia)
     if output_surface == :gtk
         include("gtk.jl")
         window = gtkwindow
+        closefig(i::Integer) = error("not implemented")
     elseif output_surface == :tk
         include("tk.jl")
         window = tkwindow
+        closefig(i::Integer) = tkdestroy(getfig(_display,i).window)
     else
         assert(false)
     end

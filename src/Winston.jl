@@ -19,6 +19,7 @@ export
     plot,
     plothist,
     plothist2d,
+    boxplot,
     savefig,
     scatter,
     semilogx,
@@ -37,7 +38,8 @@ export
     FramedPlot,
     Plot,
     Table,
-
+    
+    Boxplot,
     Curve,
     FillAbove,
     FillBelow,

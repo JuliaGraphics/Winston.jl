@@ -2054,7 +2054,7 @@ type Boxplot <: PlotComponent
         self.median = median
         self.quartiles = quartiles
         self.iqr = quartiles[2] - quartiles[1]
-        self.outliers = filter(x-> (x<quartiles[1]-1.5*self.iqr)&(x>quartiles[2]+1.5*self.iqr),outliers)
+        self.outliers = filter(x-> (x<quartiles[1]-1.5*self.iqr)|(x>quartiles[2]+1.5*self.iqr),outliers)
         self.notch = get(args2dict(kvs...), :notch, false)
         self.width=1.0
         self.position = 1.0
@@ -2070,7 +2070,7 @@ function Boxplot(X::Vector;kvs...)
     l = quantile(X,0.25)
     h = quantile(X,0.75)
     iqr = h-l
-    Boxplot(m,(l,h),X[(X.>h+1.5*iqr)&(X.<l-1.5*iqr)],length(X);kvs...)
+    Boxplot(m,(l,h),X[(X.>h+1.5*iqr)|(X.<l-1.5*iqr)],length(X);kvs...)
 end
 
 function limits(self::Boxplot, window::BoundingBox)

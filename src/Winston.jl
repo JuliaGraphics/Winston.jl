@@ -2597,6 +2597,7 @@ end
 
 include("plot.jl")
 include("plot_interfaces.jl")
+include("contour.jl")
 
 ############################################################################
 

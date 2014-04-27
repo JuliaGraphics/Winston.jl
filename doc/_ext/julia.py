@@ -56,7 +56,7 @@ def html_visit_winston(self, node):
         fn = os.path.join(self.builder.outdir, '_images', fn)
         if not os.path.isfile(fn):
             ensuredir(os.path.dirname(fn))
-            script = 'using Winston\n%s\nfile(%s,"%s")' % (script,var,fn)
+            script = 'using Winston\n%s\nsavefig(%s,"%s")' % (script,var,fn)
             try:
                 run_julia_script(script)
             except:

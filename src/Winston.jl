@@ -2033,6 +2033,155 @@ function make(self::Histogram, context::PlotContext)
     GroupPainter(getattr(self,:style), PathPainter(u, v))
 end
 
+type Boxplot <: PlotComponent
+    attr::PlotAttributes
+    median::Float64
+    quartiles::(Float64,Float64)
+    iqr::Float64
+    outliers::AbstractVector
+    notch::Bool
+    width::Float64
+    n::Int64
+    position::Float64
+
+
+    function Boxplot(median, quartiles, outliers, n,args...; kvs...)
+        self = new(Dict())
+        iniattr(self)
+        kw_init(self, args...; kvs...)
+        self.median = median
+        self.quartiles = quartiles
+        self.iqr = quartiles[2] - quartiles[1]
+        self.outliers = filter(x-> (x<quartiles[1]-1.5*self.iqr)&(x>quartiles[2]+1.5*self.iqr),outliers)
+        self.notch = get(args2dict(kvs...), :notch, false)
+        self.width=1.0
+        self.position = 1.0
+        self.n = n 
+        self
+    end
+end
+
+function Boxplot(X::Vector;kvs...)
+    #compute median and quartiles directly
+    Xs = sort(X)
+    m = median(X)
+    l = quantile(X,0.25)
+    h = quantile(X,0.75)
+    iqr = h-l
+    Boxplot(m,(l,h),X[(X.>h+1.5*iqr)&(X.<l-1.5*iqr)],length(X);kvs...)
+end
+
+function limits(self::Boxplot, window::BoundingBox)
+    if !isempty(self.outliers)
+        ymin = min(self.quartiles[1]-1.5*self.iqr,minimum(self.outliers))
+        ymax = max(self.quartiles[2]+1.5*self.iqr,maximum(self.outliers))
+    else
+        ymin = self.quartiles[1]-1.5*self.iqr
+        ymax = self.quartiles[2]+1.5*self.iqr
+    end
+    xl = self.position - 1.0*self.width
+    xr = self.position + 1.0*self.width
+    bounds_within([xl,xl,xr,xr],[ymin,ymax, ymin, ymax],  window)
+end
+
+function make(self::Boxplot, context::PlotContext)
+    objs = GroupPainter(getattr(self,:style))
+    xl = self.position - 0.5*self.width
+    xr = self.position + 0.5*self.width
+    xm = self.position
+
+    #draw notch
+    if self.notch 
+        xln = self.position - 0.25*self.width
+        xrn = self.position + 0.25*self.width
+        ymin = self.median-1.58*self.iqr/sqrt(self.n)
+        ymax = self.median+1.58*self.iqr/sqrt(self.n)
+        #top notch
+        p = project(context.geom, xln, self.median)
+        q = project(context.geom, xl, ymax)
+        push!(objs,LinePainter(Point(p[1],p[2]), Point(q[1],q[2])))
+        p = project(context.geom, xrn, self.median)
+        q = project(context.geom, xr, ymax)
+        push!(objs,LinePainter(Point(p[1],p[2]), Point(q[1],q[2])))
+        #bottom notch
+        p = project(context.geom, xln, self.median)
+        q = project(context.geom, xl, ymin)
+        push!(objs,LinePainter(Point(p[1],p[2]), Point(q[1],q[2])))
+        p = project(context.geom, xrn, self.median)
+        q = project(context.geom, xr, ymin)
+        push!(objs,LinePainter(Point(p[1],p[2]), Point(q[1],q[2])))
+        #median
+        p = project(context.geom, xrn, self.median)
+        q = project(context.geom, xln, self.median)
+        push!(objs,LinePainter(Point(p[1],p[2]), Point(q[1],q[2])))
+        
+        #change the starting points for the quartile boxes
+        qtop = ymax 
+        qbottom = ymin
+    else
+        #median
+        p = project(context.geom, xl, self.median)
+        q = project(context.geom, xr, self.median)
+        m = LinePainter(Point(p[1],p[2]), Point(q[1],q[2]))
+        push!(objs,m)
+        qtop = self.median
+        qbottom = self.median
+    end
+
+    #quartiles
+    #horizontal lines
+    p = project(context.geom, xl, self.quartiles[1])
+    q = project(context.geom, xr, self.quartiles[1])
+    l1 = LinePainter(Point(p[1],p[2]), Point(q[1],q[2]))
+    push!(objs,l1)
+    p = project(context.geom, xl, self.quartiles[2])
+    q = project(context.geom, xr, self.quartiles[2])
+    l2 = LinePainter(Point(p[1],p[2]), Point(q[1],q[2]))
+    push!(objs,l2)
+    
+    #vertical lines
+    p = project(context.geom, xl, qtop)
+    q = project(context.geom, xl, self.quartiles[2])
+    push!(objs,LinePainter(Point(p[1],p[2]), Point(q[1],q[2])))
+    p = project(context.geom, xl, qbottom)
+    q = project(context.geom, xl, self.quartiles[1])
+    push!(objs,LinePainter(Point(p[1],p[2]), Point(q[1],q[2])))
+
+    p = project(context.geom, xr, qtop)
+    q = project(context.geom, xr, self.quartiles[2])
+    push!(objs,LinePainter(Point(p[1],p[2]), Point(q[1],q[2])))
+    p = project(context.geom, xr, qbottom)
+    q = project(context.geom, xr, self.quartiles[1])
+    push!(objs,LinePainter(Point(p[1],p[2]), Point(q[1],q[2])))
+
+    #draw the whiskers
+    xlm = xm - 0.25*self.width
+    xrm = xm + 0.25*self.width
+    p = project(context.geom, xm, self.quartiles[1])
+    q = project(context.geom, xm, self.quartiles[1]-1.5*self.iqr)
+    l5 = LinePainter(Point(p[1],p[2]), Point(q[1],q[2]))
+    push!(objs,l5)
+    p = project(context.geom, xlm, self.quartiles[1]-1.5*self.iqr)
+    q = project(context.geom, xrm, self.quartiles[1]-1.5*self.iqr)
+    l6 = LinePainter(Point(p[1],p[2]), Point(q[1],q[2]))
+    push!(objs,l6)
+
+    p = project(context.geom, xm, self.quartiles[2])
+    q = project(context.geom, xm, self.quartiles[2]+1.5*self.iqr)
+    l7 = LinePainter(Point(p[1],p[2]), Point(q[1],q[2]))
+    push!(objs,l7)
+    p = project(context.geom, xlm, self.quartiles[2]+1.5*self.iqr)
+    q = project(context.geom, xrm, self.quartiles[2]+1.5*self.iqr)
+    l8 = LinePainter(Point(p[1],p[2]), Point(q[1],q[2]))
+    push!(objs,l8)
+    #outliers
+    for o in self.outliers
+        p = project(context.geom, xm, o)
+        push!(objs, SymbolPainter(Point(p[1],p[2])))
+    end
+    objs
+end
+
 type LineX <: LineComponent
     attr::PlotAttributes
     x::Float64

@@ -381,6 +381,47 @@ end
 plothist(p::FramedPlot, args...; kvs...) = plothist(p::FramedPlot, hist(args...); kvs...)
 plothist(args...; kvs...) = plothist(ghf(), args...; kvs...)
 
+boxplot(args...; kvs...) = boxplot(ghf(), args...; kvs...)
+
+function boxplot(p::FramedPlot, h::Matrix;kvs...)
+    for i=1:size(h,2)
+        b = Boxplot(h[:,i];kvs...)
+        b.position = 1.1*b.width*i
+        boxplot(p,b;kvs...)
+    end
+    p
+end
+
+function boxplot(p::FramedPlot, h::Vector;kvs...)
+    b = Boxplot(h;kvs...)
+    boxplot(p,b;kvs...)
+end
+
+function boxplot(p::FramedPlot, h::(Float64,(Float64,Float64),Vector);kvs...)
+    b = Boxplot(h...;kvs...)
+    boxplot(p,b;kvs...)
+end
+
+function boxplot(p::FramedPlot, b::Boxplot;kvs...)
+    #messy...
+    dd = args2dict(kvs...)
+    if :position in keys(dd)
+        setattr(b,:position, dd[:position])
+        b.position = dd[:position]
+    end
+    add(p,b)
+    for (k,v) in kvs
+        if k in [:color,:linecolor,:linekind,:linetype,:linewidth]
+            style(b, k, v)
+        else
+            setattr(p, k, v)
+        end
+    end
+
+    global _pwinston = p
+    p
+end
+
 # 3x3 gaussian
 #_default_kernel2d=[.05 .1 .05; .1 .4 .1; .05 .1 .05]
 

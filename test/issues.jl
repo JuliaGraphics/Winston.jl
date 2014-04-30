@@ -3,7 +3,9 @@ export
     issue008,
     issue010,
     issue100,
-    issue143
+    issue143,
+    issue146a,
+    issue146b
 
 function issue008()
     large = [i^4 + 1e12 for i in 1:10^3]
@@ -30,3 +32,5 @@ function issue143()
     p
 end
 
+issue146a() = plot(sin, 0, 2pi)
+issue146b() = plot(sin, cos, xrange=[0,2pi], yrange=[-2,2])

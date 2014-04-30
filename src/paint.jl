@@ -244,8 +244,8 @@ function paint(self::TextPainter, context::PaintContext)
 end
 
 immutable PathPainter <: AbstractPainter
-    x::AbstractVector
-    y::AbstractVector
+    x::AbstractArray
+    y::AbstractArray
 end
 
 function boundingbox(self::PathPainter, context::PaintContext)

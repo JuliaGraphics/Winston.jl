@@ -105,9 +105,12 @@ function _process_keywords(kvs, p, components...)
     end
 end
 
-typealias PlotArg Union(String,AbstractVector,AbstractMatrix)
+typealias PlotArg Union(String,AbstractVector,AbstractMatrix,Function,Real)
 
 isrowvec(x::AbstractArray) = ndims(x) == 2 && size(x,1) == 1 && size(x,2) > 1
+
+isvector(x::AbstractVector) = true
+isvector(x::AbstractMatrix) = size(x,1) == 1
 
 function plot(p::FramedPlot, args::PlotArg...; kvs...)
     args = {args...}
@@ -116,6 +119,7 @@ function plot(p::FramedPlot, args::PlotArg...; kvs...)
 
     default_style = Dict()
     attr = {}
+    xrange = nothing
     for (k,v) in kvs
         if k in (:linestyle, :linetype)
             default_style[:linekind] = v
@@ -126,54 +130,90 @@ function plot(p::FramedPlot, args::PlotArg...; kvs...)
         elseif k in (:color, :linekind, :linewidth, :symbolkind, :symbolsize)
             default_style[k] = v
         else
+            k == :xrange && (xrange = v)
             push!(attr, (k,v))
         end
     end
 
-    i = 1
-    while length(args) > 0
-        local x, y, ys
+    # parse the args into tuples of the form (x, y, spec) or (func, lims, spec)
+    parsed_args = {}
 
-        if length(args) == 1 || typeof(args[2]) <: String
-            elt = eltype(args[1])
+    i = 0
+    need_xrange = false
+    while length(args) > 0
+        local x, y
+        a = shift!(args); i += 1
+        if isa(a, Function)
+            x = a
+            if length(args) > 1 && isa(args[1],Real) && isa(args[2],Real)
+                y = (shift!(args),shift!(args)); i += 2
+            else
+                y = ()
+                need_xrange = true
+            end
+        elseif isa(a, AbstractVecOrMat)
+            elt = eltype(a)
             if elt <: Complex
-                z = shift!(args)
-                x = real(z)
-                y = imag(z)
+                x = real(a)
+                y = imag(a)
+            elseif length(args) > 0 && isa(args[1], AbstractVecOrMat) &&
+               elt <: Real && eltype(args[1]) <: Real
+                x = a
+                y = shift!(args); i += 1
             elseif elt <: Real
-                y = shift!(args)
+                y = a
                 x = 1:(isrowvec(y) ? size(y,2) : size(y,1))
             else
                 error("eltype of argument #$i is not Real or Complex")
             end
-            i += 1
         else
-            x = shift!(args)
-            eltype(x) <: Real || error("eltype of argument #$i is not Real")
-            i += 1
-            y = shift!(args)
-            eltype(y) <: Real || error("eltype of argument #$i is not Real")
-            i += 1
+            error("expected array or function for argument #$i; got $(typeof(a))")
+        end
+        spec = ""
+        if length(args) > 0 && isa(args[1], String)
+            spec = shift!(args); i += 1
+        end
+        push!(parsed_args, (x,y,spec))
+    end
+
+    need_xrange && xrange === nothing && error("need to specify xrange")
+
+    for (a,b,spec) in parsed_args
+        local x, y
+        if isa(a, Function)
+            xlim = b == () ? xrange : b
+            x, y = fplot_points(a, xlim[1], xlim[2])
+        else
+            x, y = a, b
         end
 
         sopts = copy(default_style)
-        if length(args) > 0 && typeof(args[1]) <: String
-            merge!(sopts, _parse_spec(shift!(args)))
-        end
+        spec != "" && merge!(sopts, _parse_spec(spec))
+
         no_color = !haskey(sopts, :color)
         add_curve = haskey(sopts, :linekind) || !haskey(sopts, :symbolkind)
         add_points = haskey(sopts, :symbolkind)
 
-        x = vec(x)
-        if size(y,1) > 1 && size(y,2) > 1
-            ys = { sub(y,:,j) for j = 1:size(y,2) }
+        isvector(x) && (x = vec(x))
+        isvector(y) && (y = vec(y))
+
+        local xys
+        if isa(x, AbstractVector) && isa(y, AbstractVector)
+            xys = { (x,y) }
+        elseif isa(x, AbstractVector)
+            xys = length(x) == size(y,1) ?
+                  { (x, sub(y,:,j)) for j = 1:size(y,2) } :
+                  { (x, sub(y,i,:)) for i = 1:size(y,1) }
+        elseif isa(y, AbstractVector)
+            xys = size(x,1) == length(y) ?
+                  { (sub(x,:,j), y) for j = 1:size(x,2) } :
+                  { (sub(x,i,:), y) for i = 1:size(x,1) }
         else
-            ys = { vec(y) }
+            @assert size(x) == size(y)
+            xys = { (sub(x,:,j), sub(y,:,j)) for j = 1:size(y,2) }
         end
 
-        n = length(x)
-        for y in ys
-            length(y) == n || warn("vector length mismatch")
+        for (x,y) in xys
             if no_color
                 color_idx += 1
                 sopts[:color] = default_color(color_idx)

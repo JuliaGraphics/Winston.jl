@@ -243,9 +243,9 @@ function paint(self::TextPainter, context::PaintContext)
              angle=self.angle, halign=self.halign, valign=self.valign)
 end
 
-immutable PathPainter <: AbstractPainter
-    x::AbstractVector
-    y::AbstractVector
+immutable PathPainter{A<:AbstractVector, B<:AbstractVector} <: AbstractPainter
+    x::A
+    y::B
 end
 
 function boundingbox(self::PathPainter, context::PaintContext)

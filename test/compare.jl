@@ -7,6 +7,7 @@ module ImageComparisons
     using Winston
     include("examples.jl")
     include("issues.jl")
+    include("plot.jl")
 end
 
 function read_png_data(fn::ASCIIString)

@@ -33,8 +33,8 @@ Example 2
 
     n = 21
     x = linspace(0, 100, n)
-    yA = 40 + 10randn(n)
-    yB = x + 5randn(n)
+    yA = 40 .+ 10randn(n)
+    yB = x .+ 5randn(n)
 
     a = Points(x, yA, kind="circle")
     setattr(a, label="a points")

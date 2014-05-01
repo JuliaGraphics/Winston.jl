@@ -1,7 +1,9 @@
-v0.11.0 (2014 Apr XX)
+v0.11.0 (2014 Apr 30)
 =====================
 
 * Added figure(), gcf(), & closefig() functions for managing multiple windows.
 
 * Added stem() function and Stems component.
+
+* Improved plot()'s handling of real matrices & complex arrays.
 

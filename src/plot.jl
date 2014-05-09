@@ -381,28 +381,28 @@ end
 plothist(p::FramedPlot, args...; kvs...) = plothist(p::FramedPlot, hist(args...); kvs...)
 plothist(args...; kvs...) = plothist(ghf(), args...; kvs...)
 
-boxplot(args...; kvs...) = boxplot(ghf(), args...; kvs...)
+quartileboxes(args...; kvs...) = quartileboxes(ghf(), args...; kvs...)
 
-function boxplot(p::FramedPlot, h::Matrix;kvs...)
+function quartileboxes(p::FramedPlot, h::Matrix;kvs...)
     for i=1:size(h,2)
-        b = Boxplot(h[:,i];kvs...)
+        b = QuartileBoxes(h[:,i];kvs...)
         b.position = 1.1*b.width*i
-        boxplot(p,b;kvs...)
+        quartileboxes(p,b;kvs...)
     end
     p
 end
 
-function boxplot(p::FramedPlot, h::Vector;kvs...)
-    b = Boxplot(h;kvs...)
-    boxplot(p,b;kvs...)
+function quartileboxes(p::FramedPlot, h::Vector;kvs...)
+    b = QuartileBoxes(h;kvs...)
+    quartileboxes(p,b;kvs...)
 end
 
-function boxplot(p::FramedPlot, h::(Float64,(Float64,Float64),Vector);kvs...)
-    b = Boxplot(h...;kvs...)
-    boxplot(p,b;kvs...)
+function quartileboxes(p::FramedPlot, h::(Float64,(Float64,Float64),Vector);kvs...)
+    b = QuartileBoxes(h...;kvs...)
+    quartileboxes(p,b;kvs...)
 end
 
-function boxplot(p::FramedPlot, b::Boxplot;kvs...)
+function quartileboxes(p::FramedPlot, b::QuartileBoxes;kvs...)
     #messy...
     dd = args2dict(kvs...)
     if :position in keys(dd)

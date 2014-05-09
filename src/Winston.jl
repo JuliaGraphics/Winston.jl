@@ -19,7 +19,7 @@ export
     plot,
     plothist,
     plothist2d,
-    boxplot,
+    quartileboxes,
     savefig,
     scatter,
     semilogx,
@@ -39,7 +39,7 @@ export
     Plot,
     Table,
     
-    Boxplot,
+    QuartileBoxes,
     Curve,
     FillAbove,
     FillBelow,
@@ -2035,7 +2035,7 @@ function make(self::Histogram, context::PlotContext)
     GroupPainter(getattr(self,:style), PathPainter(u, v))
 end
 
-type Boxplot <: PlotComponent
+type QuartileBoxes <: PlotComponent
     attr::PlotAttributes
     median::Float64
     quartiles::(Float64,Float64)
@@ -2047,7 +2047,7 @@ type Boxplot <: PlotComponent
     position::Float64
 
 
-    function Boxplot(median, quartiles, outliers, n,args...; kvs...)
+    function QuartileBoxes(median, quartiles, outliers, n,args...; kvs...)
         self = new(Dict())
         iniattr(self)
         kw_init(self, args...; kvs...)
@@ -2063,17 +2063,17 @@ type Boxplot <: PlotComponent
     end
 end
 
-function Boxplot(X::Vector;kvs...)
+function QuartileBoxes(X::Vector;kvs...)
     #compute median and quartiles directly
     Xs = sort(X)
     m = median(X)
     l = quantile(X,0.25)
     h = quantile(X,0.75)
     iqr = h-l
-    Boxplot(m,(l,h),X[(X.>h+1.5*iqr)|(X.<l-1.5*iqr)],length(X);kvs...)
+    QuartileBoxes(m,(l,h),X[(X.>h+1.5*iqr)|(X.<l-1.5*iqr)],length(X);kvs...)
 end
 
-function limits(self::Boxplot, window::BoundingBox)
+function limits(self::QuartileBoxes, window::BoundingBox)
     if !isempty(self.outliers)
         ymin = min(self.quartiles[1]-1.5*self.iqr,minimum(self.outliers))
         ymax = max(self.quartiles[2]+1.5*self.iqr,maximum(self.outliers))
@@ -2086,7 +2086,7 @@ function limits(self::Boxplot, window::BoundingBox)
     bounds_within([xl,xl,xr,xr],[ymin,ymax, ymin, ymax],  window)
 end
 
-function make(self::Boxplot, context::PlotContext)
+function make(self::QuartileBoxes, context::PlotContext)
     objs = GroupPainter(getattr(self,:style))
     xl = self.position - 0.5*self.width
     xr = self.position + 0.5*self.width

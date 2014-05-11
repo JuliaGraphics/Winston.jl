@@ -421,6 +421,47 @@ end
 plothist(p::FramedPlot, args...; kvs...) = plothist(p::FramedPlot, hist(args...); kvs...)
 plothist(args...; kvs...) = plothist(ghf(), args...; kvs...)
 
+quartileboxes(args...; kvs...) = quartileboxes(ghf(), args...; kvs...)
+
+function quartileboxes(p::FramedPlot, h::Matrix;kvs...)
+    for i=1:size(h,2)
+        b = QuartileBoxes(h[:,i];kvs...)
+        b.position = 1.1*b.width*i
+        quartileboxes(p,b;kvs...)
+    end
+    p
+end
+
+function quartileboxes(p::FramedPlot, h::Vector;kvs...)
+    b = QuartileBoxes(h;kvs...)
+    quartileboxes(p,b;kvs...)
+end
+
+function quartileboxes(p::FramedPlot, h::(Float64,(Float64,Float64),Vector);kvs...)
+    b = QuartileBoxes(h...;kvs...)
+    quartileboxes(p,b;kvs...)
+end
+
+function quartileboxes(p::FramedPlot, b::QuartileBoxes;kvs...)
+    #messy...
+    dd = args2dict(kvs...)
+    if :position in keys(dd)
+        setattr(b,:position, dd[:position])
+        b.position = dd[:position]
+    end
+    add(p,b)
+    for (k,v) in kvs
+        if k in [:color,:linecolor,:linekind,:linetype,:linewidth]
+            style(b, k, v)
+        else
+            setattr(p, k, v)
+        end
+    end
+
+    global _pwinston = p
+    p
+end
+
 # 3x3 gaussian
 #_default_kernel2d=[.05 .1 .05; .1 .4 .1; .05 .1 .05]
 

@@ -2613,8 +2613,12 @@ end
 writemime(io::IO, ::MIME"image/png", p::PlotContainer) =
     write_png(p, io, _ijulia_width, _ijulia_height)
 
-output_surface = Winston.config_value("default","output_surface")
-output_surface = symbol(lowercase(get(ENV, "WINSTON_OUTPUT", output_surface)))
+if isdefined(Main, :IJulia)
+    output_surface = :none
+else
+    output_surface = Winston.config_value("default","output_surface")
+    output_surface = symbol(lowercase(get(ENV, "WINSTON_OUTPUT", output_surface)))
+end
 
 type Figure
     window
@@ -2686,7 +2690,7 @@ end
 gcf() = _display.current_fig
 closefig() = closefig(_display.current_fig)
 
-if !isdefined(Main, :IJulia)
+if output_surface != :none
     if output_surface == :gtk
         include("gtk.jl")
         window = gtkwindow

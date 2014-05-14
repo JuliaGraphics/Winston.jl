@@ -2603,6 +2603,13 @@ include("contour.jl")
 
 _ijulia_width = 450
 _ijulia_height = 300
+function set_default_plot_size(width::Int, height::Int)
+    global _ijulia_width
+    global _ijulia_height
+    _ijulia_width = width
+    _ijulia_height = height
+end
+
 writemime(io::IO, ::MIME"image/png", p::PlotContainer) =
     write_png(p, io, _ijulia_width, _ijulia_height)
 

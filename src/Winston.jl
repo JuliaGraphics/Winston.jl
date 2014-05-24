@@ -2696,7 +2696,7 @@ if !isdefined(Main, :IJulia)
         window = tkwindow
         closefig(i::Integer) = tkdestroy(getfig(_display,i).window)
     else
-        assert(false)
+        warn("Selected Winston backend not found. You will not be able to display plots in a window")
     end
     display(d::WinstonDisplay, f::Figure) = display(f.window, f.plot)
     function display(d::WinstonDisplay, p::PlotContainer)

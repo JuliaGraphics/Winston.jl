@@ -36,13 +36,12 @@ function _atox(s::String)
     elseif x[1] == '"' && x[end] == '"'
         return x[2:end-1]
     end
-    try
-        i = int(x)
-        return i
+    if ismatch(r"^[+-]?\d+$",x)
+        return int(x)
     end
-    try
-        f = float(x)
-        return f
+	out = Array(Float64,1)
+    if float64_isvalid(x, out)
+        return out[1]
     end
     return x
 end

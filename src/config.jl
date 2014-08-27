@@ -12,7 +12,7 @@ begin
     read(_winston_config, fn)
 end
 
-if VERSION < v"0.3"
+if VERSION < v"0.4-"
     split_keep_false(a, b) = split(a, b, false)
 else
     split_keep_false(a, b) = split(a, b, keep=false)

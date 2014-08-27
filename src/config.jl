@@ -12,6 +12,12 @@ begin
     read(_winston_config, fn)
 end
 
+if VERSION < v"0.3"
+    split_keep_false(a, b) = split(a, b, false)
+else
+    split_keep_false(a, b) = split(a, b, keep=false)
+end
+
 function _atox(s::String)
     x = strip(s)
     if x == "nothing"
@@ -27,9 +33,9 @@ function _atox(s::String)
         end
     elseif x[1] == '{' && x[end] == '}'
         style = Dict{Symbol,Any}()
-        pairs = map(strip, split(x[2:end-1], ',', false))
+        pairs = map(strip, split_keep_false(x[2:end-1], ','))
         for pair in pairs
-            kv = split(pair, ':', false)
+            kv = split_keep_false(pair, ':')
             style[ symbol(strip(kv[1])) ] = _atox(strip(kv[2]))
         end
         return style

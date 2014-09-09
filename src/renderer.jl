@@ -273,3 +273,16 @@ end
 function textheight(self::CairoRenderer, str)
     get(self.state, :fontsize) ## XXX: kludge?
 end
+
+function symbol_arrow(self::CairoContext,x::Float64,y::Float64,s::Float64,l::Float64)
+    Cairo.move_to(self,x,y)
+    Cairo.save(self)
+    Cairo.rotate(self,s)
+    Cairo.rel_move_to(self,-l*0.5,0)
+    Cairo.rel_line_to(self,l,0)
+    Cairo.rel_move_to(self,l*-0.25,l*-0.25)
+    Cairo.rel_line_to(self,l*0.25,l*0.25)
+    Cairo.rel_line_to(self,l*-0.25,l*0.25)
+    Cairo.stroke(self)
+    Cairo.restore(self)
+end

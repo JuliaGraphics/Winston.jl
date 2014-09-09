@@ -2476,6 +2476,31 @@ function ColoredPoints(x::Real, y::Real, args...)
     return ColoredPoints([x], [y], args...)
 end
 
+type Arrows <: SymbolDataComponent
+    attr::PlotAttributes
+    x
+    y
+    s
+    l
+
+    function Arrows(x, y, s, l, args...; kvs...)
+        self = new(Dict())
+        iniattr(self)
+        kw_init(self, args...; kvs...)
+        self.x = x
+        self.y = y
+        self.s = s
+        self.l = l
+        self
+    end
+end
+
+function make(self::Arrows, context::PlotContext)
+    x, y = project(context.geom, self.x, self.y)
+    GroupPainter(getattr(self,:style), ArrowPainter(x, y, self.s, self.l))
+end
+
+
 # PlotComponent ---------------------------------------------------------------
 
 function show(io::IO, self::PlotComponent)

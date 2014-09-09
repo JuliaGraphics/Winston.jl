@@ -182,6 +182,13 @@ immutable ColoredSymbolsPainter <: AbstractPainter
     c::AbstractVecOrMat
 end
 
+immutable ArrowPainter <: AbstractPainter
+    x::AbstractVecOrMat
+    y::AbstractVecOrMat
+    s::AbstractVecOrMat
+    l::AbstractVecOrMat
+end
+
 function boundingbox(self::ColoredSymbolsPainter, context::PaintContext)
     xmin,xmax = extrema(self.x)
     ymin,ymax = extrema(self.y)
@@ -211,6 +218,27 @@ function paint(self::ColoredSymbolsPainter, context::PaintContext)
     end
     restore(device)
 end
+
+function paint(self::ArrowPainter, context::PaintContext)
+
+    #show(context)
+    device = context.device.ctx
+    save(device)
+    set_dash(device, Float64[])
+    new_path(device)
+    for (x,y,s,l) in zip(self.x, self.y, self.s, self.l)
+        #set_color(device, c)
+        symbol_arrow(device, x, y, s, l*context.yardstick)
+
+        #if filled
+        #    fill_preserve(device)
+        #end
+        #stroke(device), inside
+    end
+    restore(device)
+end
+
+
 
 immutable TextPainter <: AbstractPainter
     pos::Point

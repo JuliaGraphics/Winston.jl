@@ -430,13 +430,19 @@ function _magform(x)
     return a, b
 end
 
+if VERSION < v"0.4-"
+    const grisu = Base.Grisu.grisu
+else
+    grisu(a,b,c) = ((w,x,y,z) = Base.Grisu.grisu(a,b,c); (y,z[1:w],x))
+end
+
 function _format_ticklabel(x, range=0.; min_pow10=4)
     if x == 0
         return "0"
     end
-    neg, digits, b = Base.Grisu.grisu(x, Base.Grisu.SHORTEST, int32(0))
+    neg, digits, b = grisu(x, Base.Grisu.SHORTEST, int32(0))
     if length(digits) > 5
-        neg, digits, b = Base.Grisu.grisu(x, Base.Grisu.PRECISION, int32(6))
+        neg, digits, b = grisu(x, Base.Grisu.PRECISION, int32(6))
         n = length(digits)
         while digits[n] == '0'
             n -= 1

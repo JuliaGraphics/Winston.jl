@@ -2700,7 +2700,7 @@ if output_surface != :none
     if output_surface == :gtk
         include("gtk.jl")
         window = gtkwindow
-        closefig(i::Integer) = error("not implemented")
+        closefig(i::Integer) = gtkdestroy(getfig(_display,i).window)
     elseif output_surface == :tk
         include("tk.jl")
         window = tkwindow

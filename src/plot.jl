@@ -261,8 +261,7 @@ function data2rgb{T<:Real}(data::AbstractArray{T}, limits::Interval, colormap::A
             idxr = limscale*(datai - limlower)
             idx = itrunc(idxr)
             idx += idxr > convert(T, idx)
-            if idx < 1 idx = 1 end
-            if idx > ncolors idx = ncolors end
+            idx = clamp(idx, 1, ncolors)
             img[i] = colormap[idx]
         else
             img[i] = 0x00000000
@@ -300,6 +299,8 @@ function imagesc{T<:Real}(xrange::Interval, yrange::Interval, data::AbstractArra
         setattr(p, :yrange, reverse(yrange))
     end
     img = data2rgb(data, clims, _current_colormap)
+    xrange[1] > xrange[2] && (img = fliplr(img))
+    yrange[1] < yrange[2] && (img = flipud(img))
     add(p, Image(xrange, reverse(yrange), img))
     ghf(p)
 end

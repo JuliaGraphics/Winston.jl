@@ -2681,7 +2681,7 @@ function figure(;name::String="Figure $(nextfig(_display))",
                  height::Integer=Winston.config_value("window","height"))
     i = nextfig(_display)
     w = window(name, width, height, (x...)->dropfig(_display,i))
-    global _pwinston = FramedPlot()
+    isempty(_display.figs) || (global _pwinston = FramedPlot())
     addfig(_display, i, Figure(w,_pwinston))
 end
 

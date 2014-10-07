@@ -918,7 +918,7 @@ type PlotComposite <: HasStyle
     dont_clip::Bool
 
     function PlotComposite(args...; kvs...)
-        self = new(Dict(), {}, false)
+        self = new(Dict(), Any[], false)
         kw_init(self, args...; kvs...)
         self
     end
@@ -932,7 +932,7 @@ function add(self::PlotComposite, args::PlotComponent...)
 end
 
 function clear(self::PlotComposite)
-    self.components = {}
+    self.components = Any[]
 end
 
 function isempty(self::PlotComposite)
@@ -1975,7 +1975,7 @@ function make(self::Slope, context::PlotContext)
               Point(_x(self, yr[1]), yr[1]),
               Point(_x(self, yr[2]), yr[2]) }
     end
-    m = {}
+    m = Any[]
     for el in l
         if isinside(context.data_bbox, el)
             push!(m, el)

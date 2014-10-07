@@ -114,11 +114,11 @@ isvector(x::AbstractMatrix) = size(x,1) == 1
 
 function plot(p::FramedPlot, args::PlotArg...; kvs...)
     args = {args...}
-    components = {}
+    components = Any[]
     color_idx = 0
 
     default_style = Dict()
-    attr = {}
+    attr = Any[]
     xrange = nothing
     for (k,v) in kvs
         if k in (:linestyle, :linetype)
@@ -136,7 +136,7 @@ function plot(p::FramedPlot, args::PlotArg...; kvs...)
     end
 
     # parse the args into tuples of the form (x, y, spec) or (func, lims, spec)
-    parsed_args = {}
+    parsed_args = Any[]
 
     i = 0
     need_xrange = false

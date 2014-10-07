@@ -44,8 +44,8 @@ type Canvas3D
         this.ctm = eye(3)
         this.colorbg = colorbg
         this.colorcube = colorcube
-        this.models_motion = {}
-        this.models_release = {}
+        this.models_motion = Any[]
+        this.models_release = Any[]
 
         win.mouse.button1press = (c,x,y)->canvas3d_mousedown(this,x,y)
         win.mouse.button1motion = (c,x,y)->canvas3d_button1motion(this,x,y)

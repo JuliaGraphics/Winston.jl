@@ -134,11 +134,11 @@ function contourc(f::Function, x, y; cs::Union(Nothing, Number)=nothing)
     else
         cs = [cs]
     end
-    contours = {}
+    contours = Any[]
 
     for c in cs
         m = zeros(Int, size(fxy)...)
-        c_contours = {}
+        c_contours = Any[]
 
         for i in 2:length(x)-1, j in 2:length(y)-1
             if m[i,j] == 1

@@ -1794,37 +1794,37 @@ function write_to_surface(p::PlotContainer, surface)
     finish(surface)
 end
 
-function write_svg(p::PlotContainer, io::IO, width, height)
+function savesvg(p::PlotContainer, io::IO, width, height)
     surface = CairoSVGSurface(io, width, height)
     write_to_surface(p, surface)
 end
 
-function write_svg(p::PlotContainer, filename::String, width, height)
+function savesvg(p::PlotContainer, filename::String, width, height)
     io = Base.FS.open(filename, Base.JL_O_CREAT|Base.JL_O_TRUNC|Base.JL_O_WRONLY, 0o644)
-    write_svg(p, io, width, height)
+    savesvg(p, io, width, height)
     close(io)
     nothing
 end
 
-function write_eps(self::PlotContainer, filename::String, width::String, height::String)
-    write_eps(self, filename, _str_size_to_pts(width), _str_size_to_pts(height))
+function saveeps(self::PlotContainer, filename::String, width::String, height::String)
+    saveeps(self, filename, _str_size_to_pts(width), _str_size_to_pts(height))
 end
 
-function write_eps(self::PlotContainer, filename::String, width::Real, height::Real)
+function saveeps(self::PlotContainer, filename::String, width::Real, height::Real)
     surface = CairoEPSSurface(filename, width, height)
     write_to_surface(self, surface)
 end
 
-function write_pdf(self, filename::String, width::String, height::String)
-    write_pdf(self, filename, _str_size_to_pts(width), _str_size_to_pts(height))
+function savepdf(self, filename::String, width::String, height::String)
+    savepdf(self, filename, _str_size_to_pts(width), _str_size_to_pts(height))
 end
 
-function write_pdf(self::PlotContainer, filename::String, width::Real, height::Real)
+function savepdf(self::PlotContainer, filename::String, width::Real, height::Real)
     surface = CairoPDFSurface(filename, width, height)
     write_to_surface(self, surface)
 end
 
-function write_pdf{T<:PlotContainer}(plots::Vector{T}, filename::String, width::Real, height::Real)
+function savepdf{T<:PlotContainer}(plots::Vector{T}, filename::String, width::Real, height::Real)
     surface = CairoPDFSurface(filename, width, height)
     r = CairoRenderer(surface)
     for plt in plots
@@ -1834,7 +1834,7 @@ function write_pdf{T<:PlotContainer}(plots::Vector{T}, filename::String, width::
     finish(surface)
 end
 
-function write_png(self::PlotContainer, io_or_filename::Union(IO,String), width::Int, height::Int)
+function savepng(self::PlotContainer, io_or_filename::Union(IO,String), width::Int, height::Int)
     surface = CairoRGBSurface(width, height)
     r = CairoRenderer(surface)
     set_source_rgb(r.ctx, 1.,1.,1.)
@@ -1845,37 +1845,37 @@ function write_png(self::PlotContainer, io_or_filename::Union(IO,String), width:
     finish(surface)
 end
 
-function file(self::PlotContainer, filename::String, args...; kvs...)
+function savefig(self::PlotContainer, filename::String, args...; kvs...)
     extn = filename[end-2:end]
     opts = args2dict(args...; kvs...)
     if extn == "eps"
         width = get(opts,:width,config_value("eps","width"))
         height = get(opts,:height,config_value("eps","height"))
-        write_eps(self, filename, width, height)
+        saveeps(self, filename, width, height)
     elseif extn == "pdf"
         width = get(opts,:width,config_value("pdf","width"))
         height = get(opts,:height,config_value("pdf","height"))
-        write_pdf(self, filename, width, height)
+        savepdf(self, filename, width, height)
     elseif extn == "png"
         width = get(opts,:width,config_value("window","width"))
         height = get(opts,:height,config_value("window","height"))
-        write_png(self, filename, width, height)
+        savepng(self, filename, width, height)
     elseif extn == "svg"
         width = get(opts, :width, config_value("svg","width"))
         height = get(opts, :height, config_value("svg","height"))
-        write_svg(self, filename, width, height)
+        savesvg(self, filename, width, height)
     else
         error("I can't export .$extn, sorry.")
     end
 end
 
-function file{T<:PlotContainer}(plots::Vector{T}, filename::String, args...; kvs...)
+function savefig{T<:PlotContainer}(plots::Vector{T}, filename::String, args...; kvs...)
     extn = filename[end-2:end]
     opts = args2dict(args...; kvs...)
     if extn == "pdf"
         width = get(opts,:width,config_value("pdf","width"))
         height = get(opts,:height,config_value("pdf","height"))
-        write_pdf(plots, filename, width, height)
+        savepdf(plots, filename, width, height)
     else
         error("I can't export multiple pages to .$extn, sorry.")
     end
@@ -1887,7 +1887,7 @@ function svg(self::PlotContainer, args...; kvs...)
     height = get(opts,:height,config_value("window","height"))
     stream = IOBuffer()
 
-    write_svg(self, stream, width, height)
+    savesvg(self, stream, width, height)
 
     s = takebuf_string(stream)
     a,b = search(s, "<svg")
@@ -2627,7 +2627,7 @@ function set_default_plot_size(width::Int, height::Int)
 end
 
 writemime(io::IO, ::MIME"image/png", p::PlotContainer) =
-    write_png(p, io, _ijulia_width, _ijulia_height)
+    savepng(p, io, _ijulia_width, _ijulia_height)
 
 if isdefined(Main, :IJulia)
     output_surface = :none

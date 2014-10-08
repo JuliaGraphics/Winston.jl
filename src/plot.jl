@@ -11,9 +11,8 @@ function ghf()
 end
 ghf(p) = (global _pwinston = p)
 
-#system functions
-file(fname::String, args...; kvs...) = file(_pwinston, fname, args...; kvs...)
-const savefig = file
+savefig(fname::String, args...; kvs...) = savefig(_pwinston, fname, args...; kvs...)
+@deprecate file savefig
 
 for f in (:xlabel,:ylabel,:title)
     @eval $f(s::String) = (setattr(_pwinston, $f=s); _pwinston)

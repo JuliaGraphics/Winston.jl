@@ -24,39 +24,40 @@ for (f,k) in ((:xlim,:xrange),(:ylim,:yrange))
     @eval $f() = $k(limits(_pwinston))
 end
 
-const chartokens = [
-    '-' => {:linekind => "solid"},
-    ':' => {:linekind => "dotted"},
-    ';' => {:linekind => "dotdashed"},
-    '+' => {:symbolkind => "plus"},
-    'o' => {:symbolkind => "circle"},
-    '*' => {:symbolkind => "asterisk"},
-    '.' => {:symbolkind => "dot"},
-    'x' => {:symbolkind => "cross"},
-    's' => {:symbolkind => "square"},
-    'd' => {:symbolkind => "diamond"},
-    '^' => {:symbolkind => "triangle"},
-    'v' => {:symbolkind => "down-triangle"},
-    '>' => {:symbolkind => "right-triangle"},
-    '<' => {:symbolkind => "left-triangle"},
-    'y' => {:color => "yellow"},
-    'm' => {:color => "magenta"},
-    'c' => {:color => "cyan"},
-    'r' => {:color => "red"},
-    'g' => {:color => "green"},
-    'b' => {:color => "blue"},
-    'w' => {:color => "white"},
-    'k' => {:color => "black"},
-]
+const chartokens = @Dict(
+    '-' => (:linekind, "solid"),
+    ':' => (:linekind, "dotted"),
+    ';' => (:linekind, "dotdashed"),
+    '+' => (:symbolkind, "plus"),
+    'o' => (:symbolkind, "circle"),
+    '*' => (:symbolkind, "asterisk"),
+    '.' => (:symbolkind, "dot"),
+    'x' => (:symbolkind, "cross"),
+    's' => (:symbolkind, "square"),
+    'd' => (:symbolkind, "diamond"),
+    '^' => (:symbolkind, "triangle"),
+    'v' => (:symbolkind, "down-triangle"),
+    '>' => (:symbolkind, "right-triangle"),
+    '<' => (:symbolkind, "left-triangle"),
+    'y' => (:color, "yellow"),
+    'm' => (:color, "magenta"),
+    'c' => (:color, "cyan"),
+    'r' => (:color, "red"),
+    'g' => (:color, "green"),
+    'b' => (:color, "blue"),
+    'w' => (:color, "white"),
+    'k' => (:color, "black"),
+)
 
 function _parse_spec(spec::String)
-    try
-        return { :color => Color.color(spec) }
-    end
-
     style = Dict()
 
-    for (k,v) in [ "--" => "dashed", "-." => "dotdashed" ]
+    try
+        style[:color] = Color.color(spec)
+        return style
+    end
+
+    for (k,v) in (("--","dashed"), ("-.","dotdashed"))
         splitspec = split(spec, k)
         if length(splitspec) > 1
             style[:linekind] = v
@@ -66,9 +67,8 @@ function _parse_spec(spec::String)
 
     for char in spec
         if haskey(chartokens, char)
-            for (k,v) in chartokens[char]
-                style[k] = v
-            end
+            (k,v) = chartokens[char]
+            style[k] = v
         else
             warn("unrecognized style '$char'")
         end

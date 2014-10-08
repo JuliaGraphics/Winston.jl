@@ -48,7 +48,7 @@ height(r::CairoRenderer) = height(r.ctx.surface)
 boundingbox(c::CairoRenderer) = BoundingBox(0., width(c), 0., height(c))
 
 # convert to postscipt pt = in/72
-const xx2pt = [ "in"=>72., "pt"=>1., "mm"=>2.835, "cm"=>28.35 ]
+const xx2pt = @Dict( "in"=>72., "pt"=>1., "mm"=>2.835, "cm"=>28.35 )
 function _str_size_to_pts(str)
     m = match(r"([\d.]+)([^\s]+)", str)
     num_xx = float64(m.captures[1])
@@ -72,7 +72,7 @@ function set_clip_rect(ctx::CairoContext, bb::BoundingBox)
     clip(ctx)
 end
 
-const __pl_style_func = [
+const __pl_style_func = @Dict(
     :color     => set_color,
     :linecolor => set_color,
     :fillcolor => set_color,
@@ -81,7 +81,7 @@ const __pl_style_func = [
     :linewidth => set_line_width,
     :filltype  => set_fill_type,
     :cliprect  => set_clip_rect,
-]
+)
 
 function set(self::CairoRenderer, key::Symbol, value)
     set(self.state, key, value)
@@ -126,7 +126,7 @@ function line(self::CairoRenderer, px, py, qx, qy)
     stroke(self.ctx)
 end
 
-const symbol_funcs = {
+const symbol_funcs = @Dict(
     "asterisk" => (c, x, y, r) -> (
         move_to(c, x, y+r);
         line_to(c, x, y-r);
@@ -190,7 +190,7 @@ const symbol_funcs = {
         line_to(c, x+0.5r, y-0.866r);
         close_path(c)
     ),
-}
+)
 
 function symbols(self::CairoRenderer, x, y)
     fullname = get(self.state, :symbolkind, "circle")

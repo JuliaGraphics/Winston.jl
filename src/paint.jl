@@ -88,8 +88,8 @@ function LabelsPainter(points, labels; angle=0., halign="center", valign="center
     LabelsPainter(points, labels, angle, halign, valign)
 end
 
-__halign_offset = [ "right"=>Vec2(-1,0), "center"=>Vec2(-.5,.5), "left"=>Vec2(0,1) ]
-__valign_offset = [ "top"=>Vec2(-1,0), "center"=>Vec2(-.5,.5), "bottom"=>Vec2(0,1) ]
+__halign_offset = @Dict( "right"=>Vec2(-1,0), "center"=>Vec2(-.5,.5), "left"=>Vec2(0,1) )
+__valign_offset = @Dict( "top"=>Vec2(-1,0), "center"=>Vec2(-.5,.5), "bottom"=>Vec2(0,1) )
 
 function boundingbox(self::LabelsPainter, context::PaintContext)
     bb = BoundingBox()

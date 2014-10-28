@@ -112,7 +112,7 @@ isvector(x::AbstractVector) = true
 isvector(x::AbstractMatrix) = size(x,1) == 1
 
 function plot(p::FramedPlot, args::PlotArg...; kvs...)
-    args = {args...}
+    args = Any[args...]
     components = Any[]
     color_idx = 0
 
@@ -198,18 +198,18 @@ function plot(p::FramedPlot, args::PlotArg...; kvs...)
 
         local xys
         if isa(x, AbstractVector) && isa(y, AbstractVector)
-            xys = { (x,y) }
+            xys = [ (x,y) ]
         elseif isa(x, AbstractVector)
             xys = length(x) == size(y,1) ?
-                  { (x, sub(y,:,j)) for j = 1:size(y,2) } :
-                  { (x, sub(y,i,:)) for i = 1:size(y,1) }
+                  [ (x, sub(y,:,j)) for j = 1:size(y,2) ] :
+                  [ (x, sub(y,i,:)) for i = 1:size(y,1) ]
         elseif isa(y, AbstractVector)
             xys = size(x,1) == length(y) ?
-                  { (sub(x,:,j), y) for j = 1:size(x,2) } :
-                  { (sub(x,i,:), y) for i = 1:size(x,1) }
+                  [ (sub(x,:,j), y) for j = 1:size(x,2) ] :
+                  [ (sub(x,i,:), y) for i = 1:size(x,1) ]
         else
             @assert size(x) == size(y)
-            xys = { (sub(x,:,j), sub(y,:,j)) for j = 1:size(y,2) }
+            xys = [ (sub(x,:,j), sub(y,:,j)) for j = 1:size(y,2) ]
         end
 
         for (x,y) in xys

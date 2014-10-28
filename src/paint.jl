@@ -36,7 +36,7 @@ GroupPainter(d::Dict{Symbol,Any}, args::AbstractPainter...) =
     GroupPainter(d, AbstractPainter[arg for arg in args])
 
 function GroupPainter(args::AbstractPainter...; kvs...)
-    self = GroupPainter(Dict{Symbol,Any}(), {args...})
+    self = GroupPainter(Dict{Symbol,Any}(), Any[args...])
     for (k,v) in kvs
         self.style[k] = v
     end

@@ -1977,13 +1977,13 @@ function make(self::Slope, context::PlotContext)
     xr = xrange(context.data_bbox)
     yr = yrange(context.data_bbox)
     if self.slope == 0
-        l = { Point(xr[1], self.intercept[2]),
-              Point(xr[2], self.intercept[2]) }
+        l = Any[ Point(xr[1], self.intercept[2]),
+                 Point(xr[2], self.intercept[2]) ]
     else
-        l = { Point(xr[1], _y(self, xr[1])),
-              Point(xr[2], _y(self, xr[2])),
-              Point(_x(self, yr[1]), yr[1]),
-              Point(_x(self, yr[2]), yr[2]) }
+        l = Any[ Point(xr[1], _y(self, xr[1])),
+                 Point(xr[2], _y(self, xr[2])),
+                 Point(_x(self, yr[1]), yr[1]),
+                 Point(_x(self, yr[2]), yr[2]) ]
     end
     m = Any[]
     for el in l
@@ -2546,7 +2546,7 @@ setattr(self::HasAttr, name::String, value) = setattr(self, symbol(name), value)
 setattr(self::HasAttr; kvs...) = (for (k,v) in kvs; setattr(self, k, v); end)
 
 function iniattr(self::HasAttr, args...; kvs...)
-    types = {typeof(self)}
+    types = Any[typeof(self)]
     while super(types[end]) != Any
         push!(types, super(types[end]))
     end

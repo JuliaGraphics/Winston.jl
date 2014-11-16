@@ -846,6 +846,13 @@ function _make_spine(self::HalfAxis, context)
     GroupPainter(getattr(self,:spine_style), LinePainter(p,q))
 end
 
+function _make_strut(self::HalfAxis, context)
+    a, b = _range(self, context)
+    p = _pos(self, context, a)
+    q = _pos(self, context, b)
+    StrutPainter(BoundingBox(p,q))
+end
+
 function _make_ticks(self::HalfAxis, context, ticks, size, style)
     if isequal(ticks,nothing) || length(ticks) <= 0
         return GroupPainter()
@@ -906,6 +913,7 @@ function make(self::HalfAxis, context)
     # has to be made last
     if hasattr(self, "label")
         if !is(getattr(self, "label"),nothing) # XXX:remove
+            isempty(objs) && push!(objs, _make_strut(self, context))
             bl = BoxLabel(
                 objs,
                 getattr(self, "label"),

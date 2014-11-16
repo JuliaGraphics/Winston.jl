@@ -43,6 +43,7 @@ function GroupPainter(args::AbstractPainter...; kvs...)
     self
 end
 
+Base.isempty(g::GroupPainter) = isempty(g.children)
 Base.push!(g::GroupPainter, p::AbstractPainter...) = push!(g.children, p...)
 
 function boundingbox(g::GroupPainter, context::PaintContext)
@@ -288,3 +289,12 @@ function paint(self::ImagePainter, context::PaintContext)
     image(context.device, self.img, ll.x, ll.y, w, h)
 end
 
+immutable StrutPainter <: AbstractPainter
+    bbox::BoundingBox
+end
+
+boundingbox(self::StrutPainter, context::PaintContext) = self.bbox
+
+function paint(self::StrutPainter, context::PaintContext)
+    # do nothing -- just for sizing
+end

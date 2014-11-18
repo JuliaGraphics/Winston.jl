@@ -25,6 +25,12 @@ plots. To add something to this, use
 julia> oplot(x2, y2)
 ```
 
+And you can show it in a window by
+
+```jlcon
+julia>  Winston.display(plot(x2, y2))
+```
+
 And finally save it with
 
 ```jlcon

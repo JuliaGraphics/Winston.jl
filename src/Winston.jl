@@ -2559,7 +2559,7 @@ function iniattr(self::HasAttr, args...; kvs...)
         push!(types, super(types[end]))
     end
     for t in reverse(types)
-        name = string(t)
+        name = last(split(string(t), '.'))
         for (k,v) in config_options(name)
             setattr(self, k, v)
         end

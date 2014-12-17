@@ -794,7 +794,7 @@ function _subticks(self::HalfAxis, context, ticks)
     subticks = getattr(self, "subticks")
     if isequal(subticks,nothing)
         return self.func_subticks_default[logidx](r, ticks)
-    elseif typeof(subticks) <: Integer 
+    elseif typeof(subticks) <: Integer
         return self.func_subticks_num[logidx](r, ticks, subticks)
     else
         return subticks
@@ -1278,7 +1278,7 @@ type _Grid
 end
 
 function cellbb(self::_Grid, i::Int, j::Int)
-    ii = self.nrows - i 
+    ii = self.nrows - i
     p = self.origin + Point((j-1)*self.step_x, ii*self.step_y)
     return BoundingBox(p.x, p.x+self.cell_dimen[1], p.y, p.y + self.cell_dimen[2])
 end
@@ -1656,7 +1656,7 @@ end
 #        self.x1 = _HalfAxisX()
 #        self.x1.draw_ticklabels = labelticks[2]
 #        self.x1.ticklabels_dir = -1
-#        
+#
 #        self.y1 = _HalfAxisY()
 #        self.y1.draw_ticklabels = labelticks[3]
 #        self.y1.ticklabels_dir = -1
@@ -1685,7 +1685,7 @@ function Frame(labelticks, args...)
     x1 = HalfAxisX()
     setattr(x1, "draw_ticklabels", labelticks[2]==1)
     setattr(x1, "ticklabels_dir", -1)
-    
+
     y1 = HalfAxisY()
     setattr(y1, "draw_ticklabels", labelticks[3]==1)
     setattr(y1, "ticklabels_dir", -1)
@@ -1940,7 +1940,7 @@ type Curve <: LineComponent
     y
 
     function Curve(x::AbstractArray, y::AbstractArray, args...; kvs...)
-        attr = Dict() 
+        attr = Dict()
         self = new(attr, x, y)
         iniattr(self)
         kw_init(self, args...; kvs...)

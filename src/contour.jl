@@ -8,7 +8,7 @@ end
 
 function contourc(f::Function, x, y; cs::Union(Nothing, Number)=nothing)
 
-    fxy = [f(x,y) for x in x, y in y] 
+    fxy = [f(x,y) for x in x, y in y]
 
     ## we have edges 1,2,3,4
     ## with 1 on bottom, 2 on right, 3 top, 4 left. So
@@ -28,7 +28,7 @@ function contourc(f::Function, x, y; cs::Union(Nothing, Number)=nothing)
         end
     end
     insquare(x) =  any(0 .<= x .<= 1)
-        
+
     function interp_point(edge, i, j, t)
         if edge == 1
             newx = x[i] + t*(x[i+1] - x[i])
@@ -38,7 +38,7 @@ function contourc(f::Function, x, y; cs::Union(Nothing, Number)=nothing)
             newy = y[j] + t*(y[j+1] - y[j])
         elseif edge == 3
             newx = x[i] + t*(x[i+1] - x[i])
-            newy = y[j+1] 
+            newy = y[j+1]
         else
             newx = x[i]
             newy = y[j] + t*(y[j+1] - y[j])
@@ -57,17 +57,17 @@ function contourc(f::Function, x, y; cs::Union(Nothing, Number)=nothing)
             (i-1, j)
         end
     end
-    
+
 
 
     function next_square(c, i, j, enter_edge, cx, cy, m)
 ##        println("Chasing $i $j")
-        
-        
+
+
         sq = interp_square(c, i, j)
         w = 0 .<= sq .<= 1
         ## check if 2 or more (saddle point) XXX
-        
+
         ## what is next edge?
         if enter_edge == 1
             next_edge = setdiff((1:4)[w], 3)
@@ -78,13 +78,13 @@ function contourc(f::Function, x, y; cs::Union(Nothing, Number)=nothing)
         else
             next_edge = setdiff((1:4)[w], 2)
         end
-        
+
         if length(next_edge) == 0
             return (cx, cy)
         end
-        
+
         next_edge = next_edge[1]
-        
+
         ##
         newx, newy = interp_point(next_edge, i, j, sq[next_edge])
         push!(cx, newx); push!(cy, newy)
@@ -96,10 +96,10 @@ function contourc(f::Function, x, y; cs::Union(Nothing, Number)=nothing)
         m[i,j] = 1
         next_square(c, which_next(next_edge, i,j)..., next_edge, cx, cy, m)
     end
-    
+
     function chase_square(c, i, j, m)
 ##        println("chase $i $j")
-        
+
         sq = interp_square(c, i, j)
         w = 0 .<= sq .<= 1
 
@@ -108,7 +108,7 @@ function contourc(f::Function, x, y; cs::Union(Nothing, Number)=nothing)
         ## should be 2, might be more (saddle point)
 
         m[i,j] = 1                  # visited
-        
+
         out = map(edges) do edge
             cx = Float64[]; cy = Float64[]
             t = sq[edge]
@@ -124,9 +124,9 @@ function contourc(f::Function, x, y; cs::Union(Nothing, Number)=nothing)
         end
 
     end
-    
-    
-    
+
+
+
 
 ## for each level to plot
     if isa(cs, Nothing)

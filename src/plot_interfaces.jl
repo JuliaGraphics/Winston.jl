@@ -11,7 +11,7 @@
 
 typealias ScatterPlotPoints{T<:Real, S<:Real} (Vector{T}, Vector{S})
 
-## plot a scatterplot (verbose alternative to plot(x, y, "o") 
+## plot a scatterplot (verbose alternative to plot(x, y, "o")
 ## use named argument symbol to pass in symbol -- not args)
 function plot(p::FramedPlot, x::ScatterPlotPoints, args...; symbol="o", kwargs...)
     Base.warn_once("deprecated -- call scatter instead")
@@ -32,7 +32,7 @@ end
 
 ## Array
 ## kwargs are vectorized (without recycling)
-## e.g.:  plot([sin cos]', 0, 2pi, color=["blue" "red"]') 
+## e.g.:  plot([sin cos]', 0, 2pi, color=["blue" "red"]')
 function plot(fs::Array{Function, 2}, a::Real, b::Real, args...; kwargs...)
     m,n = size(fs)
     tbl = Table(m, n)

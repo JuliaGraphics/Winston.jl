@@ -47,7 +47,7 @@ function example02()
     s = Slope(1, (0,0), kind="dotted")
     setattr(s, label="slope")
 
-    l = Legend(.1, .9, {a,b,s})
+    l = Legend(.1, .9, Any[a,b,s])
 
     add(p, s, a, b, l)
     p

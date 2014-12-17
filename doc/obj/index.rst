@@ -2,7 +2,7 @@
 .. _ref-objects:
 
 #########
- Objects 
+ Objects
 #########
 
 .. toctree::

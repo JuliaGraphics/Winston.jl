@@ -75,8 +75,8 @@ class WinstonDirective(CodeBlock):
     }
 
     def run(self):
-	if oldstyle_code_block and len(self.arguments) == 0:
-	    self.arguments.append('julia')
+        if oldstyle_code_block and len(self.arguments) == 0:
+            self.arguments.append('julia')
 
         node = winston()
         node['script'] = '\n'.join(self.content)

@@ -45,7 +45,7 @@ function _atox(s::String)
     if ismatch(r"^[+-]?\d+$",x)
         return int(x)
     end
-	out = Array(Float64,1)
+    out = Array(Float64,1)
     if float64_isvalid(x, out)
         return out[1]
     end

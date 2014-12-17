@@ -485,7 +485,8 @@ function _format_ticklabel(x, range=0.; min_pow10=4)
     endswith(s, ".0") ? s[1:end-2] : s
 end
 
-range(a::Real, b::Real) = (a <= b) ? (iceil(a):ifloor(b)) : (ifloor(a):-1:iceil(b))
+range(a::Real, b::Real) = (a <= b) ? (ceil(Int, a):floor(Int, b)) :
+                                     (floor(Int, a):-1:ceil(Int, b))
 
 function _ticklist_linear(lo, hi, sep, origin=0.)
     a = (lo - origin)/sep

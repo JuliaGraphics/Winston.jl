@@ -258,7 +258,7 @@ function data2rgb{T<:Real}(data::AbstractArray{T}, limits::Interval, colormap::A
         datai = data[i]
         if isfinite(datai)
             idxr = limscale*(datai - limlower)
-            idx = itrunc(idxr)
+            idx = trunc(Int, idxr)
             idx += idxr > convert(T, idx)
             idx = clamp(idx, 1, ncolors)
             img[i] = colormap[idx]

@@ -6,6 +6,7 @@ importall Base.Graphics
 using IniFile
 
 export
+    barplot,
     closefig,
     colormap,
     errorbar,
@@ -38,6 +39,7 @@ export
     Plot,
     Table,
 
+    BarPlot,
     Curve,
     FillAbove,
     FillBelow,
@@ -2449,6 +2451,52 @@ function make(self::Image, context)
     b = project(context.geom, Point(self.x+self.w, self.y+self.h))
     bbox = BoundingBox(a, b)
     GroupPainter(getattr(self,:style), ImagePainter(self.img, bbox))
+end
+
+# BarPlot --------------------------------------------------------------------
+
+type BarPlot <: PlotComponent
+    attr::PlotAttributes
+    g
+    h
+
+    function BarPlot(g, h, args...; kvs...)
+        self = new(Dict())
+        iniattr(self)
+        kw_init(self, args...; kvs...)
+        self.g = g
+        self.h = h
+        self
+    end
+end
+
+function limits(self::BarPlot, window::BoundingBox)
+    x = [1, length(self.g)] + getattr(self, "barwidth") * [-.5, .5]
+    y = [extrema(self.h)...]
+    !getattr(self, "vertical") && ((x, y) = (y, x))
+    bounds_within(x, y, window)
+end
+
+function make(self::BarPlot, context)
+    objs = GroupPainter(getattr(self,:style))
+    baseline = getattr(self, "baseline")
+    barwidth = getattr(self, "barwidth")
+    x = [1:length(self.h)] .+ barwidth * [-.5 -.5 .5 .5]
+    y = hcat(baseline .* ones(length(self.h)), self.h, self.h, baseline .* ones(length(self.h)))
+    basex = [1 - .5barwidth, length(self.g) + .5barwidth]
+    basey = repmat([baseline],2)
+    if !getattr(self, "vertical")
+      (x, y) = (y, x)
+      (basex, basey) = (basey, basex)
+    end
+    for i = 1:length(self.h)
+        corners = map(c -> project(context.geom, Point(x[i,c], y[i,c])), [1:4])
+        bar = PolygonPainter(corners)
+        push!(objs, bar)
+    end
+    base_proj = map((px, py) -> project(context.geom, Point(px, py)), basex, basey)
+    push!(objs, LinePainter(base_proj...))
+    objs
 end
 
 # SymbolDataComponent --------------------------------------------------------

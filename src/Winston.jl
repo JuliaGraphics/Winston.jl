@@ -60,7 +60,12 @@ export
     getattr,
     setattr,
     style,
-    svg
+    svg,
+    
+    getcomponents,
+    rmcomponents,
+    grid,
+    legend
 
 import Base: copy,
     display,
@@ -1250,6 +1255,36 @@ function compose_interior(self::FramedPlot, device::Renderer, region::BoundingBo
     render(self.x1, context1)
 end
 
+getcomponents(p::FramedPlot, c) = p.([:content1, :content2][c]).components
+getcomponents(p::FramedPlot) = [getcomponents(p,1), getcomponents(p,2)]
+
+rmcomponents(p::FramedPlot, i::Integer, c) = splice!(p.([:content1, :content2][c]).components, i)
+
+function rmcomponents(p::FramedPlot, i::Integer)
+    cont1 = getcomponents(p, 1)
+    cont2 = getcomponents(p, 2)
+    if i <= length(cont1)
+        rmcomponents(p, i, 1)
+    elseif i <= length(cont1) + length(cont2)
+        rmcomponents(p, i - lenght(cont1), 2)
+    else
+        error("Requested remove item #$i from $(length(cont1)+length(cont2)) components.")
+    end
+end
+
+function rmcomponents(p::FramedPlot, v::AbstractVector, args...)
+    eltype(v) <: Integer && sort!(v, rev=true)
+    for i in v
+        rmcomponents(p, i, args...)
+    end
+end
+
+function rmcomponents(p::FramedPlot, t::Type, args...)
+    ctypes = map(typeof, getcomponents(p, args...))
+    todel = find(map(x -> (x <: t), ctypes))
+    rmcomponents(p, todel, args...)
+end
+    
 # Table ------------------------------------------------------------------------
 
 type _Grid

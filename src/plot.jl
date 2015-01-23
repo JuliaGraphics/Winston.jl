@@ -580,3 +580,28 @@ function fplot(f::Function, limits, args...; kvs...)
     x,y = fplot_points(f, xmin, xmax; fopts...)
     plot(x, y, pargs...; kvs...)
 end
+
+grid(p::FramedPlot, tf::Bool) = (setattr(p.frame, draw_grid=tf); p)
+grid(p::FramedPlot) = grid(p, !any(map(x->getattr(x, "draw_grid"), p.frame.objs)))
+grid(args...) = grid(_pwinston, args...)
+
+function legend(p::FramedPlot, lab::AbstractVector, args...; kvs...)
+    if length(args) > 0 && length(args[1]) == 2 && eltype(args[1]) <: Real
+        position = args[1]
+        args = args[2:end]
+    elseif length(args) > 1 && eltype(args[1:2]) <: Real
+        position = args[1:2]
+        args = args[3:end]
+    else
+        position = [0.1, 0.9]
+    end
+    # TODO: define other legend positions
+    plotcomp = getcomponents(p)
+    nitems = min(length(lab), length(plotcomp))
+    for c in 1:nitems
+        setattr(plotcomp[c], label=lab[c])
+    end
+    add(p, Legend(position..., plotcomp[1:nitems], args...; kvs...))
+end
+legend(lab::AbstractVector, args...; kvs...) = legend(_pwinston, lab, args...; kvs...)
+

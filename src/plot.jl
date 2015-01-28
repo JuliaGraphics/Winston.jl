@@ -581,6 +581,26 @@ function fplot(f::Function, limits, args...; kvs...)
     plot(x, y, pargs...; kvs...)
 end
 
+# bar, barh
+ax = {:bar => :x, :barh => :y}
+ax1 = {:bar => :x1, :barh => :y1}
+vert = {:bar => true, :barh => false}
+for fn in (:bar, :barh)
+    eval(quote
+          function $fn(p::FramedPlot, g::AbstractVector, h::AbstractVector, args...; kvs...)
+              b = FilledBar(g, h, args...; kvs...)
+              setattr(b, vertical=$(vert[fn]))
+              setattr(p.$(ax[fn]), draw_subticks=false)
+              setattr(p.$(ax[fn]), ticks=[1.:length(h)])
+              setattr(p.$(ax1[fn]), ticklabels=g)
+              add(p, b)
+              global _pwinston = p
+              p
+          end 
+    end)
+    @eval $fn(args...; kvs...) = $fn(ghf(), args...; kvs...)
+end
+
 grid(p::FramedPlot, tf::Bool) = (setattr(p.frame, draw_grid=tf); p)
 grid(p::FramedPlot) = grid(p, !any(map(x->getattr(x, "draw_grid"), p.frame.objs)))
 grid(args...) = grid(_pwinston, args...)

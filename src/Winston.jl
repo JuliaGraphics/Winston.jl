@@ -2456,7 +2456,7 @@ end
 
 # Bar --------------------------------------------------------------------
 
-type FilledBar <: FillComponent
+type FilledBar <: PlotComponent
     attr::PlotAttributes
     g
     h
@@ -2471,6 +2471,11 @@ type FilledBar <: FillComponent
     end
 end
 
+_kw_rename(::FilledBar) = @Dict(
+    :color => :fillcolor,
+    :width => :barwidth,
+)
+
 function limits(self::FilledBar, window::BoundingBox)
     x = [1, length(self.g)] + 
         getattr(self, "barwidth") * [-.5, .5] +
@@ -2481,7 +2486,7 @@ function limits(self::FilledBar, window::BoundingBox)
 end
 
 function make(self::FilledBar, context)
-    objs = GroupPainter(getattr(self,:style))
+    objs = GroupPainter(getattr(self, :style))
     baseline = getattr(self, "baseline")
     barwidth = getattr(self, "barwidth")
     x = [1:length(self.h)] .+ barwidth * [-.5 .5]
@@ -2489,16 +2494,21 @@ function make(self::FilledBar, context)
     basex = [1 - .5barwidth, length(self.g) + .5barwidth]
     basey = repmat([baseline],2)
     if !getattr(self, "vertical")
-      x, y = y, x
-      basex, basey = basey, basex
+        x, y = y, x
+        basex, basey = basey, basex
     end
     for i = 1:length(self.h)
-        corners = map(c -> project(context.geom, Point(x[i,c], y[i,c])), [1:2])
+        corners = [project(context.geom, Point(x[i,c], y[i,c])) for c=1:2]
         area = BoxPainter(corners...)
         push!(objs, area)
     end
-    base_proj = map((px, py) -> project(context.geom, Point(px, py)), basex, basey)
-    push!(objs, LinePainter(base_proj...))
+    # fillcolor overrides the behaviour of linecolor - remove it for the outline
+    if haskey(objs.style, :linecolor)
+        ks = collect(keys(objs.style))
+        outstyle = Dict{Symbol,Any}([k=>objs.style[k] for k in ks[ks .!= :fillcolor]])
+        objs_out = GroupPainter(outstyle, [BoxPainter(box.p, box.q, false) for box in objs.children]...)
+        push!(objs, objs_out)
+    end
     objs
 end
 

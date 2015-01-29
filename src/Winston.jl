@@ -2456,6 +2456,40 @@ end
 
 # Bar --------------------------------------------------------------------
 
+type BoxComponent <: PlotComponent
+    attr::PlotAttributes
+    p::Point
+    q::Point
+    
+    function BoxComponent(p, q, args...; kvs...)
+        self = new(Dict())
+        iniattr(self)
+        kw_init(self, args...; kvs...)
+        self.p = p
+        self.q = q
+        self
+    end
+end
+    
+_kw_rename(::BoxComponent) = @Dict(:color => :fillcolor)
+
+function limits(self::BoxComponent, window::BoundingBox)
+    bounds_within([self.p.x, self.q.x], [self.p.y, self.q.y], window)
+end
+
+function make(self::BoxComponent, context)
+    corners = [project(context.geom, c) for c in (self.p, self.q)]
+    objs = GroupPainter(getattr(self, :style), BoxPainter(corners...))
+    # fillcolor overrides the behaviour of linecolor - remove it for the outline
+    if haskey(objs.style, :linecolor)
+        ks = collect(keys(objs.style))
+        outstyle = Dict{Symbol,Any}([k=>objs.style[k] for k in ks[ks .!= :fillcolor]])
+        outline = GroupPainter(outstyle, BoxPainter(corners..., false))
+        push!(objs, outline)
+    end
+    objs
+end
+
 type FilledBar <: PlotComponent
     attr::PlotAttributes
     g
@@ -2486,29 +2520,25 @@ function limits(self::FilledBar, window::BoundingBox)
 end
 
 function make(self::FilledBar, context)
-    objs = GroupPainter(getattr(self, :style))
+    style = getattr(self, :style)
+    objs = GroupPainter()
     baseline = getattr(self, "baseline")
     barwidth = getattr(self, "barwidth")
     x = [1:length(self.h)] .+ barwidth * [-.5 .5]
     y = [baseline .* ones(length(self.h)) self.h]
-    basex = [1 - .5barwidth, length(self.g) + .5barwidth]
-    basey = repmat([baseline],2)
+    # basex = [1 - .5barwidth, length(self.g) + .5barwidth]
+    # basey = repmat([baseline],2)
     if !getattr(self, "vertical")
         x, y = y, x
-        basex, basey = basey, basex
+        # basex, basey = basey, basex
     end
     for i = 1:length(self.h)
-        corners = [project(context.geom, Point(x[i,c], y[i,c])) for c=1:2]
-        area = BoxPainter(corners...)
-        push!(objs, area)
+        push!(objs, make(
+            BoxComponent(Point(x[i,1], y[i,1]), Point(x[i,2], y[i,2]); style...),
+            context))
     end
-    # fillcolor overrides the behaviour of linecolor - remove it for the outline
-    if haskey(objs.style, :linecolor)
-        ks = collect(keys(objs.style))
-        outstyle = Dict{Symbol,Any}([k=>objs.style[k] for k in ks[ks .!= :fillcolor]])
-        objs_out = GroupPainter(outstyle, [BoxPainter(box.p, box.q, false) for box in objs.children]...)
-        push!(objs, objs_out)
-    end
+    basecomp = getattr(self, "vertical") ? LineY(baseline) : LineX(baseline)
+    push!(objs, make(basecomp, context))
     objs
 end
 

@@ -587,18 +587,42 @@ ax1 = {:bar => :x1, :barh => :y1}
 vert = {:bar => true, :barh => false}
 for fn in (:bar, :barh)
     eval(quote
-          function $fn(p::FramedPlot, g::AbstractVector, h::AbstractVector, args...; kvs...)
-              b = FilledBar(g, h, args...; kvs...)
+          function $fn(p::FramedPlot, b::FilledBar, args...; kvs...)
               setattr(b, vertical=$(vert[fn]))
               setattr(p.$(ax[fn]), draw_subticks=false)
-              setattr(p.$(ax[fn]), ticks=[1.:length(h)])
-              setattr(p.$(ax1[fn]), ticklabels=g)
+              setattr(p.$(ax[fn]), ticks=[1.:length(b.h)])
+              setattr(p.$(ax1[fn]), ticklabels=b.g)
               add(p, b)
               global _pwinston = p
               p
-          end 
-    end)
-    @eval $fn(args...; kvs...) = $fn(ghf(), args...; kvs...)
+          end
+          function $fn(p::FramedPlot, g::AbstractVector, h::AbstractVector, args...; kvs...)
+              b = FilledBar(g, h[:,end], args...; kvs...)
+              $fn(p, b, args...; kvs...)
+          end
+          function $fn(p::FramedPlot, g::AbstractVector, h::AbstractMatrix, args...; kvs...)
+              nc = size(h,2)
+              barwidth = config_value("FilledBar", "barwidth")/nc
+              offsets = barwidth * (nc - 1) * linspace(-.5, .5, nc)
+              for c = 1:nc-1
+                  b = FilledBar(g, h[:,c], args...; kvs...)
+                  setattr(b, offset=offsets[c])
+                  setattr(b, barwidth=barwidth)
+                  setattr(b, vertical=$(vert[fn]))
+                  style(b, fillcolor=default_color(c))
+                  style(b, draw_baseline=false)
+                  add(p, b)
+              end
+              b = FilledBar(g, h[:,nc], args...; kvs...)
+              setattr(b, offset=offsets[nc])
+              setattr(b, barwidth=barwidth)
+              style(b, fillcolor=default_color(nc))
+              $fn(p, b, args...; kvs...)
+          end
+          $fn(p::FramedPlot, h::AbstractVecOrMat, args...; kvs...) =
+              $fn(p, [1:size(h,1)], h, args...; kvs...)
+          $fn(args...; kvs...) = $fn(ghf(), args...; kvs...)
+    end )
 end
 
 grid(p::FramedPlot, tf::Bool) = (setattr(p.frame, draw_grid=tf); p)

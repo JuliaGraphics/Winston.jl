@@ -2454,7 +2454,7 @@ function make(self::Image, context)
     GroupPainter(getattr(self,:style), ImagePainter(self.img, bbox))
 end
 
-# Bar --------------------------------------------------------------------
+# BoxComponent ---------------------------------------------------------------
 
 type BoxComponent <: PlotComponent
     attr::PlotAttributes
@@ -2490,16 +2490,18 @@ function make(self::BoxComponent, context)
     objs
 end
 
+# FilledBar ------------------------------------------------------------------
+
 type FilledBar <: PlotComponent
     attr::PlotAttributes
-    g
-    h
+    g::AbstractVector
+    h::AbstractVecOrMat
 
     function FilledBar(g, h, args...; kvs...)
         self = new(Dict())
         iniattr(self)
         kw_init(self, args...; kvs...)
-        self.g = g
+        self.g = map(string, g)
         self.h = h
         self
     end
@@ -2523,22 +2525,22 @@ function make(self::FilledBar, context)
     style = getattr(self, :style)
     objs = GroupPainter()
     baseline = getattr(self, "baseline")
-    barwidth = getattr(self, "barwidth")
-    x = [1:length(self.h)] .+ barwidth * [-.5 .5]
+    x = [1:length(self.h)] .+ getattr(self, "barwidth") * [-.5 .5] + getattr(self, "offset")
     y = [baseline .* ones(length(self.h)) self.h]
-    # basex = [1 - .5barwidth, length(self.g) + .5barwidth]
-    # basey = repmat([baseline],2)
     if !getattr(self, "vertical")
         x, y = y, x
-        # basex, basey = basey, basex
+        bl = LineX(baseline)
+    else
+        bl = LineY(baseline)
     end
     for i = 1:length(self.h)
         push!(objs, make(
             BoxComponent(Point(x[i,1], y[i,1]), Point(x[i,2], y[i,2]); style...),
             context))
     end
-    basecomp = getattr(self, "vertical") ? LineY(baseline) : LineX(baseline)
-    push!(objs, make(basecomp, context))
+    if haskey(style, :draw_baseline) && style[:draw_baseline]
+        push!(objs, make(bl, context))
+    end
     objs
 end
 

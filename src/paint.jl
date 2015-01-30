@@ -276,22 +276,24 @@ end
 immutable BoxPainter <: AbstractPainter
     p::Point
     q::Point
-    fill::Bool
+#    fill::Bool
 end
-BoxPainter(p, q) = BoxPainter(p, q, true)
+#BoxPainter(p, q) = BoxPainter(p, q, true)
 
 function boundingbox(self::BoxPainter, context::PaintContext)
     return BoundingBox(self.p, self.q)
 end
 
 function paint(self::BoxPainter, context::PaintContext)
-    rectangle(context.device, BoundingBox(self.p, self.q), self.fill)
-    # if (linecolor = get(context.device, :linecolor)) != nothing
-        # defcolor = get(context.device, :color)
-        # set(context.device, :color, linecolor)
-        # rectangle(context.device, BoundingBox(self.p, self.q), false)
-        # defcolor != nothing && set(context.device, :color, defcolor)
-    # end
+    linecolor = get(context.device, :linecolor)
+    linecolor != nothing && set_color(context.device.ctx, linecolor)
+    fillcolor = get(context.device, :fillcolor)
+    fillcolor != nothing && set_color(context.device.ctx, fillcolor)
+    rectangle(context.device, BoundingBox(self.p, self.q), true)
+    if linecolor != nothing
+        set_color(context.device.ctx, linecolor)
+        rectangle(context.device, BoundingBox(self.p, self.q), false)
+    end
 end
 
 immutable ImagePainter <: AbstractPainter

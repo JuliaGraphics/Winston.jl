@@ -2456,43 +2456,60 @@ end
 
 # BoxComponent ---------------------------------------------------------------
 
-type BoxComponent <: PlotComponent
-    attr::PlotAttributes
-    p::Point
-    q::Point
+# type BoxComponent <: PlotComponent
+    # attr::PlotAttributes
+    # p::Point
+    # q::Point
     
-    function BoxComponent(p, q, args...; kvs...)
-        self = new(Dict())
-        iniattr(self)
-        kw_init(self, args...; kvs...)
-        self.p = p
-        self.q = q
-        self
-    end
+    # function BoxComponent(p, q, args...; kvs...)
+        # self = new(Dict())
+        # iniattr(self)
+        # kw_init(self, args...; kvs...)
+        # self.p = p
+        # self.q = q
+        # self
+    # end
+# end
+
+abstract BoxComponent <: PlotComponent
+    
+function make_key(self::BoxComponent, bbox::BoundingBox)
+    p = lowerleft(bbox)
+    q = upperright(bbox)
+    GroupPainter(getattr(self, :style), BoxPainter(p, q))
+    # # fillcolor overrides the behaviour of linecolor - remove it for the outline
+    # if haskey(objs.style, :linecolor)
+        # ks = collect(keys(objs.style))
+        # outstyle = Dict{Symbol,Any}([k=>objs.style[k] for k in ks[ks .!= :fillcolor]])
+        # outline = GroupPainter(outstyle, BoxPainter(p, q, false))
+        # push!(objs, outline)
+    # end
+    # objs
 end
-    
+
 _kw_rename(::BoxComponent) = @Dict(:color => :fillcolor)
 
-function limits(self::BoxComponent, window::BoundingBox)
-    bounds_within([self.p.x, self.q.x], [self.p.y, self.q.y], window)
-end
+# function limits(self::BoxComponent, window::BoundingBox)
+    # bounds_within([self.p.x, self.q.x], [self.p.y, self.q.y], window)
+# end
 
-function make(self::BoxComponent, context)
-    corners = [project(context.geom, c) for c in (self.p, self.q)]
-    objs = GroupPainter(getattr(self, :style), BoxPainter(corners...))
-    # fillcolor overrides the behaviour of linecolor - remove it for the outline
-    if haskey(objs.style, :linecolor)
-        ks = collect(keys(objs.style))
-        outstyle = Dict{Symbol,Any}([k=>objs.style[k] for k in ks[ks .!= :fillcolor]])
-        outline = GroupPainter(outstyle, BoxPainter(corners..., false))
-        push!(objs, outline)
-    end
-    objs
-end
+# function make(self::BoxComponent, context)
+    # corners = [project(context.geom, c) for c in (self.p, self.q)]
+    # GroupPainter(getattr(self, :style), BoxPainter(corners...))
+    # # objs = GroupPainter(getattr(self, :style), BoxPainter(corners...))
+    # # # fillcolor overrides the behaviour of linecolor - remove it for the outline
+    # # if haskey(objs.style, :linecolor)
+        # # ks = collect(keys(objs.style))
+        # # outstyle = Dict{Symbol,Any}([k=>objs.style[k] for k in ks[ks .!= :fillcolor]])
+        # # outline = GroupPainter(outstyle, BoxPainter(corners..., false))
+        # # push!(objs, outline)
+    # # end
+    # # objs
+# end
 
 # FilledBar ------------------------------------------------------------------
 
-type FilledBar <: PlotComponent
+type FilledBar <: BoxComponent
     attr::PlotAttributes
     g::AbstractVector
     h::AbstractVecOrMat
@@ -2523,7 +2540,7 @@ end
 
 function make(self::FilledBar, context)
     style = getattr(self, :style)
-    objs = GroupPainter()
+    objs = GroupPainter(style)
     baseline = getattr(self, "baseline")
     x = [1:length(self.h)] .+ getattr(self, "barwidth") * [-.5 .5] + getattr(self, "offset")
     y = [baseline .* ones(length(self.h)) self.h]
@@ -2533,13 +2550,15 @@ function make(self::FilledBar, context)
     else
         bl = LineY(baseline)
     end
-    for i = 1:length(self.h)
-        push!(objs, make(
-            BoxComponent(Point(x[i,1], y[i,1]), Point(x[i,2], y[i,2]); style...),
-            context))
-    end
     if haskey(style, :draw_baseline) && style[:draw_baseline]
         push!(objs, make(bl, context))
+    end
+    for i = 1:length(self.h)
+        corners = [project(context.geom, Point(x[i,c], y[i,c])) for c in (1,2)]
+        push!(objs, BoxPainter(corners...))
+        # push!(objs, make(
+            # BoxComponent(Point(x[i,1], y[i,1]), Point(x[i,2], y[i,2]); style...),
+            # context))
     end
     objs
 end

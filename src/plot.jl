@@ -587,7 +587,7 @@ ax1 = {:bar => :x1, :barh => :y1}
 vert = {:bar => true, :barh => false}
 for fn in (:bar, :barh)
     eval(quote
-          function $fn(p::FramedPlot, b::FilledBar, args...; kvs...)
+          function $fn(p::FramedPlot, b::FramedBar, args...; kvs...)
               setattr(b, vertical=$(vert[fn]))
               setattr(p.$(ax[fn]), draw_subticks=false)
               setattr(p.$(ax[fn]), ticks=[1.:length(b.h)])
@@ -597,15 +597,15 @@ for fn in (:bar, :barh)
               p
           end
           function $fn(p::FramedPlot, g::AbstractVector, h::AbstractVector, args...; kvs...)
-              b = FilledBar(g, h[:,end], args...; kvs...)
+              b = FramedBar(g, h[:,end], args...; kvs...)
               $fn(p, b, args...; kvs...)
           end
           function $fn(p::FramedPlot, g::AbstractVector, h::AbstractMatrix, args...; kvs...)
               nc = size(h,2)
-              barwidth = config_value("FilledBar", "barwidth")/nc
+              barwidth = config_value("FramedBar", "barwidth")/nc
               offsets = barwidth * (nc - 1) * linspace(-.5, .5, nc)
               for c = 1:nc-1
-                  b = FilledBar(g, h[:,c], args...; kvs...)
+                  b = FramedBar(g, h[:,c], args...; kvs...)
                   setattr(b, offset=offsets[c])
                   setattr(b, barwidth=barwidth)
                   setattr(b, vertical=$(vert[fn]))
@@ -613,7 +613,7 @@ for fn in (:bar, :barh)
                   style(b, draw_baseline=false)
                   add(p, b)
               end
-              b = FilledBar(g, h[:,nc], args...; kvs...)
+              b = FramedBar(g, h[:,nc], args...; kvs...)
               setattr(b, offset=offsets[nc])
               setattr(b, barwidth=barwidth)
               style(b, fillcolor=default_color(nc))

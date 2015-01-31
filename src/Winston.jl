@@ -2454,62 +2454,21 @@ function make(self::Image, context)
     GroupPainter(getattr(self,:style), ImagePainter(self.img, bbox))
 end
 
-# BoxComponent ---------------------------------------------------------------
+# FramedComponent ---------------------------------------------------------------
 
-# type BoxComponent <: PlotComponent
-    # attr::PlotAttributes
-    # p::Point
-    # q::Point
+abstract FramedComponent <: PlotComponent
     
-    # function BoxComponent(p, q, args...; kvs...)
-        # self = new(Dict())
-        # iniattr(self)
-        # kw_init(self, args...; kvs...)
-        # self.p = p
-        # self.q = q
-        # self
-    # end
-# end
-
-abstract BoxComponent <: PlotComponent
-    
-function make_key(self::BoxComponent, bbox::BoundingBox)
+function make_key(self::FramedComponent, bbox::BoundingBox)
     p = lowerleft(bbox)
     q = upperright(bbox)
     GroupPainter(getattr(self, :style), BoxPainter(p, q))
-    # # fillcolor overrides the behaviour of linecolor - remove it for the outline
-    # if haskey(objs.style, :linecolor)
-        # ks = collect(keys(objs.style))
-        # outstyle = Dict{Symbol,Any}([k=>objs.style[k] for k in ks[ks .!= :fillcolor]])
-        # outline = GroupPainter(outstyle, BoxPainter(p, q, false))
-        # push!(objs, outline)
-    # end
-    # objs
 end
 
-_kw_rename(::BoxComponent) = @Dict(:color => :fillcolor)
-
-# function limits(self::BoxComponent, window::BoundingBox)
-    # bounds_within([self.p.x, self.q.x], [self.p.y, self.q.y], window)
-# end
-
-# function make(self::BoxComponent, context)
-    # corners = [project(context.geom, c) for c in (self.p, self.q)]
-    # GroupPainter(getattr(self, :style), BoxPainter(corners...))
-    # # objs = GroupPainter(getattr(self, :style), BoxPainter(corners...))
-    # # # fillcolor overrides the behaviour of linecolor - remove it for the outline
-    # # if haskey(objs.style, :linecolor)
-        # # ks = collect(keys(objs.style))
-        # # outstyle = Dict{Symbol,Any}([k=>objs.style[k] for k in ks[ks .!= :fillcolor]])
-        # # outline = GroupPainter(outstyle, BoxPainter(corners..., false))
-        # # push!(objs, outline)
-    # # end
-    # # objs
-# end
+_kw_rename(::FramedComponent) = @Dict(:color => :fillcolor)
 
 # FilledBar ------------------------------------------------------------------
 
-type FilledBar <: BoxComponent
+type FilledBar <: FramedComponent
     attr::PlotAttributes
     g::AbstractVector
     h::AbstractVecOrMat
@@ -2550,15 +2509,12 @@ function make(self::FilledBar, context)
     else
         bl = LineY(baseline)
     end
-    if haskey(style, :draw_baseline) && style[:draw_baseline]
-        push!(objs, make(bl, context))
-    end
     for i = 1:length(self.h)
         corners = [project(context.geom, Point(x[i,c], y[i,c])) for c in (1,2)]
         push!(objs, BoxPainter(corners...))
-        # push!(objs, make(
-            # BoxComponent(Point(x[i,1], y[i,1]), Point(x[i,2], y[i,2]); style...),
-            # context))
+    end
+    if haskey(style, :draw_baseline) && style[:draw_baseline]
+        objs = GroupPainter(objs, make(bl, context))
     end
     objs
 end

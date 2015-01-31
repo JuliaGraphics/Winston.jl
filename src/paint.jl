@@ -276,9 +276,7 @@ end
 immutable BoxPainter <: AbstractPainter
     p::Point
     q::Point
-#    fill::Bool
 end
-#BoxPainter(p, q) = BoxPainter(p, q, true)
 
 function boundingbox(self::BoxPainter, context::PaintContext)
     return BoundingBox(self.p, self.q)

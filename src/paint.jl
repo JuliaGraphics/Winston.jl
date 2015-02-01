@@ -273,19 +273,6 @@ function paint(self::PolygonPainter, context::PaintContext)
     polygon(context.device, self.points)
 end
 
-immutable BoxPainter <: AbstractPainter
-    p::Point
-    q::Point
-end
-
-function boundingbox(self::BoxPainter, context::PaintContext)
-    return BoundingBox(self.p, self.q)
-end
-
-function paint(self::BoxPainter, context::PaintContext)
-    rectangle(context.device, BoundingBox(self.p, self.q))
-end
-
 immutable ImagePainter <: AbstractPainter
     img
     bbox

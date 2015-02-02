@@ -230,6 +230,38 @@ function data_to_device{T<:Real}(ctx::PlotContext, x::Union(T,AbstractArray{T}),
     project(ctx.geom, x, y)
 end
 
+# PlotGroup ------------------------------------------------------------------
+
+type PlotGroup <: PlotComponent
+    attr::PlotAttributes
+    components::Vector{Any}
+    
+    function PlotGroup(components)
+        self = new(Dict())
+        iniattr(self)
+        self.components = components
+        self
+    end
+end
+PlotGroup(components...) = PlotGroup(components)
+
+function make_key(self::PlotGroup, bb::BoundingBox)
+    GroupPainter([make_key(pc, bb) for pc in self.components]...)
+end
+
+
+function limits(self::PlotGroup, window::BoundingBox)
+    lim = BoundingBox()
+    for comp in self.components
+        lim += limits(comp, window)
+    end
+    lim
+end
+
+function make(self::PlotGroup, context::PlotContext)
+    GroupPainter([make(pc, context) for pc in self.components]...)
+end
+
 # Legend ----------------------------------------------------------------------
 
 type Legend <: PlotComponent

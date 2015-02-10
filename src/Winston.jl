@@ -2,7 +2,7 @@ module Winston
 
 using Cairo
 using Color
-importall Base.Graphics
+importall Graphics
 using IniFile
 
 export

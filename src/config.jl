@@ -3,7 +3,8 @@ _winston_config = Inifile()
 
 begin
     local fn
-    for dir in [".",Pkg.dir(),LOAD_PATH]
+    _PTH = VERSION<=v"0.4-"? [".",Pkg.dir(),LOAD_PATH]:[".";Pkg.dir();LOAD_PATH]
+    for dir in _PTH
         fn = joinpath(dir, "Winston.ini")
         if isfile(fn) break end
         fn = joinpath(dir, "Winston", "src", "Winston.ini")

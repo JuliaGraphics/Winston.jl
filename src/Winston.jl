@@ -2,7 +2,11 @@ module Winston
 
 using Cairo
 using Color
-importall Graphics
+if VERSION < v"0.4.0-dev+3275"
+    importall Base.Graphics
+else
+    importall Graphics
+end
 using IniFile
 
 export

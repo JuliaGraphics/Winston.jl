@@ -2415,8 +2415,8 @@ limits(self::FillBetween, window::BoundingBox) =
     bounds_within(self.x2, self.y2, window)
 
 function make(self::FillBetween, context)
-    x = [self.x1, reverse(self.x2)]
-    y = [self.y1, reverse(self.y2)]
+    x = [self.x1; reverse(self.x2)]
+    y = [self.y1; reverse(self.y2)]
     coords = map((a,b) -> project(context.geom,Point(a,b)), x, y)
     GroupPainter(getattr(self,:style), PolygonPainter(coords))
 end

@@ -8,6 +8,7 @@ else
     importall Graphics
 end
 using IniFile
+using Compat
 
 export
     closefig,

@@ -247,7 +247,7 @@ semilogx(args::PlotArg...; kvs...) = plot(args...; xlog=true, kvs...)
 semilogy(args::PlotArg...; kvs...) = plot(args...; ylog=true, kvs...)
 loglog(args::PlotArg...; kvs...) = plot(args...; xlog=true, ylog=true, kvs...)
 
-typealias Interval (Real,Real)
+typealias Interval @compat(Tuple{Real,Real})
 
 function data2rgb{T<:Real}(data::AbstractArray{T}, limits::Interval, colormap::Array{Uint32,1})
     img = similar(data, Uint32)
@@ -403,7 +403,7 @@ spy(S::SparseMatrixCSC) = spy(S, 100, 100)
 spy(A::AbstractMatrix, nrS, ncS) = spy(sparse(A), nrS, ncS)
 spy(A::AbstractMatrix) = spy(sparse(A))
 
-function plothist(p::FramedPlot, h::(Range,Vector); kvs...)
+function plothist(p::FramedPlot, h::@compat(Tuple{Range,Vector}); kvs...)
     c = Histogram(h...)
     add(p, c)
 
@@ -432,7 +432,7 @@ _default_kernel2d=(1.0/273.)*[1.0 4.0 7.0 4.0 1.0;
                              4.0 16. 26. 16. 4.0]
 
 #hist2d
-function plothist2d(p::FramedPlot, h::(Union(Range,Vector),Union(Range,Vector),Array{Int,2}); colormap=_current_colormap, smooth=0, kernel=_default_kernel2d, kvs...)
+function plothist2d(p::FramedPlot, h::@compat(Tuple{Union(Range,Vector),Union(Range,Vector),Array{Int,2}}); colormap=_current_colormap, smooth=0, kernel=_default_kernel2d, kvs...)
     xr, yr, hdata = h
 
     for i in 1:smooth

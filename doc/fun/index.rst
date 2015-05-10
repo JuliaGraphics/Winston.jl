@@ -19,6 +19,7 @@
    oplot
    plot
    plothist
+   plothist2d
    savefig
    scatter
    semilogx

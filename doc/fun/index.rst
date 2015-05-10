@@ -18,6 +18,7 @@
    loglog
    oplot
    plot
+   plothist
    savefig
    scatter
    semilogx

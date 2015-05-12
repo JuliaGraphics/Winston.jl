@@ -298,8 +298,8 @@ function imagesc{T<:Real}(xrange::Interval, yrange::Interval, data::AbstractArra
         setattr(p, :yrange, reverse(yrange))
     end
     img = data2rgb(data, clims, _current_colormap)
-    xrange[1] > xrange[2] && (img = fliplr(img))
-    yrange[1] < yrange[2] && (img = flipud(img))
+    xrange[1] > xrange[2] && (img = flipdim(img,2))
+    yrange[1] < yrange[2] && (img = flipdim(img,1))
     add(p, Image(xrange, reverse(yrange), img))
     ghf(p)
 end

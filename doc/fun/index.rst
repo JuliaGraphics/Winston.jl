@@ -25,6 +25,7 @@
    semilogx
    semilogy
    stem
+   text
    title
    xlabel
    xlim

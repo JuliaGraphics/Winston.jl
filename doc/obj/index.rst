@@ -10,4 +10,5 @@
 
    FramedPlot
    Table
+   Curve
 

@@ -11,4 +11,7 @@
    FramedPlot
    Table
    Curve
+   FillAbove
+   FillBelow
+   FillBetween
 

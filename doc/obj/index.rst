@@ -14,4 +14,5 @@
    FillAbove
    FillBelow
    FillBetween
+   Histogram
 

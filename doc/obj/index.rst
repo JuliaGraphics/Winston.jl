@@ -15,4 +15,5 @@
    FillBelow
    FillBetween
    Histogram
+   Image
 

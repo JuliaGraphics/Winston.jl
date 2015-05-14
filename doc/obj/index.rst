@@ -18,4 +18,5 @@
    Image
    LineX
    LineY
+   Points
 

@@ -16,4 +16,6 @@
    FillBetween
    Histogram
    Image
+   LineX
+   LineY
 

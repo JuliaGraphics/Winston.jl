@@ -18,5 +18,6 @@
    Image
    LineX
    LineY
+   PlotInset
    Points
 

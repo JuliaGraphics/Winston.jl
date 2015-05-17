@@ -22,4 +22,5 @@
    PlotLabel
    Points
    Slope
+   Stems
 

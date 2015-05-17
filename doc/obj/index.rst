@@ -21,4 +21,5 @@
    PlotInset
    PlotLabel
    Points
+   Slope
 

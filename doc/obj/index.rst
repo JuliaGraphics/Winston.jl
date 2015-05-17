@@ -19,5 +19,6 @@
    LineX
    LineY
    PlotInset
+   PlotLabel
    Points
 

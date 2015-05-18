@@ -23,4 +23,6 @@
    Points
    Slope
    Stems
+   SymmetricErrorBarsX
+   SymmetricErrorBarsY
 

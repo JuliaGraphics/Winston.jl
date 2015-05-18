@@ -10,4 +10,19 @@
 
    FramedPlot
    Table
+   Curve
+   FillAbove
+   FillBelow
+   FillBetween
+   Histogram
+   Image
+   LineX
+   LineY
+   PlotInset
+   PlotLabel
+   Points
+   Slope
+   Stems
+   SymmetricErrorBarsX
+   SymmetricErrorBarsY
 

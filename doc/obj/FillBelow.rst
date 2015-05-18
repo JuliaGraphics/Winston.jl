@@ -1,0 +1,27 @@
+FillBelow
+=========
+
+.. function:: FillBelow(x, y, args...; kvs...)
+
+    ``PlotComponent`` that fills the area below the line connecting the data
+    points in ``x`` and ``y``.
+    ``args`` and ``kvs`` can be used to set additional style attributes.
+
+Attributes
+----------
+
++-------------+----------+----+
+| fillcolor   | Integer  |    |
++-------------+----------+----+
+| fillkind    | Integer  |    |
++-------------+----------+----+
+
+Example
+-------
+
+.. winston::
+
+    x = 0:100
+    f = FillBelow(x, x.^2, fillcolor="cyan")
+    p = FramedPlot()
+    add(p, f)

@@ -4,6 +4,8 @@ colormap
 .. function:: colormap(name::String [, n=256])
 
     Set the current colormap to ``name``, with ``n`` colors.
+    ``name`` may be one of the supported colormap names in ``Color.colormap``
+    (see https://github.com/JuliaLang/Color.jl#colormaps) or ``jet``.
 
 .. function:: colormap(array::Vector{ColorValue})
 

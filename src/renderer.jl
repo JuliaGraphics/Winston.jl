@@ -51,7 +51,7 @@ boundingbox(c::CairoRenderer) = BoundingBox(0., width(c), 0., height(c))
 const xx2pt = @Dict( "in"=>72., "pt"=>1., "mm"=>2.835, "cm"=>28.35 )
 function _str_size_to_pts(str)
     m = match(r"([\d.]+)([^\s]+)", str)
-    num_xx = Float64(m.captures[1])
+    num_xx = @compat Float64(m.captures[1])
     units = m.captures[2]
     num_pt = num_xx*xx2pt[units]
     return num_pt

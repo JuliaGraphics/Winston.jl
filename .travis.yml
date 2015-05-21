@@ -1,14 +1,15 @@
-language: cpp
-compiler:
-  - clang
+language: julia
+os:
+  - linux
+  - osx
+julia:
+  - release
+  - nightly
 notifications:
   email: false
-env:
-  matrix:
-    - JULIAVERSION="juliareleases"
-    - JULIAVERSION="julianightlies"
-before_install:
-  - curl http://julialang.org/install-julia.sh | sh -s $JULIAVERSION
-  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
 script:
-  - xvfb-run julia --check-bounds=yes -e 'versioninfo(); Pkg.init(); Pkg.clone(pwd()); Pkg.build("Winston"); Pkg.test("Winston")'
+  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
+  - julia -e 'Pkg.clone(pwd()); Pkg.build("Winston")'
+  - xvfb-run julia --check-bounds=yes -e 'Pkg.test("Winston", coverage=true)'
+after_success:
+  - if [ $TRAVIS_JULIA_VERSION = "nightly" ]; then julia -e 'cd(Pkg.dir("Winston")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'; fi

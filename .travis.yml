@@ -8,9 +8,7 @@ env:
     - JULIAVERSION="juliareleases"
     - JULIAVERSION="julianightlies"
 before_install:
-  - sudo add-apt-repository ppa:staticfloat/julia-deps -y
-  - sudo add-apt-repository ppa:staticfloat/${JULIAVERSION} -y
-  - sudo apt-get update -qq -y
-  - sudo apt-get install libpcre3-dev julia -y
+  - curl http://julialang.org/install-julia.sh | sh -s $JULIAVERSION
+  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
 script:
-  - xvfb-run julia -e 'versioninfo(); Pkg.init(); Pkg.clone(pwd()); Pkg.build("Winston"); Pkg.test("Winston")'
+  - xvfb-run julia --check-bounds=yes -e 'versioninfo(); Pkg.init(); Pkg.clone(pwd()); Pkg.build("Winston"); Pkg.test("Winston")'

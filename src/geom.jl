@@ -16,7 +16,7 @@ end
 
 if VERSION < v"0.3-"
     Rectangle(x0::Real, x1::Real, y0::Real, y1::Real) =
-        Rectangle(Float64(x0), Float64(x1), Float64(y0), Float64(y1))
+        Rectangle(@compat Float64(x0), @compat Float64(x1), @compat Float64(y0), @compat Float64(y1))
 end
 
 Rectangle() = Rectangle(NaN, NaN, NaN, NaN)

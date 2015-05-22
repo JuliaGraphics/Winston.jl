@@ -1,3 +1,4 @@
+using Compat
 
 _winston_config = Inifile()
 

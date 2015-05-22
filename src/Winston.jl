@@ -438,7 +438,7 @@ function _magform(x)
         return 0., 0
     end
     a, b = modf(log10(abs(x)))
-    a, b = 10^a, Int(b)
+    a, b = 10^a, @compat Int(b)
     if a < 1.
         a, b = a * 10, b - 1
     end
@@ -458,9 +458,9 @@ function _format_ticklabel(x, range=0.; min_pow10=4)
     if x == 0
         return "0"
     end
-    neg, digits, b = grisu(x, Base.Grisu.SHORTEST, Int32(0))
+    neg, digits, b = grisu(x, Base.Grisu.SHORTEST, @compat Int32(0))
     if length(digits) > 5
-        neg, digits, b = grisu(x, Base.Grisu.PRECISION, Int32(6))
+        neg, digits, b = grisu(x, Base.Grisu.PRECISION, @compat Int32(6))
         n = length(digits)
         while digits[n] == '0'
             n -= 1
@@ -472,11 +472,11 @@ function _format_ticklabel(x, range=0.; min_pow10=4)
         s = IOBuffer()
         if neg write(s, '-') end
         if digits != [0x31]
-            write(s, Char(digits[1]))
+            write(s, @compat Char(digits[1]))
             if length(digits) > 1
                 write(s, '.')
                 for i = 2:length(digits)
-                    write(s, Char(digits[i]))
+                    write(s, @compat Char(digits[i]))
                 end
             end
             write(s, "\\times ")
@@ -1111,14 +1111,14 @@ function user_range(range)
         b1 = typeof(range[1]) <: Real
         b2 = typeof(range[2]) <: Real
         if b1 && b2
-            x1 = Float64(range[1])
-            x2 = Float64(range[2])
+            x1 = @compat Float64(range[1])
+            x2 = @compat Float64(range[2])
             lo = myprevfloat(min(x1, x2))
             hi = mynextfloat(max(x1, x2))
             flipped = x1 > x2
         else
-            b1 && (lo = myprevfloat(Float64(range[1])))
-            b2 && (hi = mynextfloat(Float64(range[2])))
+            b1 && (lo = myprevfloat(@compat Float64(range[1])))
+            b2 && (hi = mynextfloat(@compat Float64(range[2])))
         end
     end
     lo, hi, flipped

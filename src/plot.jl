@@ -582,15 +582,15 @@ function fplot(f::Function, limits, args...; kvs...)
 end
 
 # bar, barh
-ax = {:bar => :x, :barh => :y}
-ax1 = {:bar => :x1, :barh => :y1}
-vert = {:bar => true, :barh => false}
+ax = Dict{Any,Any}(:bar => :x, :barh => :y)
+ax1 = Dict{Any,Any}(:bar => :x1, :barh => :y1)
+vert = Dict{Any,Any}(:bar => true, :barh => false)
 for fn in (:bar, :barh)
     eval(quote
           function $fn(p::FramedPlot, b::FramedBar, args...; kvs...)
               setattr(b, vertical=$(vert[fn]))
               setattr(p.$(ax[fn]), draw_subticks=false)
-              setattr(p.$(ax[fn]), ticks=[1.:length(b.h)])
+              setattr(p.$(ax[fn]), ticks=collect(1.:length(b.h)))
               setattr(p.$(ax1[fn]), ticklabels=b.g)
               add(p, b)
               global _pwinston = p

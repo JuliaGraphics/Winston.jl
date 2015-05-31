@@ -2506,7 +2506,7 @@ function make(self::FramedBar, context)
     style = getattr(self, :style)
     objs = GroupPainter(style)
     baseline = getattr(self, "baseline")
-    x = [1:length(self.h)] .+ getattr(self, "barwidth") * [-.5 .5] + getattr(self, "offset")
+    x = collect(1:length(self.h)) .+ getattr(self, "barwidth") * [-.5 .5] + getattr(self, "offset")
     y = [baseline .* ones(length(self.h)) self.h]
     if !getattr(self, "vertical")
         x, y = y, x

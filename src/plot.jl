@@ -597,11 +597,22 @@ function legend(p::FramedPlot, lab::AbstractVector, args...; kvs...)
     end
     # TODO: define other legend positions
     plotcomp = getcomponents(p)
-    nitems = min(length(lab), length(plotcomp))
-    for c in 1:nitems
-        setattr(plotcomp[c], label=lab[c])
+    target = Array(Integer,0)
+    c = 0
+    for s in lab
+        while c < length(plotcomp)
+            c += 1
+            if method_exists(make_key, (typeof(plotcomp[c]), BoundingBox)) &&
+              typeof(make_key(plotcomp[c], BoundingBox(0,1,0,1))) <: GroupPainter
+                setattr(plotcomp[c], label=s)
+                push!(target, c)
+                break
+            end
+        end
     end
-    add(p, Legend(position..., plotcomp[1:nitems], args...; kvs...))
+    if length(target) > 0
+        add(p, Legend(position..., plotcomp[target], args...; kvs...))
+    end
 end
 legend(lab::AbstractVector, args...; kvs...) = legend(_pwinston, lab, args...; kvs...)
 

@@ -18,11 +18,14 @@
    loglog
    oplot
    plot
+   plothist
+   plothist2d
    savefig
    scatter
    semilogx
    semilogy
    stem
+   text
    title
    xlabel
    xlim

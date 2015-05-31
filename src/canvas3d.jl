@@ -7,7 +7,7 @@ elseif output_surface == :gtk
     eval(Expr(:toplevel, Expr(:using, :Gtk)))
 end
 using Color
-using Base.Graphics
+using Graphics
 
 export plot3d, surf
 #export demo_sombrero, demo_sphere

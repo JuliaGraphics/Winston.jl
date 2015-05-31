@@ -1,9 +1,10 @@
+using Compat
 
 _winston_config = Inifile()
 
 begin
     local fn
-    for dir in [".",Pkg.dir(),LOAD_PATH]
+    for dir in [".";Pkg.dir();LOAD_PATH]
         fn = joinpath(dir, "Winston.ini")
         if isfile(fn) break end
         fn = joinpath(dir, "Winston", "src", "Winston.ini")
@@ -28,7 +29,7 @@ function _atox(s::String)
         return false
     elseif length(x) > 2 && lowercase(x[1:2]) == "0x"
         try
-            h = parseint(x[3:end], 16)
+            h = parse(Int, x[3:end], 16)
             return h
         end
     elseif x[1] == '{' && x[end] == '}'
@@ -43,13 +44,10 @@ function _atox(s::String)
         return x[2:end-1]
     end
     if ismatch(r"^[+-]?\d+$",x)
-        return int(x)
+        return parse(Int,x)
     end
-    out = Array(Float64,1)
-    if float64_isvalid(x, out)
-        return out[1]
-    end
-    return x
+    r  = tryparse(Float64, x)
+    isnull(r) ? x : get(r)
 end
 
 function config_value(section, option)

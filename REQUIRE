@@ -3,4 +3,5 @@ Cairo
 Color 0.2.9
 IniFile
 Tk
-Compat 0.2.5
+Compat 0.4.4
+Graphics 0.1

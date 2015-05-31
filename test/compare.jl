@@ -2,6 +2,7 @@ import Cairo
 using Color
 using Base.Test
 using Winston
+using Compat
 
 module ImageComparisons
     using Winston
@@ -16,7 +17,7 @@ function read_png_data(fn::ASCIIString)
     h = Cairo.height(surface)
     p = ccall((:cairo_image_surface_get_data,Cairo._jl_libcairo),
               Ptr{Uint8}, (Ptr{Void},), surface.ptr)
-    a = pointer_to_array(convert(Ptr{Uint32},p), (int(w),int(h)))
+    a = pointer_to_array(convert(Ptr{UInt32},p), (convert(Int,w),convert(Int,h)))
     copy(a)
 end
 

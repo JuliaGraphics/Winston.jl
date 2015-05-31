@@ -247,7 +247,7 @@ semilogx(args::PlotArg...; kvs...) = plot(args...; xlog=true, kvs...)
 semilogy(args::PlotArg...; kvs...) = plot(args...; ylog=true, kvs...)
 loglog(args::PlotArg...; kvs...) = plot(args...; xlog=true, ylog=true, kvs...)
 
-typealias Interval (Real,Real)
+typealias Interval @compat(Tuple{Real,Real})
 
 function data2rgb{T<:Real}(data::AbstractArray{T}, limits::Interval, colormap::Array{Uint32,1})
     img = similar(data, Uint32)
@@ -298,8 +298,8 @@ function imagesc{T<:Real}(xrange::Interval, yrange::Interval, data::AbstractArra
         setattr(p, :yrange, reverse(yrange))
     end
     img = data2rgb(data, clims, _current_colormap)
-    xrange[1] > xrange[2] && (img = fliplr(img))
-    yrange[1] < yrange[2] && (img = flipud(img))
+    xrange[1] > xrange[2] && (img = flipdim(img,2))
+    yrange[1] < yrange[2] && (img = flipdim(img,1))
     add(p, Image(xrange, reverse(yrange), img))
     ghf(p)
 end
@@ -403,7 +403,7 @@ spy(S::SparseMatrixCSC) = spy(S, 100, 100)
 spy(A::AbstractMatrix, nrS, ncS) = spy(sparse(A), nrS, ncS)
 spy(A::AbstractMatrix) = spy(sparse(A))
 
-function plothist(p::FramedPlot, h::(Range,Vector); kvs...)
+function plothist(p::FramedPlot, h::@compat(Tuple{Range,Vector}); kvs...)
     c = Histogram(h...)
     add(p, c)
 
@@ -432,7 +432,7 @@ _default_kernel2d=(1.0/273.)*[1.0 4.0 7.0 4.0 1.0;
                              4.0 16. 26. 16. 4.0]
 
 #hist2d
-function plothist2d(p::FramedPlot, h::(Union(Range,Vector),Union(Range,Vector),Array{Int,2}); colormap=_current_colormap, smooth=0, kernel=_default_kernel2d, kvs...)
+function plothist2d(p::FramedPlot, h::@compat(Tuple{Union(Range,Vector),Union(Range,Vector),Array{Int,2}}); colormap=_current_colormap, smooth=0, kernel=_default_kernel2d, kvs...)
     xr, yr, hdata = h
 
     for i in 1:smooth
@@ -582,15 +582,15 @@ function fplot(f::Function, limits, args...; kvs...)
 end
 
 # bar, barh
-ax = {:bar => :x, :barh => :y}
-ax1 = {:bar => :x1, :barh => :y1}
-vert = {:bar => true, :barh => false}
+ax = Dict{Any,Any}(:bar => :x, :barh => :y)
+ax1 = Dict{Any,Any}(:bar => :x1, :barh => :y1)
+vert = Dict{Any,Any}(:bar => true, :barh => false)
 for fn in (:bar, :barh)
     eval(quote
           function $fn(p::FramedPlot, b::FramedBar, args...; kvs...)
               setattr(b, vertical=$(vert[fn]))
               setattr(p.$(ax[fn]), draw_subticks=false)
-              setattr(p.$(ax[fn]), ticks=[1.:length(b.h)])
+              setattr(p.$(ax[fn]), ticks=collect(1.:length(b.h)))
               setattr(p.$(ax1[fn]), ticklabels=b.g)
               add(p, b)
               global _pwinston = p

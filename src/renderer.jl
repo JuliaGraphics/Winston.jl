@@ -51,7 +51,7 @@ boundingbox(c::CairoRenderer) = BoundingBox(0., width(c), 0., height(c))
 const xx2pt = @Dict( "in"=>72., "pt"=>1., "mm"=>2.835, "cm"=>28.35 )
 function _str_size_to_pts(str)
     m = match(r"([\d.]+)([^\s]+)", str)
-    num_xx = float64(m.captures[1])
+    num_xx = @compat Float64(m.captures[1])
     units = m.captures[2]
     num_pt = num_xx*xx2pt[units]
     return num_pt
@@ -61,7 +61,7 @@ end
 
 color_to_rgb(i::Integer) = convert(RGB, RGB24(unsigned(i)))
 color_to_rgb(s::String) = color(s)
-color_to_rgb(rgb::(Real,Real,Real)) = RGB(rgb...)
+color_to_rgb(rgb::@compat(Tuple{Real,Real,Real})) = RGB(rgb...)
 color_to_rgb(cv::ColorValue) = convert(RGB, cv)
 color_to_rgb(cv::AlphaColorValue) = cv
 

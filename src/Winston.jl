@@ -2,8 +2,13 @@ module Winston
 
 using Cairo
 using Color
-importall Base.Graphics
+if VERSION < v"0.4.0-dev+3275"
+    importall Base.Graphics
+else
+    importall Graphics
+end
 using IniFile
+using Compat
 
 export
     bar,
@@ -436,7 +441,7 @@ function _magform(x)
         return 0., 0
     end
     a, b = modf(log10(abs(x)))
-    a, b = 10^a, int(b)
+    a, b = 10^a, @compat Int(b)
     if a < 1.
         a, b = a * 10, b - 1
     end
@@ -456,9 +461,9 @@ function _format_ticklabel(x, range=0.; min_pow10=4)
     if x == 0
         return "0"
     end
-    neg, digits, b = grisu(x, Base.Grisu.SHORTEST, int32(0))
+    neg, digits, b = grisu(x, Base.Grisu.SHORTEST, @compat Int32(0))
     if length(digits) > 5
-        neg, digits, b = grisu(x, Base.Grisu.PRECISION, int32(6))
+        neg, digits, b = grisu(x, Base.Grisu.PRECISION, @compat Int32(6))
         n = length(digits)
         while digits[n] == '0'
             n -= 1
@@ -470,11 +475,11 @@ function _format_ticklabel(x, range=0.; min_pow10=4)
         s = IOBuffer()
         if neg write(s, '-') end
         if digits != [0x31]
-            write(s, char(digits[1]))
+            write(s, @compat Char(digits[1]))
             if length(digits) > 1
                 write(s, '.')
                 for i = 2:length(digits)
-                    write(s, char(digits[i]))
+                    write(s, @compat Char(digits[i]))
                 end
             end
             write(s, "\\times ")
@@ -1109,14 +1114,14 @@ function user_range(range)
         b1 = typeof(range[1]) <: Real
         b2 = typeof(range[2]) <: Real
         if b1 && b2
-            x1 = float64(range[1])
-            x2 = float64(range[2])
+            x1 = @compat Float64(range[1])
+            x2 = @compat Float64(range[2])
             lo = myprevfloat(min(x1, x2))
             hi = mynextfloat(max(x1, x2))
             flipped = x1 > x2
         else
-            b1 && (lo = myprevfloat(float64(range[1])))
-            b2 && (hi = mynextfloat(float64(range[2])))
+            b1 && (lo = myprevfloat(@compat Float64(range[1])))
+            b2 && (hi = mynextfloat(@compat Float64(range[2])))
         end
     end
     lo, hi, flipped
@@ -2414,8 +2419,8 @@ limits(self::FillBetween, window::BoundingBox) =
     bounds_within(self.x2, self.y2, window)
 
 function make(self::FillBetween, context)
-    x = [self.x1, reverse(self.x2)]
-    y = [self.y1, reverse(self.y2)]
+    x = [self.x1; reverse(self.x2)]
+    y = [self.y1; reverse(self.y2)]
     coords = map((a,b) -> project(context.geom,Point(a,b)), x, y)
     GroupPainter(getattr(self,:style), PolygonPainter(coords))
 end
@@ -2501,7 +2506,7 @@ function make(self::FramedBar, context)
     style = getattr(self, :style)
     objs = GroupPainter(style)
     baseline = getattr(self, "baseline")
-    x = [1:length(self.h)] .+ getattr(self, "barwidth") * [-.5 .5] + getattr(self, "offset")
+    x = collect(1:length(self.h)) .+ getattr(self, "barwidth") * [-.5 .5] + getattr(self, "offset")
     y = [baseline .* ones(length(self.h)) self.h]
     if !getattr(self, "vertical")
         x, y = y, x

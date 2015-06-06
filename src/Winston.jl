@@ -11,6 +11,9 @@ using IniFile
 using Compat
 using Dates
 
+isdefined(Base, :Libc) && (strftime = Libc.strftime)
+isdefined(Base, :Dates) && (datetime2unix = Dates.datetime2unix)
+
 export
     closefig,
     colormap,

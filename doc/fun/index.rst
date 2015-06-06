@@ -27,6 +27,7 @@
    stem
    text
    title
+   timeplot
    xlabel
    xlim
    ylabel

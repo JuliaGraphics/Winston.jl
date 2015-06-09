@@ -11,6 +11,8 @@ using IniFile
 using Compat
 
 export
+    bar,
+    barh,
     closefig,
     colormap,
     errorbar,
@@ -47,6 +49,7 @@ export
     FillAbove,
     FillBelow,
     FillBetween,
+    FramedBar,
     Histogram,
     Image,
     Legend,
@@ -2454,6 +2457,71 @@ function make(self::Image, context)
     b = project(context.geom, Point(self.x+self.w, self.y+self.h))
     bbox = BoundingBox(a, b)
     GroupPainter(getattr(self,:style), ImagePainter(self.img, bbox))
+end
+
+# FramedComponent ---------------------------------------------------------------
+
+abstract FramedComponent <: PlotComponent
+    
+function make_key(self::FramedComponent, bbox::BoundingBox)
+    p = lowerleft(bbox)
+    q = upperright(bbox)
+    GroupPainter(getattr(self, :style), BoxPainter(p, q))
+end
+
+_kw_rename(::FramedComponent) = @Dict(:color => :fillcolor)
+
+# FramedBar ------------------------------------------------------------------
+
+type FramedBar <: FramedComponent
+    attr::PlotAttributes
+    g::AbstractVector
+    h::AbstractVecOrMat
+
+    function FramedBar(g, h, args...; kvs...)
+        self = new(Dict())
+        iniattr(self)
+        kw_init(self, args...; kvs...)
+        self.g = map(string, g)
+        self.h = h
+        self
+    end
+end
+
+_kw_rename(::FramedBar) = @Dict(
+    :color => :fillcolor,
+    :width => :barwidth,
+)
+
+function limits(self::FramedBar, window::BoundingBox)
+    x = [1, length(self.g)] + 
+        getattr(self, "barwidth") * [-.5, .5] +
+        getattr(self, "offset")
+    y = [extrema(self.h)...]
+    !getattr(self, "vertical") && ((x, y) = (y, x))
+    bounds_within(x, y, window)
+end
+
+function make(self::FramedBar, context)
+    style = getattr(self, :style)
+    objs = GroupPainter(style)
+    baseline = getattr(self, "baseline")
+    x = collect(1:length(self.h)) .+ getattr(self, "barwidth") * [-.5 .5] + getattr(self, "offset")
+    y = [baseline .* ones(length(self.h)) self.h]
+    if !getattr(self, "vertical")
+        x, y = y, x
+        bl = LineX(baseline)
+    else
+        bl = LineY(baseline)
+    end
+    for i = 1:length(self.h)
+        corners = [project(context.geom, Point(x[i,c], y[i,c])) for c in (1,2)]
+        push!(objs, BoxPainter(corners...))
+    end
+    if haskey(style, :draw_baseline) && style[:draw_baseline]
+        objs = GroupPainter(objs, make(bl, context))
+    end
+    objs
 end
 
 # SymbolDataComponent --------------------------------------------------------

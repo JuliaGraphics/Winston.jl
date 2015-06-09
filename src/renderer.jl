@@ -256,6 +256,11 @@ function polygon(self::CairoRenderer, points::Vector)
     fill(self.ctx)
 end
 
+function rectangle(self::CairoRenderer, bbox::BoundingBox, filled::Bool=true)
+    rectangle(self.ctx, bbox)
+    filled ? fill(self.ctx) : stroke(self.ctx)
+end
+
 function layout_text(self::CairoRenderer, str::String)
     set_latex(self.ctx, str, get(self,:fontsize))
 end

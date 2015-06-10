@@ -582,9 +582,9 @@ function fplot(f::Function, limits, args...; kvs...)
 end
 
 # bar, barh
-ax = Dict{Any,Any}(:bar => :x, :barh => :y)
-ax1 = Dict{Any,Any}(:bar => :x1, :barh => :y1)
-vert = Dict{Any,Any}(:bar => true, :barh => false)
+ax = @compat Dict{Any,Any}(:bar => :x, :barh => :y)
+ax1 = @compat Dict{Any,Any}(:bar => :x1, :barh => :y1)
+vert = @compat Dict{Any,Any}(:bar => true, :barh => false)
 for fn in (:bar, :barh)
     eval(quote
           function $fn(p::FramedPlot, b::FramedBar, args...; kvs...)

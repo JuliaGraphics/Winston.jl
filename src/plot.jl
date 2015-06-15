@@ -649,3 +649,45 @@ function legend(p::FramedPlot, lab::AbstractVector, args...; kvs...)
 end
 legend(lab::AbstractVector, args...; kvs...) = legend(_pwinston, lab, args...; kvs...)
 
+function timeplot(p::FramedPlot, x::Vector{DateTime}, y::AbstractArray, args...; kvs...)
+    limits = datetime2unix([minimum(x), maximum(x)])
+
+    ticks = collect(0.0:0.2:1.0)
+    ticklabels = x[round(Int64, ticks * (length(x) - 1) + 1)]
+    normalized_x = (datetime2unix(x) - limits[1]) / (limits[2] - limits[1])
+
+    span = @compat Int(x[end] - x[1]) / 1000
+    kvs = Dict(kvs)
+
+    if :format in keys(kvs)
+        format = kvs[:format]
+        delete!(kvs, :format)
+    else
+        if span > 365 * 24 * 60 * 60 # 1 year
+            format = "%Y-%m"
+        elseif 365 * 24 * 60 * 60 > span > 30 * 24 * 60 * 60 # 1 month
+            format = "%Y-%m-%d"
+        elseif 30 * 24 * 60 * 60 > span > 24 * 60 * 60 # 1 day
+            format = "%Y-%m-%d\n%H:%M"
+        elseif 24 * 60 * 60 > span > 60 * 60 # 1 hour
+            format = "%H:%M"
+        elseif 60 * 60 > 60 # 1 minute
+            format = "%H:%M:%S"
+        else
+            format = "%H:%M:%S"
+        end
+    end
+
+    ticklabels = map(d -> strftime(format, datetime2unix(d)), ticklabels)
+
+    setattr(p.x1, :ticklabels, ticklabels)
+    setattr(p.x1, :ticks, ticks)
+    setattr(p.x1, :ticklabels_style, @compat Dict(:fontsize=>1.5))
+
+    plot(p, normalized_x, y, args...; kvs...)
+end
+
+timeplot(x::Vector{DateTime}, y::AbstractArray, args...; kvs...) = timeplot(ghf(), x, y, args...; kvs...)
+timeplot(x::Vector{Date}, y::AbstractArray, arg...; kvs...) = timeplot(ghf(), DateTime(x), y, arg...; kvs...)
+timeplot(p::FramedPlot, x::Vector{Date}, y::AbstractArray, arg...; kvs...) =
+    timeplot(p, DateTime(x), y, arg...; kvs...)

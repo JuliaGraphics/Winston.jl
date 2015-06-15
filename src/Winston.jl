@@ -9,6 +9,10 @@ else
 end
 using IniFile
 using Compat
+using Dates
+
+isdefined(Base, :Libc) && (strftime = Libc.strftime)
+isdefined(Base, :Dates) && (datetime2unix = Dates.datetime2unix)
 
 export
     bar,
@@ -34,6 +38,7 @@ export
     stem,
     text,
     title,
+    timeplot,
     xlabel,
     xlim,
     ylabel,

@@ -18,6 +18,7 @@ export
     bar,
     barh,
     closefig,
+    closeall,
     colormap,
     errorbar,
     figure,
@@ -2833,10 +2834,12 @@ if output_surface != :none
         include("gtk.jl")
         window = gtkwindow
         closefig(i::Integer) = error("not implemented")
+        closeall() = error("not implemented")
     elseif output_surface == :tk
         include("tk.jl")
         window = tkwindow
         closefig(i::Integer) = tkdestroy(getfig(_display,i).window)
+        closeall() = (map(closefig, keys(_display.figs)); nothing)
     else
         warn("Selected Winston backend not found. You will not be able to display plots in a window")
     end

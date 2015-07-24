@@ -1203,6 +1203,10 @@ function limits2(fp::FramedPlot)
         margin = getattr(fp,    :gutter)
         xlog   = getattr(fp.x2, :log)
         ylog   = getattr(fp.y2, :log)
+
+        xlog === nothing && (xlog = getattr(fp.x1, :log))
+        ylog === nothing && (ylog = getattr(fp.y1, :log))
+
         return limits(margin, xrange, yrange, xlog, ylog, fp.content2)
     end
 
@@ -1234,8 +1238,6 @@ function _context2(self::FramedPlot, device::Renderer, region::BoundingBox)
 
     getattr(self.x2, :log) !== nothing && (xlog = getattr(self.x2, :log))
     getattr(self.y2, :log) !== nothing && (ylog = getattr(self.y2, :log))
-    setattr(self.x2, :log, xlog)
-    setattr(self.y2, :log, ylog)
 
     lims = limits2(self)
     proj = PlotGeometry(lims, region, xlog, ylog)

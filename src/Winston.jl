@@ -1229,12 +1229,14 @@ function _context1(self::FramedPlot, device::Renderer, region::BoundingBox)
 end
 
 function _context2(self::FramedPlot, device::Renderer, region::BoundingBox)
-    xlog = getattr(self.x2, :log)
-    ylog = getattr(self.y2, :log)
-    if isempty(self.content2)
-        xlog === nothing && (xlog = getattr(self.x1, :log))
-        ylog === nothing && (ylog = getattr(self.y1, :log))
-    end
+    xlog = getattr(self.x1, :log)
+    ylog = getattr(self.y1, :log)
+
+    getattr(self.x2, :log) !== nothing && (xlog = getattr(self.x2, :log))
+    getattr(self.y2, :log) !== nothing && (ylog = getattr(self.y2, :log))
+    setattr(self.x2, :log, xlog)
+    setattr(self.y2, :log, ylog)
+
     lims = limits2(self)
     proj = PlotGeometry(lims, region, xlog, ylog)
     return PlotContext(device, region, lims, proj, xlog, ylog)

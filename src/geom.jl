@@ -54,6 +54,7 @@ function shift(r::Rectangle, dx::Real, dy::Real)
 end
 
 # scale width & height, keeping center fixed
+import Base.*
 function (*)(r::Rectangle, s::Real)
     dw = 0.5*(s - 1.)*(r.x1 - r.x0)
     dh = 0.5*(s - 1.)*(r.y1 - r.y0)

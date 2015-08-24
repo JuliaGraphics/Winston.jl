@@ -1,5 +1,5 @@
 import Cairo
-using Color
+using Colors
 using Base.Test
 using Winston
 using Compat

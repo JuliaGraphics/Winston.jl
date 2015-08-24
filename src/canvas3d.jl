@@ -6,7 +6,7 @@ if output_surface == :tk
 elseif output_surface == :gtk
     eval(Expr(:toplevel, Expr(:using, :Gtk)))
 end
-using Color
+using Colors
 using Graphics
 
 export plot3d, surf

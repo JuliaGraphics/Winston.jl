@@ -1,11 +1,11 @@
 import Cairo
-using Color
+using Colors
 using Base.Test
 using Winston
 using Compat
 
 module ImageComparisons
-    using Winston
+    using Winston, Colors
     include("examples.jl")
     include("issues.jl")
     include("plot.jl")

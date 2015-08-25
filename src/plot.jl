@@ -38,21 +38,21 @@ const chartokens = @Dict(
     'v' => (:symbolkind, "down-triangle"),
     '>' => (:symbolkind, "right-triangle"),
     '<' => (:symbolkind, "left-triangle"),
-    'y' => (:color, "yellow"),
-    'm' => (:color, "magenta"),
-    'c' => (:color, "cyan"),
-    'r' => (:color, "red"),
-    'g' => (:color, "green"),
-    'b' => (:color, "blue"),
-    'w' => (:color, "white"),
-    'k' => (:color, "black"),
+    'y' => (:color, colorant"yellow"),
+    'm' => (:color, colorant"magenta"),
+    'c' => (:color, colorant"cyan"),
+    'r' => (:color, colorant"red"),
+    'g' => (:color, colorant"green"),
+    'b' => (:color, colorant"blue"),
+    'w' => (:color, colorant"white"),
+    'k' => (:color, colorant"black"),
 )
 
 function _parse_spec(spec::String)
     style = Dict()
 
     try
-        style[:color] = Color.color(spec)
+        style[:color] = parse(Colors.Colorant, spec)
         return style
     end
 
@@ -280,13 +280,13 @@ end
 
 colormap() = (global _current_colormap; _current_colormap)
 colormap(c::Array{Uint32,1}) = (global _current_colormap = c; nothing)
-colormap{C<:ColorValue}(cs::Array{C,1}) =
+colormap{C<:Color}(cs::Array{C,1}) =
     colormap(Uint32[convert(RGB24,c) for c in cs])
 function colormap(name::String, n::Int=256)
     if name == "jet"
         colormap([jetrgb(x) for x in linspace(0.,1.,n)])
     else
-        colormap(Color.colormap(name, n))
+        colormap(Colors.colormap(name, n))
     end
 end
 colormap("jet")
@@ -361,7 +361,7 @@ function scatter(x::AbstractVecOrMat, y::AbstractVecOrMat,
     end
     if eltype(c) <: Real
         c = data2rgb(c, extrema(c), _current_colormap)
-    elseif !(eltype(c) <: ColorValue)
+    elseif !(eltype(c) <: Color)
         error("bad color array")
     end
     sopts = _parse_spec(spec)

@@ -1,7 +1,7 @@
 module Winston
 
 using Cairo
-using Color
+using Colors
 if VERSION < v"0.4.0-dev+3275"
     importall Base.Graphics
 else

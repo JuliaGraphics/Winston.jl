@@ -1,4 +1,4 @@
-using Winston
+using Winston, Colors
 if Winston.output_surface == :tk
     using Tk
 elseif Winston.output_surface == :gtk
@@ -15,6 +15,6 @@ pack(c, expand=true, fill="both")
 p = FramedPlot()
 x = linspace(0,10,1001)
 y = sin(x)
-add(p, Curve(x, y, "color", "green"))
+add(p, Curve(x, y, "color", colorant"green"))
 
 Winston.display(c, p)

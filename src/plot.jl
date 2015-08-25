@@ -38,14 +38,14 @@ const chartokens = @Dict(
     'v' => (:symbolkind, "down-triangle"),
     '>' => (:symbolkind, "right-triangle"),
     '<' => (:symbolkind, "left-triangle"),
-    'y' => (:color, "yellow"),
-    'm' => (:color, "magenta"),
-    'c' => (:color, "cyan"),
-    'r' => (:color, "red"),
-    'g' => (:color, "green"),
-    'b' => (:color, "blue"),
-    'w' => (:color, "white"),
-    'k' => (:color, "black"),
+    'y' => (:color, colorant"yellow"),
+    'm' => (:color, colorant"magenta"),
+    'c' => (:color, colorant"cyan"),
+    'r' => (:color, colorant"red"),
+    'g' => (:color, colorant"green"),
+    'b' => (:color, colorant"blue"),
+    'w' => (:color, colorant"white"),
+    'k' => (:color, colorant"black"),
 )
 
 function _parse_spec(spec::String)

@@ -19,8 +19,8 @@ function example01()
             ylabel="\\Theta_i")
 
     add(p, FillBetween(x, c, x, s))
-    add(p, Curve(x, c, color="red"))
-    add(p, Curve(x, s, color="blue"))
+    add(p, Curve(x, c, color=colorant"red"))
+    add(p, Curve(x, s, color=colorant"blue"))
 
     p
 end
@@ -87,7 +87,7 @@ function example04()
     setattr(p.frame, tickdir=+1, draw_spine=false)
 
     add(p, SymmetricErrorBarsY(x, s, 0.2*ones(length(x))))
-    add(p, Points(x, s, color="red"))
+    add(p, Points(x, s, color=colorant"red"))
     add(p, PlotInset((.6,.6), (.95,.95), inset))
     p
 end

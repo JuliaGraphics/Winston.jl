@@ -9,7 +9,12 @@ else
 end
 using IniFile
 using Compat
-using Dates
+if VERSION < v"0.4.0-"
+    using Dates
+else
+    using Base.Dates
+end
+import Base: *
 
 isdefined(Base, :Libc) && (strftime = Libc.strftime)
 isdefined(Base, :Dates) && (datetime2unix = Dates.datetime2unix)
@@ -75,7 +80,7 @@ export
     setattr,
     style,
     svg,
-    
+
     getcomponents,
     rmcomponents,
     grid,
@@ -1302,7 +1307,7 @@ function rmcomponents(p::FramedPlot, t::Type, args...)
     todel = find(map(x -> (x <: t), ctypes))
     rmcomponents(p, todel, args...)
 end
-    
+
 # Table ------------------------------------------------------------------------
 
 type _Grid
@@ -2472,7 +2477,7 @@ end
 # FramedComponent ---------------------------------------------------------------
 
 abstract FramedComponent <: PlotComponent
-    
+
 function make_key(self::FramedComponent, bbox::BoundingBox)
     p = lowerleft(bbox)
     q = upperright(bbox)
@@ -2504,7 +2509,7 @@ _kw_rename(::FramedBar) = @Dict(
 )
 
 function limits(self::FramedBar, window::BoundingBox)
-    x = [1, length(self.g)] + 
+    x = [1, length(self.g)] +
         getattr(self, "barwidth") * [-.5, .5] +
         getattr(self, "offset")
     y = [extrema(self.h)...]

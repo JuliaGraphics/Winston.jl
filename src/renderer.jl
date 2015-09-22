@@ -60,7 +60,7 @@ end
 ## state commands
 
 color_to_rgb(i::Integer) = convert(RGB, RGB24(unsigned(i)))
-color_to_rgb(s::String) = color(s)
+color_to_rgb(s::AbstractString) = color(s)
 color_to_rgb(rgb::@compat(Tuple{Real,Real,Real})) = RGB(rgb...)
 color_to_rgb(cv::Color) = convert(RGB, cv)
 color_to_rgb(cv::TransparentColor) = cv
@@ -95,12 +95,12 @@ function set(self::CairoRenderer, key::Symbol, value)
         __pl_style_func[key](self.ctx, value)
     end
 end
-set(self::CairoRenderer, key::String, value) = set(self, symbol(key), value)
+set(self::CairoRenderer, key::AbstractString, value) = set(self, symbol(key), value)
 
 function get(self::CairoRenderer, parameter::Symbol, notfound=nothing)
     return get(self.state, parameter, notfound)
 end
-get(self::CairoRenderer, parameter::String, notfound=nothing) = get(self, symbol(parameter), notfound)
+get(self::CairoRenderer, parameter::AbstractString, notfound=nothing) = get(self, symbol(parameter), notfound)
 
 function save_state(self::CairoRenderer)
     save(self.state)
@@ -261,11 +261,11 @@ function rectangle(self::CairoRenderer, bbox::BoundingBox, filled::Bool=true)
     filled ? fill(self.ctx) : stroke(self.ctx)
 end
 
-function layout_text(self::CairoRenderer, str::String)
+function layout_text(self::CairoRenderer, str::AbstractString)
     set_latex(self.ctx, str, get(self,:fontsize))
 end
 
-function textdraw(self::CairoRenderer, x::Real, y::Real, str::String; kwargs...)
+function textdraw(self::CairoRenderer, x::Real, y::Real, str::AbstractString; kwargs...)
     return Cairo.text(self.ctx, x, y, set_latex(self.ctx, str, get(self,:fontsize)); markup=true, kwargs...)
 end
 

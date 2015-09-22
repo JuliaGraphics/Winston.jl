@@ -16,12 +16,12 @@ function read_png_data(fn::ASCIIString)
     w = Cairo.width(surface)
     h = Cairo.height(surface)
     p = ccall((:cairo_image_surface_get_data,Cairo._jl_libcairo),
-              Ptr{Uint8}, (Ptr{Void},), surface.ptr)
+              Ptr{UInt8}, (Ptr{Void},), surface.ptr)
     a = pointer_to_array(convert(Ptr{UInt32},p), (convert(Int,w),convert(Int,h)))
     copy(a)
 end
 
-function img_dist{T<:Array{Uint32,2}}(img1::T, img2::T)
+function img_dist{T<:Array{UInt32,2}}(img1::T, img2::T)
     @assert size(img1) == size(img2)
     s = 0.
     for i = 1:length(img1)

@@ -93,7 +93,7 @@ import Base: copy,
 export get_context, device_to_data, data_to_device
 
 if VERSION < v"0.3-"
-    typealias AbstractVecOrMat{T} Union(AbstractVector{T}, AbstractMatrix{T})
+    typealias AbstractVecOrMat{T} Union{AbstractVector{T}, AbstractMatrix{T}}
     extrema(x) = (minimum(x),maximum(x))
     Base.push!(x, a, b) = (push!(x, a); push!(x, b))
 elseif VERSION < v"0.4-"
@@ -170,7 +170,7 @@ end
 
 # relative size ---------------------------------------------------------------
 
-typealias Box Union(BoundingBox,Rectangle)
+typealias Box Union{BoundingBox,Rectangle}
 
 function _size_relative(relsize, bbox::Box)
     w = width(bbox)
@@ -240,7 +240,7 @@ function device_to_data(ctx::PlotContext, x::Real, y::Real)
     deproject(ctx.geom, x, y)
 end
 
-function data_to_device{T<:Real}(ctx::PlotContext, x::Union(T,AbstractArray{T}), y::Union(T,AbstractArray{T}))
+function data_to_device{T<:Real}(ctx::PlotContext, x::Union{T,AbstractArray{T}}, y::Union{T,AbstractArray{T}})
     project(ctx.geom, x, y)
 end
 
@@ -1861,32 +1861,32 @@ function savesvg(p::PlotContainer, io::IO, width, height)
     write_to_surface(p, surface)
 end
 
-function savesvg(p::PlotContainer, filename::String, width, height)
+function savesvg(p::PlotContainer, filename::AbstractString, width, height)
     io = Base.FS.open(filename, Base.JL_O_CREAT|Base.JL_O_TRUNC|Base.JL_O_WRONLY, 0o644)
     savesvg(p, io, width, height)
     close(io)
     nothing
 end
 
-function saveeps(self::PlotContainer, filename::String, width::String, height::String)
+function saveeps(self::PlotContainer, filename::AbstractString, width::AbstractString, height::AbstractString)
     saveeps(self, filename, _str_size_to_pts(width), _str_size_to_pts(height))
 end
 
-function saveeps(self::PlotContainer, filename::String, width::Real, height::Real)
+function saveeps(self::PlotContainer, filename::AbstractString, width::Real, height::Real)
     surface = CairoEPSSurface(filename, width, height)
     write_to_surface(self, surface)
 end
 
-function savepdf(self, filename::String, width::String, height::String)
+function savepdf(self, filename::AbstractString, width::AbstractString, height::AbstractString)
     savepdf(self, filename, _str_size_to_pts(width), _str_size_to_pts(height))
 end
 
-function savepdf(self::PlotContainer, filename::String, width::Real, height::Real)
+function savepdf(self::PlotContainer, filename::AbstractString, width::Real, height::Real)
     surface = CairoPDFSurface(filename, width, height)
     write_to_surface(self, surface)
 end
 
-function savepdf{T<:PlotContainer}(plots::Vector{T}, filename::String, width::Real, height::Real)
+function savepdf{T<:PlotContainer}(plots::Vector{T}, filename::AbstractString, width::Real, height::Real)
     surface = CairoPDFSurface(filename, width, height)
     r = CairoRenderer(surface)
     for plt in plots
@@ -1896,7 +1896,7 @@ function savepdf{T<:PlotContainer}(plots::Vector{T}, filename::String, width::Re
     finish(surface)
 end
 
-function savepng(self::PlotContainer, io_or_filename::Union(IO,String), width::Int, height::Int)
+function savepng(self::PlotContainer, io_or_filename::Union{IO,AbstractString}, width::Int, height::Int)
     surface = CairoRGBSurface(width, height)
     r = CairoRenderer(surface)
     set_source_rgb(r.ctx, 1.,1.,1.)
@@ -1907,7 +1907,7 @@ function savepng(self::PlotContainer, io_or_filename::Union(IO,String), width::I
     finish(surface)
 end
 
-function savefig(self::PlotContainer, filename::String, args...; kvs...)
+function savefig(self::PlotContainer, filename::AbstractString, args...; kvs...)
     extn = filename[end-2:end]
     opts = args2dict(args...; kvs...)
     if extn == "eps"
@@ -1931,7 +1931,7 @@ function savefig(self::PlotContainer, filename::String, args...; kvs...)
     end
 end
 
-function savefig{T<:PlotContainer}(plots::Vector{T}, filename::String, args...; kvs...)
+function savefig{T<:PlotContainer}(plots::Vector{T}, filename::AbstractString, args...; kvs...)
     extn = filename[end-2:end]
     opts = args2dict(args...; kvs...)
     if extn == "pdf"
@@ -2162,11 +2162,11 @@ end
 type BoxLabel <: PlotComponent
     attr::PlotAttributes
     obj
-    str::String
+    str::AbstractString
     side
     offset
 
-    function BoxLabel(obj, str::String, side, offset, args...; kvs...)
+    function BoxLabel(obj, str::AbstractString, side, offset, args...; kvs...)
         @assert !is(str,nothing)
         self = new(Dict(), obj, str, side, offset)
         kw_init(self, args...; kvs...)
@@ -2259,7 +2259,7 @@ _kw_rename(::LabelComponent) = @Dict(
 type DataLabel <: LabelComponent
     attr::PlotAttributes
     pos::Point
-    str::String
+    str::AbstractString
 
     function DataLabel(x, y, str, args...; kvs...)
         self = new(Dict())
@@ -2285,7 +2285,7 @@ end
 type PlotLabel <: LabelComponent
     attr::PlotAttributes
     pos::Point
-    str::String
+    str::AbstractString
 
     function PlotLabel(x, y, str, args...; kvs...)
         self = new(Dict())
@@ -2666,10 +2666,10 @@ function setattr(self::HasAttr, name::Symbol, value)
     self.attr[key] = value
 end
 
-hasattr(self::HasAttr, name::String) = hasattr(self, symbol(name))
-getattr(self::HasAttr, name::String) = getattr(self, symbol(name))
-getattr(self::HasAttr, name::String, notfound) = getattr(self, symbol(name), notfound)
-setattr(self::HasAttr, name::String, value) = setattr(self, symbol(name), value)
+hasattr(self::HasAttr, name::AbstractString) = hasattr(self, symbol(name))
+getattr(self::HasAttr, name::AbstractString) = getattr(self, symbol(name))
+getattr(self::HasAttr, name::AbstractString, notfound) = getattr(self, symbol(name), notfound)
+setattr(self::HasAttr, name::AbstractString, value) = setattr(self, symbol(name), value)
 setattr(self::HasAttr; kvs...) = (for (k,v) in kvs; setattr(self, k, v); end)
 
 function iniattr(self::HasAttr, args...; kvs...)
@@ -2813,7 +2813,7 @@ end
 _display = WinstonDisplay()
 _pwinston = FramedPlot()
 
-function figure(;name::String="Figure $(nextfig(_display))",
+function figure(;name::AbstractString="Figure $(nextfig(_display))",
                  width::Integer=Winston.config_value("window","width"),
                  height::Integer=Winston.config_value("window","height"))
     i = nextfig(_display)

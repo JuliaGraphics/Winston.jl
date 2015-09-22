@@ -4,7 +4,7 @@ Image
 .. function:: Image(xrange, yrange, img, arg...; kvs...)
 
     ``PlotComponent`` to draw RGB data in ``img``. ``img`` must be of type
-    ``Array{Uint32,2}``. ``xrange`` and ``yrange`` are used to set the range
+    ``Array{UInt32,2}``. ``xrange`` and ``yrange`` are used to set the range
     of the corresponding axis.
 
 Example

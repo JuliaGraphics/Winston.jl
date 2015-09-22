@@ -1,7 +1,7 @@
 text
 ====
 
-.. function:: text(x::Real, y::Real, s::String; kvs...)
+.. function:: text(x::Real, y::Real, s::AbstractString; kvs...)
 
    Add the text in ``s`` to the current plot at coordinates ``x`` and ``y``.
 

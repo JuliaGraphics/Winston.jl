@@ -1,7 +1,7 @@
 scatter
 =======
 
-.. function:: scatter(x, y, s, c [,spec::String])
+.. function:: scatter(x, y, s, c [,spec::AbstractString])
 
     Plot points at positions ``(x,y)`` with sizes ``s`` and colors ``c``.
 

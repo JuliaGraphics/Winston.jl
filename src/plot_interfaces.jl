@@ -4,7 +4,7 @@
 ## Plot interfaces for functions
 
 ## plot(x, [y], args..., kwargs...) lineplot
-## plot(x::Tuple{Vector}, args...; symboltype::String="o", kwargs...) scatter plot
+## plot(x::Tuple{Vector}, args...; symboltype::AbstractString="o", kwargs...) scatter plot
 ## plot(fs::Tuple{Function}, a, b; kwargs) parametric plot
 ## plot(fs::Array{Function, 2}, a::Real, b::Real, args...; kwargs...) table of plots
 

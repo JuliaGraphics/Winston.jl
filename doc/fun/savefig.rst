@@ -1,7 +1,7 @@
 savefig
 =======
 
-.. function:: savefig(filename::String)
+.. function:: savefig(filename::AbstractString)
 
    Save the current figure to ``filename``.
    The file type is set by the extension.

@@ -104,7 +104,7 @@ function _process_keywords(kvs, p, components...)
     end
 end
 
-typealias PlotArg Union{AbstractString,AbstractVector,AbstractMatrix,Function,Real}
+@compat typealias PlotArg Union{AbstractString,AbstractVector,AbstractMatrix,Function,Real}
 
 isrowvec(x::AbstractArray) = ndims(x) == 2 && size(x,1) == 1 && size(x,2) > 1
 
@@ -354,7 +354,7 @@ function scatter(x::AbstractVecOrMat, y::AbstractVecOrMat,
     scatter(x, y, s, fill(c,size(x)...), spec; kvs...)
 end
 function scatter(x::AbstractVecOrMat, y::AbstractVecOrMat,
-                 s::Union{Real,AbstractVecOrMat}, c::AbstractVecOrMat,
+                 s::(@compat Union{Real,AbstractVecOrMat}), c::AbstractVecOrMat,
                  spec::ASCIIString="o"; kvs...)
     if typeof(s) <: Real
         s = fill(s, size(x)...)
@@ -432,7 +432,7 @@ _default_kernel2d=(1.0/273.)*[1.0 4.0 7.0 4.0 1.0;
                              4.0 16. 26. 16. 4.0]
 
 #hist2d
-function plothist2d(p::FramedPlot, h::@compat(Tuple{Union{Range,Vector},Union{Range,Vector},Array{Int,2}}); colormap=_current_colormap, smooth=0, kernel=_default_kernel2d, kvs...)
+function plothist2d(p::FramedPlot, h::@compat(Tuple{(@compat Union{Range,Vector}),(@compat Union{Range,Vector}),Array{Int,2}}); colormap=_current_colormap, smooth=0, kernel=_default_kernel2d, kvs...)
     xr, yr, hdata = h
 
     for i in 1:smooth

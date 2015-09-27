@@ -93,7 +93,7 @@ import Base: copy,
 export get_context, device_to_data, data_to_device
 
 if VERSION < v"0.3-"
-    typealias AbstractVecOrMat{T} Union{AbstractVector{T}, AbstractMatrix{T}}
+    typealias AbstractVecOrMat{T} (@compat Union{AbstractVector{T}, AbstractMatrix{T}})
     extrema(x) = (minimum(x),maximum(x))
     Base.push!(x, a, b) = (push!(x, a); push!(x, b))
 elseif VERSION < v"0.4-"
@@ -170,7 +170,7 @@ end
 
 # relative size ---------------------------------------------------------------
 
-typealias Box Union{BoundingBox,Rectangle}
+@compat typealias Box Union{BoundingBox,Rectangle}
 
 function _size_relative(relsize, bbox::Box)
     w = width(bbox)
@@ -240,7 +240,7 @@ function device_to_data(ctx::PlotContext, x::Real, y::Real)
     deproject(ctx.geom, x, y)
 end
 
-function data_to_device{T<:Real}(ctx::PlotContext, x::Union{T,AbstractArray{T}}, y::Union{T,AbstractArray{T}})
+function data_to_device{T<:Real}(ctx::PlotContext, x::(@compat Union{T,AbstractArray{T}}), y::(@compat Union{T,AbstractArray{T}}))
     project(ctx.geom, x, y)
 end
 
@@ -1896,7 +1896,7 @@ function savepdf{T<:PlotContainer}(plots::Vector{T}, filename::AbstractString, w
     finish(surface)
 end
 
-function savepng(self::PlotContainer, io_or_filename::Union{IO,AbstractString}, width::Int, height::Int)
+function savepng(self::PlotContainer, io_or_filename::(@compat Union{IO,AbstractString}), width::Int, height::Int)
     surface = CairoRGBSurface(width, height)
     r = CairoRenderer(surface)
     set_source_rgb(r.ctx, 1.,1.,1.)

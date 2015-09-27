@@ -6,7 +6,7 @@ type Contourc
     contours
 end
 
-function contourc(f::Function, x, y; cs::Union{Void, Number}=nothing)
+function contourc(f::Function, x, y; cs::(@compat Union{(@compat Void), Number})=nothing)
 
     fxy = [f(x,y) for x in x, y in y]
 
@@ -117,7 +117,7 @@ function contourc(f::Function, x, y; cs::Union{Void, Number}=nothing)
             next_square(c, which_next(edge, i,j)..., edge, cx, cy, m)
         end
         ## out is array of tuples
-        if !isa(out[1], Void)
+        if !isa(out[1], (@compat Void))
             ([reverse(out[1][1]), out[2][1]], [reverse(out[1][2]), out[2][2]])
         else
             nothing
@@ -129,7 +129,7 @@ function contourc(f::Function, x, y; cs::Union{Void, Number}=nothing)
 
 
 ## for each level to plot
-    if isa(cs, Void)
+    if isa(cs, (@compat Void))
         cs = linspace(minimum(fxy), maximum(fxy), 7+2)[2:8]
     else
         cs = [cs]
@@ -148,7 +148,7 @@ function contourc(f::Function, x, y; cs::Union{Void, Number}=nothing)
             if insquare(sq)
                 path = chase_square(c, i,j, m)
 ##                println("Chased path:", path)
-                if !isa(path, Void)
+                if !isa(path, (@compat Void))
                     push!(c_contours, path)
                 end
             else

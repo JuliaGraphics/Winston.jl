@@ -9,7 +9,9 @@ else
 end
 using IniFile
 using Compat
-using Dates
+if VERSION.minor < 4
+    using Dates
+end
 
 isdefined(Base, :Libc) && (strftime = Libc.strftime)
 isdefined(Base, :Dates) && (datetime2unix = Dates.datetime2unix)

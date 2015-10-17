@@ -1435,16 +1435,19 @@ function add(self::Plot, args::PlotComponent...)
 end
 
 function limits(self::Plot, window::BoundingBox)
-    return _limits(limits(self.content,window), getattr(self,"gutter"),
-                   getattr(self,"xlog"), getattr(self,"ylog"),
-                   getattr(self,"xrange"), getattr(self,"yrange"))
+    margin = getattr(self, :gutter)
+    xrange = getattr(self, :xrange)
+    yrange = getattr(self, :yrange)
+    xlog   = getattr(self, :xlog)
+    ylog   = getattr(self, :ylog)
+    limits(margin, xrange, yrange, xlog, ylog, self.content)
 end
 
 compose_interior(self::Plot, device::Renderer, region::BoundingBox) =
     compose_interior(self, device, region, nothing)
 function compose_interior(self::Plot, device, region, lmts)
     if is(lmts,nothing)
-        lmts = limits(self)
+        lmts = limits(self, region)
     end
     xlog = getattr(self,"xlog")
     ylog = getattr(self,"ylog")

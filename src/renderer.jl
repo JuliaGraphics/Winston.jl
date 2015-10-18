@@ -60,7 +60,7 @@ end
 ## state commands
 
 color_to_rgb(i::Integer) = convert(RGB, RGB24(unsigned(i)))
-color_to_rgb(s::AbstractString) = color(s)
+color_to_rgb(s::AbstractString) =parse(Colorant,s)
 color_to_rgb(rgb::@compat(Tuple{Real,Real,Real})) = RGB(rgb...)
 color_to_rgb(cv::Color) = convert(RGB, cv)
 color_to_rgb(cv::TransparentColor) = cv

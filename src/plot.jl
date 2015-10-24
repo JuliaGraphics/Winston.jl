@@ -569,7 +569,7 @@ function fplot(f::Function, limits, args...; kvs...)
             pargs = [arg]
         elseif typeof(arg) <: Integer
             fopts[:min_points] = arg
-@compat elseif typeof(arg) <: AbstractFloat
+        elseif typeof(arg) <: @compat AbstractFloat
             fopts[:tol] = arg
         else
             error("unrecognized argument ", arg)

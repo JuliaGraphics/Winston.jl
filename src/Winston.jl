@@ -4,12 +4,14 @@ using Cairo
 using Colors
 if VERSION < v"0.4.0-dev+3275"
     importall Base.Graphics
+    using Dates
 else
     importall Graphics
+    using Base.Dates
+    import Base: *
 end
 using IniFile
 using Compat
-using Dates
 isdefined(Base, :Libc) && (strftime = Libc.strftime)
 isdefined(Base, :Dates) && (datetime2unix = Dates.datetime2unix)
 

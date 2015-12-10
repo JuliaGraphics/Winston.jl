@@ -1273,7 +1273,7 @@ function compose_interior(self::FramedPlot, device::Renderer, region::BoundingBo
 end
 
 getcomponents(p::FramedPlot, c) = p.([:content1, :content2][c]).components
-getcomponents(p::FramedPlot) = [getcomponents(p,1), getcomponents(p,2)]
+getcomponents(p::FramedPlot) = [getcomponents(p,1); getcomponents(p,2)]
 
 rmcomponents(p::FramedPlot, i::Integer, c) = splice!(p.([:content1, :content2][c]).components, i)
 

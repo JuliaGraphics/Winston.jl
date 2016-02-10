@@ -19,6 +19,7 @@ Example 1
     add(p, FillBetween(x, c, x, s))
     add(p, Curve(x, c, color="red"))
     add(p, Curve(x, s, color="blue"))
+    savefig(p, "Example1.png")
 
 Example 2
 ---------

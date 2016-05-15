@@ -95,12 +95,12 @@ function set(self::CairoRenderer, key::Symbol, value)
         __pl_style_func[key](self.ctx, value)
     end
 end
-set(self::CairoRenderer, key::AbstractString, value) = set(self, symbol(key), value)
+set(self::CairoRenderer, key::AbstractString, value) = set(self, Symbol(key), value)
 
 function get(self::CairoRenderer, parameter::Symbol, notfound=nothing)
     return get(self.state, parameter, notfound)
 end
-get(self::CairoRenderer, parameter::AbstractString, notfound=nothing) = get(self, symbol(parameter), notfound)
+get(self::CairoRenderer, parameter::AbstractString, notfound=nothing) = get(self, Symbol(parameter), notfound)
 
 function save_state(self::CairoRenderer)
     save(self.state)

@@ -37,7 +37,7 @@ function _atox(s::AbstractString)
         pairs = map(strip, split_keep_false(x[2:end-1], ','))
         for pair in pairs
             kv = split_keep_false(pair, ':')
-            style[ symbol(strip(kv[1])) ] = _atox(strip(kv[2]))
+            style[ Symbol(strip(kv[1])) ] = _atox(strip(kv[2]))
         end
         return style
     elseif x[1] == '"' && x[end] == '"'
@@ -59,11 +59,11 @@ function config_options(sec::AbstractString)
     opts = Dict{Symbol,Any}()
     if sec == "defaults"
         for (k,v) in _winston_config.defaults
-            opts[symbol(k)] = _atox(v)
+            opts[Symbol(k)] = _atox(v)
         end
     elseif has_section(_winston_config, sec)
         for (k,v) in section(_winston_config, sec)
-            opts[symbol(k)] = _atox(v)
+            opts[Symbol(k)] = _atox(v)
         end
     end
     opts

@@ -24,7 +24,7 @@ const args = [
 ]
 
 for i = 1:length(args)
-    f = symbol(@sprintf("plot%03d",i))
+    f = Symbol(@sprintf("plot%03d",i))
     body = copy(args[i])
     body.head = :call
     unshift!(body.args, :plot)

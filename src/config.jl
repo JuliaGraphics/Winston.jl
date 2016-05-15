@@ -1,4 +1,4 @@
-using Compat
+using Compat; import Compat.String
 
 _winston_config = Inifile()
 

@@ -331,10 +331,10 @@ function spy(S::SparseMatrixCSC, nrS::Integer, ncS::Integer)
     imagesc((1,m), (1,n), target)
 end
 
-scatter(x::AbstractVecOrMat, y::AbstractVecOrMat, spec::ASCIIString="o"; kvs...) = scatter(x, y, 1., spec; kvs...)
-scatter{C<:Complex}(z::AbstractVecOrMat{C}, spec::ASCIIString="o"; kvs...) = scatter(real(z), imag(z), 1., spec; kvs...)
+scatter(x::AbstractVecOrMat, y::AbstractVecOrMat, spec::String="o"; kvs...) = scatter(x, y, 1., spec; kvs...)
+scatter{C<:Complex}(z::AbstractVecOrMat{C}, spec::String="o"; kvs...) = scatter(real(z), imag(z), 1., spec; kvs...)
 function scatter(x::AbstractVecOrMat, y::AbstractVecOrMat,
-                 s::Real, spec::ASCIIString="o"; kvs...)
+                 s::Real, spec::String="o"; kvs...)
     sopts = _parse_spec(spec)
     p = ghf()
     c = Points(x, y, sopts, symbolsize=s)
@@ -349,13 +349,13 @@ function scatter(x::AbstractVecOrMat, y::AbstractVecOrMat,
     ghf(p)
 end
 function scatter(x::AbstractVecOrMat, y::AbstractVecOrMat,
-                 s::AbstractVecOrMat, spec::ASCIIString="o"; kvs...)
+                 s::AbstractVecOrMat, spec::String="o"; kvs...)
     c = convert(RGB24, color(get(_parse_spec(spec), :color, RGB(0,0,0))))
     scatter(x, y, s, fill(c,size(x)...), spec; kvs...)
 end
 function scatter(x::AbstractVecOrMat, y::AbstractVecOrMat,
                  s::(@compat Union{Real,AbstractVecOrMat}), c::AbstractVecOrMat,
-                 spec::ASCIIString="o"; kvs...)
+                 spec::String="o"; kvs...)
     if typeof(s) <: Real
         s = fill(s, size(x)...)
     end
@@ -380,8 +380,8 @@ end
 
 ## stem ##
 
-stem(y::AbstractVecOrMat, spec::ASCIIString="o"; kvs...) = stem(1:length(y), y, spec; kvs...)
-function stem(x::AbstractVecOrMat, y::AbstractVecOrMat, spec::ASCIIString="o"; kvs...)
+stem(y::AbstractVecOrMat, spec::String="o"; kvs...) = stem(1:length(y), y, spec; kvs...)
+function stem(x::AbstractVecOrMat, y::AbstractVecOrMat, spec::String="o"; kvs...)
     p = ghf()
     sopts = _parse_spec(spec)
     s = Stems(x, y, sopts)

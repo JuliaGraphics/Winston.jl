@@ -8,7 +8,7 @@ else
     importall Graphics
 end
 using IniFile
-using Compat
+using Compat; import Compat.String
 using Dates
 isdefined(Base, :Libc) && (strftime = Libc.strftime)
 isdefined(Base, :Dates) && (datetime2unix = Dates.datetime2unix)
@@ -106,7 +106,7 @@ else
 end
 
 type WinstonException <: Exception
-    msg::ByteString
+    msg::String
 end
 
 abstract HasAttr

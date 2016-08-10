@@ -90,6 +90,10 @@ import Base: copy,
     setindex!,
     show
 
+if VERSION < v"0.5-"
+import Base: writemime
+end
+
 export get_context, device_to_data, data_to_device
 
 if VERSION < v"0.3-"
@@ -2755,8 +2759,13 @@ function set_default_plot_size(width::Int, height::Int)
     _ijulia_height = height
 end
 
+if VERSION < v"0.5-"
+writemime(io::IO, ::MIME"image/png", p::PlotContainer) =
+    savepng(p, io, _ijulia_width, _ijulia_height)
+else
 show(io::IO, ::MIME"image/png", p::PlotContainer) =
     savepng(p, io, _ijulia_width, _ijulia_height)
+end
 
 if isdefined(Main, :IJulia)
     output_surface = :none

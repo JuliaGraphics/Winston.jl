@@ -82,7 +82,7 @@ immutable LogProjection <: AbstractProjection1
 end
 
 project(p::LogProjection, u) = p.a .+ p.b .* log10(u)
-deproject(p::LinearProjection, x) = 10.0 .^ ((x .- p.a) ./ p.b)
+deproject(p::LogProjection, x) = 10.0 .^ ((x .- p.a) ./ p.b)
 
 immutable SeparableProjection2{P1<:AbstractProjection1,
                                P2<:AbstractProjection1} <: AbstractProjection2

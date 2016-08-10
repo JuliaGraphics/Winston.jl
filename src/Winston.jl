@@ -4,12 +4,14 @@ using Cairo
 using Colors
 if VERSION < v"0.4.0-dev+3275"
     importall Base.Graphics
+    using Dates
 else
     importall Graphics
+    using Base.Dates
+    import Base: *
 end
 using IniFile
 using Compat; import Compat.String
-using Dates
 isdefined(Base, :Libc) && (strftime = Libc.strftime)
 isdefined(Base, :Dates) && (datetime2unix = Dates.datetime2unix)
 
@@ -86,8 +88,7 @@ import Base: copy,
     getindex,
     isempty,
     setindex!,
-    show,
-    writemime
+    show
 
 export get_context, device_to_data, data_to_device
 
@@ -458,6 +459,8 @@ end
 
 if VERSION < v"0.4-"
     const grisu = Base.Grisu.grisu
+elseif VERSION >= v"0.5-"
+    grisu(a,b,c) = ((w,x,y) = Base.Grisu.grisu(a,b,c); (y,Base.Grisu.DIGITS[1:w],x))
 else
     grisu(a,b,c) = ((w,x,y,z) = Base.Grisu.grisu(a,b,c); (y,z[1:w],x))
 end
@@ -470,7 +473,7 @@ function _format_ticklabel(x, range=0.; min_pow10=4)
     if length(digits) > 5
         neg, digits, b = grisu(x, Base.Grisu.PRECISION, @compat Int32(6))
         n = length(digits)
-        while digits[n] == '0'
+        while digits[n] == UInt32('0')
             n -= 1
         end
         digits = digits[1:n]
@@ -2752,7 +2755,7 @@ function set_default_plot_size(width::Int, height::Int)
     _ijulia_height = height
 end
 
-writemime(io::IO, ::MIME"image/png", p::PlotContainer) =
+show(io::IO, ::MIME"image/png", p::PlotContainer) =
     savepng(p, io, _ijulia_width, _ijulia_height)
 
 if isdefined(Main, :IJulia)

@@ -2,7 +2,7 @@ import Cairo
 using Colors
 using Base.Test
 using Winston
-using Compat
+using Compat; import Compat.String
 
 module ImageComparisons
     using Winston, Colors
@@ -11,7 +11,7 @@ module ImageComparisons
     include("plot.jl")
 end
 
-function read_png_data(fn::ASCIIString)
+function read_png_data(fn::String)
     surface = Cairo.read_from_png(fn)
     w = Cairo.width(surface)
     h = Cairo.height(surface)

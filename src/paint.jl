@@ -81,8 +81,8 @@ immutable LabelsPainter <: AbstractPainter
     points::Vector{Point}
     labels::Vector
     angle::Float64
-    halign::ASCIIString
-    valign::ASCIIString
+    halign::String
+    valign::String
 end
 
 function LabelsPainter(points, labels; angle=0., halign="center", valign="center")
@@ -215,10 +215,10 @@ end
 
 immutable TextPainter <: AbstractPainter
     pos::Point
-    str::ByteString
+    str::String
     angle::Float64
-    halign::ASCIIString
-    valign::ASCIIString
+    halign::String
+    valign::String
 end
 
 function TextPainter(pos, str; angle=0., halign="center", valign="center")

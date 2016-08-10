@@ -8,7 +8,7 @@ else
     importall Graphics
 end
 using IniFile
-using Compat
+using Compat; import Compat.String
 using Dates
 isdefined(Base, :Libc) && (strftime = Libc.strftime)
 isdefined(Base, :Dates) && (datetime2unix = Dates.datetime2unix)
@@ -106,7 +106,7 @@ else
 end
 
 type WinstonException <: Exception
-    msg::ByteString
+    msg::String
 end
 
 abstract HasAttr
@@ -130,13 +130,13 @@ function args2dict(args...; kvs...)
         arg, iter = next(args, iter)
         if typeof(arg) <: Associative
             for (k,v) in arg
-                opts[symbol(k)] = v
+                opts[Symbol(k)] = v
             end
         elseif typeof(arg) <: Tuple
-            opts[symbol(arg[1])] = arg[2]
+            opts[Symbol(arg[1])] = arg[2]
         else
             val, iter = next(args, iter)
-            opts[symbol(arg)] = val
+            opts[Symbol(arg)] = val
         end
     end
     for (k,v) in kvs
@@ -2665,16 +2665,16 @@ function setattr(self::HasAttr, name::Symbol, value)
     self.attr[key] = value
 end
 
-hasattr(self::HasAttr, name::AbstractString) = hasattr(self, symbol(name))
-getattr(self::HasAttr, name::AbstractString) = getattr(self, symbol(name))
-getattr(self::HasAttr, name::AbstractString, notfound) = getattr(self, symbol(name), notfound)
-setattr(self::HasAttr, name::AbstractString, value) = setattr(self, symbol(name), value)
+hasattr(self::HasAttr, name::AbstractString) = hasattr(self, Symbol(name))
+getattr(self::HasAttr, name::AbstractString) = getattr(self, Symbol(name))
+getattr(self::HasAttr, name::AbstractString, notfound) = getattr(self, Symbol(name), notfound)
+setattr(self::HasAttr, name::AbstractString, value) = setattr(self, Symbol(name), value)
 setattr(self::HasAttr; kvs...) = (for (k,v) in kvs; setattr(self, k, v); end)
 
 function iniattr(self::HasAttr, args...; kvs...)
     types = Any[typeof(self)]
-    while super(types[end]) != Any
-        push!(types, super(types[end]))
+    while supertype(types[end]) != Any
+        push!(types, supertype(types[end]))
     end
     for t in reverse(types)
         name = last(split(string(t), '.'))
@@ -2759,7 +2759,7 @@ if isdefined(Main, :IJulia)
     output_surface = :none
 else
     output_surface = Winston.config_value("default","output_surface")
-    output_surface = symbol(lowercase(get(ENV, "WINSTON_OUTPUT", output_surface)))
+    output_surface = Symbol(lowercase(get(ENV, "WINSTON_OUTPUT", output_surface)))
 end
 
 type Figure

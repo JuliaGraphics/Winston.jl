@@ -281,7 +281,7 @@ end
 colormap() = (global _current_colormap; _current_colormap)
 colormap(c::Array{UInt32,1}) = (global _current_colormap = c; nothing)
 colormap{C<:Color}(cs::Array{C,1}) =
-    colormap(UInt32[convert(RGB24,c) for c in cs])
+    colormap(reinterpret(UInt32, [convert(RGB24,c) for c in cs]))
 function colormap(name::AbstractString, n::Int=256)
     if name == "jet"
         colormap([jetrgb(x) for x in linspace(0.,1.,n)])

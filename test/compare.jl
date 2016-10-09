@@ -25,8 +25,8 @@ function img_dist{T<:Array{UInt32,2}}(img1::T, img2::T)
     @assert size(img1) == size(img2)
     s = 0.
     for i = 1:length(img1)
-        a = convert(RGB, RGB24(img1[i]))
-        b = convert(RGB, RGB24(img2[i]))
+        a = convert(RGB, reinterpret(RGB24, img1[i]))
+        b = convert(RGB, reinterpret(RGB24, img2[i]))
         s += colordiff(a, b)
     end
     s

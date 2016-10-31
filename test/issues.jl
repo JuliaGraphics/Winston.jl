@@ -6,7 +6,8 @@ export
     issue143,
     issue146a,
     issue146b,
-    issue176
+    issue176,
+    issue243
 
 function issue008()
     large = [i^4 + 1e12 for i in 1:10^3]
@@ -44,4 +45,11 @@ function issue176()
     t[2,1] = imagesc((10,1), (1,10), z)
     t[2,2] = imagesc((10,1), (10,1), z)
     t
+end
+
+function issue243()
+    p = Plot()
+    x = linspace(0, 2pi)
+    add(p, Curve(x, sin(x)))
+    p
 end

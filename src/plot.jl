@@ -324,7 +324,7 @@ function spy(S::SparseMatrixCSC, nrS::Integer, ncS::Integer)
     for col = 1:n
         for k = colptr[col]:colptr[col+1]-1
             row = rowval[k]
-            target[ceil(row * x), ceil(col * y)] += 1
+            target[map(Int,ceil(row * x)), map(Int,ceil(col * y))] += 1
         end
     end
 

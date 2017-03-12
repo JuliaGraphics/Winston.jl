@@ -15,7 +15,7 @@ function issue008()
 end
 
 function issue010()
-    p = plot(abs(sin(0:.1:10)))
+    p = plot(abs.(sin.(0:.1:10)))
     setattr(p, "ylog", true)
     setattr(p, "yrange", (5e-6,0.2))
     p
@@ -23,7 +23,7 @@ end
 
 function issue100()
     x = linspace(0, 6pi, 100)
-    y = sin(x)
+    y = sin.(x)
     stem(x, y, "b;")
 end
 

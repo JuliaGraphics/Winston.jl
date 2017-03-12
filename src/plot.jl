@@ -12,7 +12,7 @@ end
 ghf(p) = (global _pwinston = p)
 
 savefig(fname::AbstractString, args...; kvs...) = savefig(_pwinston, fname, args...; kvs...)
-@deprecate file savefig
+Base.@deprecate file savefig
 
 for f in (:xlabel,:ylabel,:title)
     @eval $f(s::AbstractString) = (setattr(_pwinston, $f=s); _pwinston)
@@ -23,7 +23,7 @@ for (f,k) in ((:xlim,:xrange),(:ylim,:yrange))
     @eval $f() = $k(limits(_pwinston))
 end
 
-const chartokens = @Dict(
+const chartokens = Dict(
     '-' => (:linekind, "solid"),
     ':' => (:linekind, "dotted"),
     ';' => (:linekind, "dotdashed"),
@@ -104,7 +104,7 @@ function _process_keywords(kvs, p, components...)
     end
 end
 
-@compat typealias PlotArg Union{AbstractString,AbstractVector,AbstractMatrix,Function,Real}
+const PlotArg = Union{AbstractString,AbstractVector,AbstractMatrix,Function,Real}
 
 isrowvec(x::AbstractArray) = ndims(x) == 2 && size(x,1) == 1 && size(x,2) > 1
 
@@ -201,15 +201,15 @@ function plot(p::FramedPlot, args::PlotArg...; kvs...)
             xys = [ (x,y) ]
         elseif isa(x, AbstractVector)
             xys = length(x) == size(y,1) ?
-                  [ (x, sub(y,:,j)) for j = 1:size(y,2) ] :
-                  [ (x, sub(y,i,:)) for i = 1:size(y,1) ]
+                  [ (x, view(y,:,j)) for j = 1:size(y,2) ] :
+                  [ (x, view(y,i,:)) for i = 1:size(y,1) ]
         elseif isa(y, AbstractVector)
             xys = size(x,1) == length(y) ?
-                  [ (sub(x,:,j), y) for j = 1:size(x,2) ] :
-                  [ (sub(x,i,:), y) for i = 1:size(x,1) ]
+                  [ (view(x,:,j), y) for j = 1:size(x,2) ] :
+                  [ (view(x,i,:), y) for i = 1:size(x,1) ]
         else
             @assert size(x) == size(y)
-            xys = [ (sub(x,:,j), sub(y,:,j)) for j = 1:size(y,2) ]
+            xys = [ (view(x,:,j), view(y,:,j)) for j = 1:size(y,2) ]
         end
 
         for (x,y) in xys
@@ -247,7 +247,7 @@ semilogx(args::PlotArg...; kvs...) = plot(args...; xlog=true, kvs...)
 semilogy(args::PlotArg...; kvs...) = plot(args...; ylog=true, kvs...)
 loglog(args::PlotArg...; kvs...) = plot(args...; xlog=true, ylog=true, kvs...)
 
-typealias Interval @compat(Tuple{Real,Real})
+const Interval = Tuple{Real,Real}
 
 function data2rgb{T<:Real}(data::AbstractArray{T}, limits::Interval, colormap::Array{UInt32,1})
     img = similar(data, UInt32)
@@ -354,7 +354,7 @@ function scatter(x::AbstractVecOrMat, y::AbstractVecOrMat,
     scatter(x, y, s, fill(c,size(x)...), spec; kvs...)
 end
 function scatter(x::AbstractVecOrMat, y::AbstractVecOrMat,
-                 s::(@compat Union{Real,AbstractVecOrMat}), c::AbstractVecOrMat,
+                 s::Union{Real,AbstractVecOrMat}, c::AbstractVecOrMat,
                  spec::String="o"; kvs...)
     if typeof(s) <: Real
         s = fill(s, size(x)...)
@@ -403,7 +403,14 @@ spy(S::SparseMatrixCSC) = spy(S, 100, 100)
 spy(A::AbstractMatrix, nrS, ncS) = spy(sparse(A), nrS, ncS)
 spy(A::AbstractMatrix) = spy(sparse(A))
 
-function plothist(p::FramedPlot, h::@compat(Tuple{Range,Vector}); kvs...)
+# Match old (pre 0.5) Base.hist API for convenience
+function hist(args...)
+    h = fit(StatsBase.Histogram, args...)
+    length(h.edges) == 1 || throw(ArgumentError("only 1-dimensional histograms are supported"))
+    return (first(h.edges), h.weights)
+end
+
+function plothist(p::FramedPlot, h::Tuple{Range,Vector}; kvs...)
     c = Histogram(h...)
     add(p, c)
 
@@ -432,7 +439,7 @@ _default_kernel2d=(1.0/273.)*[1.0 4.0 7.0 4.0 1.0;
                              4.0 16. 26. 16. 4.0]
 
 #hist2d
-function plothist2d(p::FramedPlot, h::@compat(Tuple{(@compat Union{Range,Vector}),(@compat Union{Range,Vector}),Array{Int,2}}); colormap=_current_colormap, smooth=0, kernel=_default_kernel2d, kvs...)
+function plothist2d(p::FramedPlot, h::Tuple{Union{Range,Vector},Union{Range,Vector},Array{Int,2}}; colormap=_current_colormap, smooth=0, kernel=_default_kernel2d, kvs...)
     xr, yr, hdata = h
 
     for i in 1:smooth
@@ -497,9 +504,9 @@ function fplot_points(f::Function, xmin::Real, xmax::Real;
 
     xs = Float64[]
     ys = Float64[]
-    cs = Array(Float64, max_recursion)
-    fcs = Array(Float64, max_recursion)
-    ls = Array(Int, max_recursion)
+    cs = Vector{Float64}(max_recursion)
+    fcs = Vector{Float64}(max_recursion)
+    ls = Vector{Int}(max_recursion)
 
     local c::Float64
     local fc::Float64
@@ -569,7 +576,7 @@ function fplot(f::Function, limits, args...; kvs...)
             pargs = [arg]
         elseif typeof(arg) <: Integer
             fopts[:min_points] = arg
-        elseif typeof(arg) <: @compat AbstractFloat
+        elseif typeof(arg) <: AbstractFloat
             fopts[:tol] = arg
         else
             error("unrecognized argument ", arg)
@@ -582,9 +589,9 @@ function fplot(f::Function, limits, args...; kvs...)
 end
 
 # bar, barh
-ax = @compat Dict{Any,Any}(:bar => :x, :barh => :y)
-ax1 = @compat Dict{Any,Any}(:bar => :x1, :barh => :y1)
-vert = @compat Dict{Any,Any}(:bar => true, :barh => false)
+ax = Dict{Any,Any}(:bar => :x, :barh => :y)
+ax1 = Dict{Any,Any}(:bar => :x1, :barh => :y1)
+vert = Dict{Any,Any}(:bar => true, :barh => false)
 for fn in (:bar, :barh)
     eval(quote
           function $fn(p::FramedPlot, b::FramedBar, args...; kvs...)
@@ -656,7 +663,7 @@ function timeplot(p::FramedPlot, x::Vector{DateTime}, y::AbstractArray, args...;
     ticklabels = x[round(Int64, ticks * (length(x) - 1) + 1)]
     normalized_x = (datetime2unix(x) - limits[1]) / (limits[2] - limits[1])
 
-    span = @compat Int(x[end] - x[1]) / 1000
+    span = Int(x[end] - x[1]) / 1000
     kvs = Dict(kvs)
 
     if :format in keys(kvs)
@@ -682,7 +689,7 @@ function timeplot(p::FramedPlot, x::Vector{DateTime}, y::AbstractArray, args...;
 
     setattr(p.x1, :ticklabels, ticklabels)
     setattr(p.x1, :ticks, ticks)
-    setattr(p.x1, :ticklabels_style, @compat Dict(:fontsize=>1.5))
+    setattr(p.x1, :ticklabels_style, Dict(:fontsize=>1.5))
 
     plot(p, normalized_x, y, args...; kvs...)
 end

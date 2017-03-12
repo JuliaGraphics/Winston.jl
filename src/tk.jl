@@ -4,7 +4,7 @@ function tkwindow(name, w, h, closecb=nothing)
     win = Tk.Window(name, w, h)
     c = Tk.Canvas(win, w, h)
     Tk.pack(c, expand = true, fill = "both")
-    if !is(closecb,nothing)
+    if closecb !== nothing
         Tk.bind(win, "<Destroy>", closecb)
     end
     c

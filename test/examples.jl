@@ -10,8 +10,8 @@ export
 
 function example01()
     x = linspace(0, 3pi, 100)
-    c = cos(x)
-    s = sin(x)
+    c = cos.(x)
+    s = sin.(x)
 
     p = FramedPlot(
             title="title!",
@@ -60,7 +60,7 @@ function example03()
             xlabel="X axis",
             ylabel="Y axis")
 
-    add(p, Histogram(hist(randn(1000))...))
+    add(p, Histogram(Winston.hist(randn(1000))...))
     add(p, PlotLabel(.5, .5, "Histogram", color=0xcc0000))
 
     t1 = Table(1, 2)
@@ -75,8 +75,8 @@ end
 
 function example04()
     x = linspace(0., 2pi, 40)
-    s = sin(x)
-    c = cos(x)
+    s = sin.(x)
+    c = cos.(x)
 
     inset = FramedPlot(title="inset")
     setattr(inset.frame, draw_ticks=false)
@@ -94,7 +94,7 @@ end
 
 function example05()
     x = linspace(0., 2pi, 30)
-    y = sin(x)
+    y = sin.(x)
 
     p = FramedArray(2, 2,
             title="title",
@@ -115,8 +115,8 @@ end
 
 function example06()
     x = linspace(pi, 3pi, 60)
-    c = cos(x)
-    s = sin(x)
+    c = cos.(x)
+    s = sin.(x)
 
     p = FramedPlot(aspect_ratio=1)
     setattr(p.frame1, draw_grid=true, tickdir=1)
@@ -137,8 +137,8 @@ function example07()
     n = 300
     x = linspace(10., -10., n)
     t = linspace(-1., 1., n)
-    z = (3. .+ 4*cosh(2x' .- 8t) .+ cosh(4x' .- 64t)) ./
-        (3*cosh(x' .- 28t) + cosh(3x' .- 36t)) .^ 2
+    z = (3. .+ 4*cosh.(2x' .- 8t) .+ cosh.(4x' .- 64t)) ./
+        (3*cosh.(x' .- 28t) + cosh.(3x' .- 36t)) .^ 2
 
     t = Table(2,2)
     t[1,1] = imagesc(z, (minimum(z),0.6maximum(z)))

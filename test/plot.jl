@@ -11,8 +11,8 @@ const args = [
     :(v,),                              # vec (array)
     :(v',),                             # vec (transposed array)
     :(m,),                              # mat
-    :(complex(v,v),),                   # complex vec
-    :(complex(m,m),),                   # complex mat
+    :(complex.(v,v),),                   # complex vec
+    :(complex.(m,m),),                   # complex mat
     :(v,v2),                            # vec/vec
     :(m,m),                             # mat/mat (square)
     :(m2,m2),                           # mat/mat (non-square)

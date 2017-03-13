@@ -1,31 +1,32 @@
 import Cairo
-using Color
+using Colors
 using Base.Test
 using Winston
+using Compat; import Compat.String
 
 module ImageComparisons
-    using Winston
+    using Winston, Colors
     include("examples.jl")
     include("issues.jl")
     include("plot.jl")
 end
 
-function read_png_data(fn::ASCIIString)
+function read_png_data(fn::String)
     surface = Cairo.read_from_png(fn)
     w = Cairo.width(surface)
     h = Cairo.height(surface)
     p = ccall((:cairo_image_surface_get_data,Cairo._jl_libcairo),
-              Ptr{Uint8}, (Ptr{Void},), surface.ptr)
-    a = pointer_to_array(convert(Ptr{Uint32},p), (int(w),int(h)))
+              Ptr{UInt8}, (Ptr{Void},), surface.ptr)
+    a = pointer_to_array(convert(Ptr{UInt32},p), (convert(Int,w),convert(Int,h)))
     copy(a)
 end
 
-function img_dist{T<:Array{Uint32,2}}(img1::T, img2::T)
+function img_dist{T<:Array{UInt32,2}}(img1::T, img2::T)
     @assert size(img1) == size(img2)
     s = 0.
     for i = 1:length(img1)
-        a = convert(RGB, RGB24(img1[i]))
-        b = convert(RGB, RGB24(img2[i]))
+        a = convert(RGB, reinterpret(RGB24, img1[i]))
+        b = convert(RGB, reinterpret(RGB24, img2[i]))
         s += colordiff(a, b)
     end
     s

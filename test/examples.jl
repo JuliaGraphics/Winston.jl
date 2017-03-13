@@ -19,8 +19,8 @@ function example01()
             ylabel="\\Theta_i")
 
     add(p, FillBetween(x, c, x, s))
-    add(p, Curve(x, c, color="red"))
-    add(p, Curve(x, s, color="blue"))
+    add(p, Curve(x, c, color=colorant"red"))
+    add(p, Curve(x, s, color=colorant"blue"))
 
     p
 end
@@ -47,7 +47,7 @@ function example02()
     s = Slope(1, (0,0), kind="dotted")
     setattr(s, label="slope")
 
-    l = Legend(.1, .9, {a,b,s})
+    l = Legend(.1, .9, Any[a,b,s])
 
     add(p, s, a, b, l)
     p
@@ -87,7 +87,7 @@ function example04()
     setattr(p.frame, tickdir=+1, draw_spine=false)
 
     add(p, SymmetricErrorBarsY(x, s, 0.2*ones(length(x))))
-    add(p, Points(x, s, color="red"))
+    add(p, Points(x, s, color=colorant"red"))
     add(p, PlotInset((.6,.6), (.95,.95), inset))
     p
 end
@@ -135,7 +135,7 @@ end
 
 function example07()
     n = 300
-    x = linspace(-10., 10., n)
+    x = linspace(10., -10., n)
     t = linspace(-1., 1., n)
     z = (3. .+ 4*cosh(2x' .- 8t) .+ cosh(4x' .- 64t)) ./
         (3*cosh(x' .- 28t) + cosh(3x' .- 36t)) .^ 2

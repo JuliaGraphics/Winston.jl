@@ -4,14 +4,14 @@
 ## Plot interfaces for functions
 
 ## plot(x, [y], args..., kwargs...) lineplot
-## plot(x::Tuple{Vector}, args...; symboltype::String="o", kwargs...) scatter plot
+## plot(x::Tuple{Vector}, args...; symboltype::AbstractString="o", kwargs...) scatter plot
 ## plot(fs::Tuple{Function}, a, b; kwargs) parametric plot
 ## plot(fs::Array{Function, 2}, a::Real, b::Real, args...; kwargs...) table of plots
 
 
-typealias ScatterPlotPoints{T<:Real, S<:Real} (Vector{T}, Vector{S})
+typealias ScatterPlotPoints{T<:Real, S<:Real} @compat(Tuple{Vector{T}, Vector{S}})
 
-## plot a scatterplot (verbose alternative to plot(x, y, "o") 
+## plot a scatterplot (verbose alternative to plot(x, y, "o")
 ## use named argument symbol to pass in symbol -- not args)
 function plot(p::FramedPlot, x::ScatterPlotPoints, args...; symbol="o", kwargs...)
     Base.warn_once("deprecated -- call scatter instead")
@@ -21,7 +21,7 @@ end
 errs_to_nan(f) = (x) -> try f(x) catch e NaN end
 
 ## parametric plot
-typealias ParametricFunctionPair (Function, Function)
+typealias ParametricFunctionPair @compat(Tuple{Function, Function})
 function plot(p::FramedPlot, fs::ParametricFunctionPair, a::Real, b::Real, args...; npoints::Int=500, kwargs...)
     us = linspace(a, b, npoints)
     xs = map(errs_to_nan(fs[1]), us)
@@ -32,7 +32,7 @@ end
 
 ## Array
 ## kwargs are vectorized (without recycling)
-## e.g.:  plot([sin cos]', 0, 2pi, color=["blue" "red"]') 
+## e.g.:  plot([sin cos]', 0, 2pi, color=["blue" "red"]')
 function plot(fs::Array{Function, 2}, a::Real, b::Real, args...; kwargs...)
     m,n = size(fs)
     tbl = Table(m, n)

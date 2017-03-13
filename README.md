@@ -47,7 +47,7 @@ julia> plot(x, y, "b:", x2, y2, "g^")
 ```
 
 which creates a blue dotted line and green triangles.
- 
+
 Documentation
 -------------
 

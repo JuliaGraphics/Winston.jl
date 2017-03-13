@@ -1,12 +1,25 @@
 module Winston
 
 using Cairo
-using Color
-importall Base.Graphics
+using Colors
+if VERSION < v"0.4.0-dev+3275"
+    importall Base.Graphics
+    using Dates
+else
+    importall Graphics
+    using Base.Dates
+    import Base: *
+end
 using IniFile
+using Compat; import Compat.String
+isdefined(Base, :Libc) && (strftime = Libc.strftime)
+isdefined(Base, :Dates) && (datetime2unix = Dates.datetime2unix)
 
 export
+    bar,
+    barh,
     closefig,
+    closeall,
     colormap,
     errorbar,
     figure,
@@ -27,6 +40,7 @@ export
     stem,
     text,
     title,
+    timeplot,
     xlabel,
     xlim,
     ylabel,
@@ -42,6 +56,7 @@ export
     FillAbove,
     FillBelow,
     FillBetween,
+    FramedBar,
     Histogram,
     Image,
     Legend,
@@ -60,7 +75,12 @@ export
     getattr,
     setattr,
     style,
-    svg
+    svg,
+    
+    getcomponents,
+    rmcomponents,
+    grid,
+    legend
 
 import Base: copy,
     display,
@@ -68,19 +88,30 @@ import Base: copy,
     getindex,
     isempty,
     setindex!,
-    show,
-    writemime
+    show
+
+if VERSION < v"0.5-"
+import Base: writemime
+end
 
 export get_context, device_to_data, data_to_device
 
 if VERSION < v"0.3-"
-    typealias AbstractVecOrMat{T} Union(AbstractVector{T}, AbstractMatrix{T})
+    typealias AbstractVecOrMat{T}(@compat Union{AbstractVector{T}, AbstractMatrix{T}})
     extrema(x) = (minimum(x),maximum(x))
     Base.push!(x, a, b) = (push!(x, a); push!(x, b))
+elseif VERSION < v"0.4-"
+    macro Dict(pairs...)
+        Expr(:dict, pairs...)
+    end
+else
+    macro Dict(pairs...)
+        Expr(:call, :Dict, pairs...)
+    end
 end
 
 type WinstonException <: Exception
-    msg::ByteString
+    msg::String
 end
 
 abstract HasAttr
@@ -104,13 +135,13 @@ function args2dict(args...; kvs...)
         arg, iter = next(args, iter)
         if typeof(arg) <: Associative
             for (k,v) in arg
-                opts[symbol(k)] = v
+                opts[Symbol(k)] = v
             end
         elseif typeof(arg) <: Tuple
-            opts[symbol(arg[1])] = arg[2]
+            opts[Symbol(arg[1])] = arg[2]
         else
             val, iter = next(args, iter)
-            opts[symbol(arg)] = val
+            opts[Symbol(arg)] = val
         end
     end
     for (k,v) in kvs
@@ -143,7 +174,7 @@ end
 
 # relative size ---------------------------------------------------------------
 
-typealias Box Union(BoundingBox,Rectangle)
+@compat typealias Box Union{BoundingBox,Rectangle}
 
 function _size_relative(relsize, bbox::Box)
     w = width(bbox)
@@ -213,7 +244,7 @@ function device_to_data(ctx::PlotContext, x::Real, y::Real)
     deproject(ctx.geom, x, y)
 end
 
-function data_to_device{T<:Real}(ctx::PlotContext, x::Union(T,AbstractArray{T}), y::Union(T,AbstractArray{T}))
+function data_to_device{T<:Real}(ctx::PlotContext, x::(@compat Union{T,AbstractArray{T}}), y::(@compat Union{T,AbstractArray{T}}))
     project(ctx.geom, x, y)
 end
 
@@ -236,13 +267,13 @@ type Legend <: PlotComponent
     end
 end
 
-_kw_rename(::Legend) = [
+_kw_rename(::Legend) = @Dict(
     :face      => :fontface,
     :size      => :fontsize,
     :angle     => :textangle,
     :halign    => :texthalign,
     :valign    => :textvalign,
-]
+)
 
 function make(self::Legend, context::PlotContext)
     key_pos = project(context.plot_geom, self.x, self.y)
@@ -277,11 +308,11 @@ end
 
 abstract ErrorBar <: PlotComponent
 
-_kw_rename(::ErrorBar) = [
+_kw_rename(::ErrorBar) = @Dict(
     :color => :linecolor,
     :width => :linewidth,
     :kind => :linekind,
-]
+)
 
 type ErrorBarsX <: ErrorBar
     attr::PlotAttributes
@@ -420,7 +451,7 @@ function _magform(x)
         return 0., 0
     end
     a, b = modf(log10(abs(x)))
-    a, b = 10^a, int(b)
+    a, b = 10^a, @compat Int(b)
     if a < 1.
         a, b = a * 10, b - 1
     end
@@ -432,6 +463,8 @@ end
 
 if VERSION < v"0.4-"
     const grisu = Base.Grisu.grisu
+elseif VERSION >= v"0.5-"
+    grisu(a,b,c) = ((w,x,y) = Base.Grisu.grisu(a,b,c); (y,Base.Grisu.DIGITS[1:w],x))
 else
     grisu(a,b,c) = ((w,x,y,z) = Base.Grisu.grisu(a,b,c); (y,z[1:w],x))
 end
@@ -440,11 +473,11 @@ function _format_ticklabel(x, range=0.; min_pow10=4)
     if x == 0
         return "0"
     end
-    neg, digits, b = grisu(x, Base.Grisu.SHORTEST, int32(0))
+    neg, digits, b = grisu(x, Base.Grisu.SHORTEST, @compat Int32(0))
     if length(digits) > 5
-        neg, digits, b = grisu(x, Base.Grisu.PRECISION, int32(6))
+        neg, digits, b = grisu(x, Base.Grisu.PRECISION, @compat Int32(6))
         n = length(digits)
-        while digits[n] == '0'
+        while digits[n] == UInt32('0')
             n -= 1
         end
         digits = digits[1:n]
@@ -454,11 +487,11 @@ function _format_ticklabel(x, range=0.; min_pow10=4)
         s = IOBuffer()
         if neg write(s, '-') end
         if digits != [0x31]
-            write(s, char(digits[1]))
+            write(s, @compat Char(digits[1]))
             if length(digits) > 1
                 write(s, '.')
                 for i = 2:length(digits)
-                    write(s, char(digits[i]))
+                    write(s, @compat Char(digits[i]))
                 end
             end
             write(s, "\\times ")
@@ -477,7 +510,8 @@ function _format_ticklabel(x, range=0.; min_pow10=4)
     endswith(s, ".0") ? s[1:end-2] : s
 end
 
-range(a::Real, b::Real) = (a <= b) ? (iceil(a):ifloor(b)) : (ifloor(a):-1:iceil(b))
+range(a::Real, b::Real) = (a <= b) ? (ceil(Int, a):floor(Int, b)) :
+                                     (floor(Int, a):-1:ceil(Int, b))
 
 function _ticklist_linear(lo, hi, sep, origin=0.)
     a = (lo - origin)/sep
@@ -760,12 +794,12 @@ end
 
 # defaults
 
-_attr_map(::HalfAxis) = [
+_attr_map(::HalfAxis) = @Dict(
     :labeloffset       => :label_offset,
     :major_ticklabels  => :ticklabels,
     :major_ticks       => :ticks,
     :minor_ticks       => :subticks,
-]
+)
 
 function _ticks(self::HalfAxis, context)
     logidx = _log(self, context) ? 2 : 1
@@ -786,7 +820,7 @@ function _subticks(self::HalfAxis, context, ticks)
     subticks = getattr(self, "subticks")
     if isequal(subticks,nothing)
         return self.func_subticks_default[logidx](r, ticks)
-    elseif typeof(subticks) <: Integer 
+    elseif typeof(subticks) <: Integer
         return self.func_subticks_num[logidx](r, ticks, subticks)
     else
         return subticks
@@ -820,7 +854,7 @@ function _make_ticklabels(self::HalfAxis, context, pos, labels)
 
     halign, valign = _align(self)
 
-    style = (Symbol=>Any)[]
+    style = Dict{Symbol,Any}()
     style[:texthalign] = halign
     style[:textvalign] = valign
     for (k,v) in getattr(self, :ticklabels_style)
@@ -836,6 +870,13 @@ function _make_spine(self::HalfAxis, context)
     p = _pos(self, context, a)
     q = _pos(self, context, b)
     GroupPainter(getattr(self,:spine_style), LinePainter(p,q))
+end
+
+function _make_strut(self::HalfAxis, context)
+    a, b = _range(self, context)
+    p = _pos(self, context, a)
+    q = _pos(self, context, b)
+    StrutPainter(BoundingBox(p,q))
 end
 
 function _make_ticks(self::HalfAxis, context, ticks, size, style)
@@ -898,6 +939,7 @@ function make(self::HalfAxis, context)
     # has to be made last
     if hasattr(self, "label")
         if !is(getattr(self, "label"),nothing) # XXX:remove
+            isempty(objs) && push!(objs, _make_strut(self, context))
             bl = BoxLabel(
                 objs,
                 getattr(self, "label"),
@@ -918,7 +960,7 @@ type PlotComposite <: HasStyle
     dont_clip::Bool
 
     function PlotComposite(args...; kvs...)
-        self = new(Dict(), {}, false)
+        self = new(Dict(), Any[], false)
         kw_init(self, args...; kvs...)
         self
     end
@@ -932,7 +974,7 @@ function add(self::PlotComposite, args::PlotComponent...)
 end
 
 function clear(self::PlotComposite)
-    self.components = {}
+    self.components = Any[]
 end
 
 function isempty(self::PlotComposite)
@@ -1018,7 +1060,9 @@ type FramedPlot <: PlotContainer
             _Alias(x1, x2),
             _Alias(y1, y2),
         )
-        setattr(self.frame, :grid_style, (Symbol=>Any)[:linekind => "dot"])
+        gs = Dict{Symbol,Any}()
+        gs[:linekind] = "dot"
+        setattr(self.frame, :grid_style, gs)
         setattr(self.frame, :tickdir, -1)
         setattr(self.frame1, :draw_grid, false)
         iniattr(self, args...; kvs...)
@@ -1026,7 +1070,7 @@ type FramedPlot <: PlotContainer
     end
 end
 
-_attr_map(fp::FramedPlot) = [
+_attr_map(fp::FramedPlot) = @Dict(
     :xlabel    => (fp.x1, :label),
     :ylabel    => (fp.y1, :label),
     :xlog      => (fp.x1, :log),
@@ -1035,7 +1079,7 @@ _attr_map(fp::FramedPlot) = [
     :yrange    => (fp.y1, :range),
     :xtitle    => (fp.x1, :label),
     :ytitle    => (fp.y1, :label),
-]
+)
 
 function getattr(self::FramedPlot, name::Symbol)
     am = _attr_map(self)
@@ -1082,14 +1126,14 @@ function user_range(range)
         b1 = typeof(range[1]) <: Real
         b2 = typeof(range[2]) <: Real
         if b1 && b2
-            x1 = float64(range[1])
-            x2 = float64(range[2])
+            x1 = @compat Float64(range[1])
+            x2 = @compat Float64(range[2])
             lo = myprevfloat(min(x1, x2))
             hi = mynextfloat(max(x1, x2))
             flipped = x1 > x2
         else
-            b1 && (lo = myprevfloat(float64(range[1])))
-            b2 && (hi = mynextfloat(float64(range[2])))
+            b1 && (lo = myprevfloat(@compat Float64(range[1])))
+            b2 && (hi = mynextfloat(@compat Float64(range[2])))
         end
     end
     lo, hi, flipped
@@ -1165,6 +1209,10 @@ function limits2(fp::FramedPlot)
         margin = getattr(fp,    :gutter)
         xlog   = getattr(fp.x2, :log)
         ylog   = getattr(fp.y2, :log)
+
+        xlog === nothing && (xlog = getattr(fp.x1, :log))
+        ylog === nothing && (ylog = getattr(fp.y1, :log))
+
         return limits(margin, xrange, yrange, xlog, ylog, fp.content2)
     end
 
@@ -1191,12 +1239,12 @@ function _context1(self::FramedPlot, device::Renderer, region::BoundingBox)
 end
 
 function _context2(self::FramedPlot, device::Renderer, region::BoundingBox)
-    xlog = getattr(self.x2, :log)
-    ylog = getattr(self.y2, :log)
-    if isempty(self.content2)
-        xlog === nothing && (xlog = getattr(self.x1, :log))
-        ylog === nothing && (ylog = getattr(self.y1, :log))
-    end
+    xlog = getattr(self.x1, :log)
+    ylog = getattr(self.y1, :log)
+
+    getattr(self.x2, :log) !== nothing && (xlog = getattr(self.x2, :log))
+    getattr(self.y2, :log) !== nothing && (ylog = getattr(self.y2, :log))
+
     lims = limits2(self)
     proj = PlotGeometry(lims, region, xlog, ylog)
     return PlotContext(device, region, lims, proj, xlog, ylog)
@@ -1231,6 +1279,36 @@ function compose_interior(self::FramedPlot, device::Renderer, region::BoundingBo
     render(self.x1, context1)
 end
 
+getcomponents(p::FramedPlot, c) = p.([:content1, :content2][c]).components
+getcomponents(p::FramedPlot) = [getcomponents(p,1); getcomponents(p,2)]
+
+rmcomponents(p::FramedPlot, i::Integer, c) = splice!(p.([:content1, :content2][c]).components, i)
+
+function rmcomponents(p::FramedPlot, i::Integer)
+    cont1 = getcomponents(p, 1)
+    cont2 = getcomponents(p, 2)
+    if i <= length(cont1)
+        rmcomponents(p, i, 1)
+    elseif i <= length(cont1) + length(cont2)
+        rmcomponents(p, i - lenght(cont1), 2)
+    else
+        error("Requested remove item #$i from $(length(cont1)+length(cont2)) components.")
+    end
+end
+
+function rmcomponents(p::FramedPlot, v::AbstractVector, args...)
+    eltype(v) <: Integer && sort!(v, rev=true)
+    for i in v
+        rmcomponents(p, i, args...)
+    end
+end
+
+function rmcomponents(p::FramedPlot, t::Type, args...)
+    ctypes = map(typeof, getcomponents(p, args...))
+    todel = find(map(x -> (x <: t), ctypes))
+    rmcomponents(p, todel, args...)
+end
+    
 # Table ------------------------------------------------------------------------
 
 type _Grid
@@ -1260,7 +1338,7 @@ type _Grid
 end
 
 function cellbb(self::_Grid, i::Int, j::Int)
-    ii = self.nrows - i 
+    ii = self.nrows - i
     p = self.origin + Point((j-1)*self.step_x, ii*self.step_y)
     return BoundingBox(p.x, p.x+self.cell_dimen[1], p.y, p.y + self.cell_dimen[2])
 end
@@ -1638,7 +1716,7 @@ end
 #        self.x1 = _HalfAxisX()
 #        self.x1.draw_ticklabels = labelticks[2]
 #        self.x1.ticklabels_dir = -1
-#        
+#
 #        self.y1 = _HalfAxisY()
 #        self.y1.draw_ticklabels = labelticks[3]
 #        self.y1.ticklabels_dir = -1
@@ -1667,7 +1745,7 @@ function Frame(labelticks, args...)
     x1 = HalfAxisX()
     setattr(x1, "draw_ticklabels", labelticks[2]==1)
     setattr(x1, "ticklabels_dir", -1)
-    
+
     y1 = HalfAxisY()
     setattr(y1, "draw_ticklabels", labelticks[3]==1)
     setattr(y1, "ticklabels_dir", -1)
@@ -1784,37 +1862,37 @@ function write_to_surface(p::PlotContainer, surface)
     finish(surface)
 end
 
-function write_svg(p::PlotContainer, io::IO, width, height)
+function savesvg(p::PlotContainer, io::IO, width, height)
     surface = CairoSVGSurface(io, width, height)
     write_to_surface(p, surface)
 end
 
-function write_svg(p::PlotContainer, filename::String, width, height)
+function savesvg(p::PlotContainer, filename::AbstractString, width, height)
     io = Base.FS.open(filename, Base.JL_O_CREAT|Base.JL_O_TRUNC|Base.JL_O_WRONLY, 0o644)
-    write_svg(p, io, width, height)
+    savesvg(p, io, width, height)
     close(io)
     nothing
 end
 
-function write_eps(self::PlotContainer, filename::String, width::String, height::String)
-    write_eps(self, filename, _str_size_to_pts(width), _str_size_to_pts(height))
+function saveeps(self::PlotContainer, filename::AbstractString, width::AbstractString, height::AbstractString)
+    saveeps(self, filename, _str_size_to_pts(width), _str_size_to_pts(height))
 end
 
-function write_eps(self::PlotContainer, filename::String, width::Real, height::Real)
+function saveeps(self::PlotContainer, filename::AbstractString, width::Real, height::Real)
     surface = CairoEPSSurface(filename, width, height)
     write_to_surface(self, surface)
 end
 
-function write_pdf(self, filename::String, width::String, height::String)
-    write_pdf(self, filename, _str_size_to_pts(width), _str_size_to_pts(height))
+function savepdf(self, filename::AbstractString, width::AbstractString, height::AbstractString)
+    savepdf(self, filename, _str_size_to_pts(width), _str_size_to_pts(height))
 end
 
-function write_pdf(self::PlotContainer, filename::String, width::Real, height::Real)
+function savepdf(self::PlotContainer, filename::AbstractString, width::Real, height::Real)
     surface = CairoPDFSurface(filename, width, height)
     write_to_surface(self, surface)
 end
 
-function write_pdf{T<:PlotContainer}(plots::Vector{T}, filename::String, width::Real, height::Real)
+function savepdf{T<:PlotContainer}(plots::Vector{T}, filename::AbstractString, width::Real, height::Real)
     surface = CairoPDFSurface(filename, width, height)
     r = CairoRenderer(surface)
     for plt in plots
@@ -1824,7 +1902,7 @@ function write_pdf{T<:PlotContainer}(plots::Vector{T}, filename::String, width::
     finish(surface)
 end
 
-function write_png(self::PlotContainer, io_or_filename::Union(IO,String), width::Int, height::Int)
+function savepng(self::PlotContainer, io_or_filename::(@compat Union{IO,AbstractString}), width::Int, height::Int)
     surface = CairoRGBSurface(width, height)
     r = CairoRenderer(surface)
     set_source_rgb(r.ctx, 1.,1.,1.)
@@ -1835,37 +1913,37 @@ function write_png(self::PlotContainer, io_or_filename::Union(IO,String), width:
     finish(surface)
 end
 
-function file(self::PlotContainer, filename::String, args...; kvs...)
+function savefig(self::PlotContainer, filename::AbstractString, args...; kvs...)
     extn = filename[end-2:end]
     opts = args2dict(args...; kvs...)
     if extn == "eps"
         width = get(opts,:width,config_value("eps","width"))
         height = get(opts,:height,config_value("eps","height"))
-        write_eps(self, filename, width, height)
+        saveeps(self, filename, width, height)
     elseif extn == "pdf"
         width = get(opts,:width,config_value("pdf","width"))
         height = get(opts,:height,config_value("pdf","height"))
-        write_pdf(self, filename, width, height)
+        savepdf(self, filename, width, height)
     elseif extn == "png"
         width = get(opts,:width,config_value("window","width"))
         height = get(opts,:height,config_value("window","height"))
-        write_png(self, filename, width, height)
+        savepng(self, filename, width, height)
     elseif extn == "svg"
         width = get(opts, :width, config_value("svg","width"))
         height = get(opts, :height, config_value("svg","height"))
-        write_svg(self, filename, width, height)
+        savesvg(self, filename, width, height)
     else
         error("I can't export .$extn, sorry.")
     end
 end
 
-function file{T<:PlotContainer}(plots::Vector{T}, filename::String, args...; kvs...)
+function savefig{T<:PlotContainer}(plots::Vector{T}, filename::AbstractString, args...; kvs...)
     extn = filename[end-2:end]
     opts = args2dict(args...; kvs...)
     if extn == "pdf"
         width = get(opts,:width,config_value("pdf","width"))
         height = get(opts,:height,config_value("pdf","height"))
-        write_pdf(plots, filename, width, height)
+        savepdf(plots, filename, width, height)
     else
         error("I can't export multiple pages to .$extn, sorry.")
     end
@@ -1877,7 +1955,7 @@ function svg(self::PlotContainer, args...; kvs...)
     height = get(opts,:height,config_value("window","height"))
     stream = IOBuffer()
 
-    write_svg(self, stream, width, height)
+    savesvg(self, stream, width, height)
 
     s = takebuf_string(stream)
     a,b = search(s, "<svg")
@@ -1900,14 +1978,14 @@ end
 
 abstract LineComponent <: PlotComponent
 
-_kw_rename(::LineComponent) = [
+_kw_rename(::LineComponent) = @Dict(
     :color => :linecolor,
     :kind => :linekind,
     :width => :linewidth,
     # deprecated
     :type => :linekind,
     :linetype => :linekind,
-]
+)
 
 function make_key(self::LineComponent, bbox::BoundingBox)
     y = center(bbox).y
@@ -1922,7 +2000,7 @@ type Curve <: LineComponent
     y
 
     function Curve(x::AbstractArray, y::AbstractArray, args...; kvs...)
-        attr = Dict() 
+        attr = Dict()
         self = new(attr, x, y)
         iniattr(self)
         kw_init(self, args...; kvs...)
@@ -1967,15 +2045,15 @@ function make(self::Slope, context::PlotContext)
     xr = xrange(context.data_bbox)
     yr = yrange(context.data_bbox)
     if self.slope == 0
-        l = { Point(xr[1], self.intercept[2]),
-              Point(xr[2], self.intercept[2]) }
+        l = Any[ Point(xr[1], self.intercept[2]),
+                 Point(xr[2], self.intercept[2]) ]
     else
-        l = { Point(xr[1], _y(self, xr[1])),
-              Point(xr[2], _y(self, xr[2])),
-              Point(_x(self, yr[1]), yr[1]),
-              Point(_x(self, yr[2]), yr[2]) }
+        l = Any[ Point(xr[1], _y(self, xr[1])),
+                 Point(xr[2], _y(self, xr[2])),
+                 Point(_x(self, yr[1]), yr[1]),
+                 Point(_x(self, yr[2]), yr[2]) ]
     end
-    m = {}
+    m = Any[]
     for el in l
         if isinside(context.data_bbox, el)
             push!(m, el)
@@ -2090,11 +2168,11 @@ end
 type BoxLabel <: PlotComponent
     attr::PlotAttributes
     obj
-    str::String
+    str::AbstractString
     side
     offset
 
-    function BoxLabel(obj, str::String, side, offset, args...; kvs...)
+    function BoxLabel(obj, str::AbstractString, side, offset, args...; kvs...)
         @assert !is(str,nothing)
         self = new(Dict(), obj, str, side, offset)
         kw_init(self, args...; kvs...)
@@ -2102,10 +2180,10 @@ type BoxLabel <: PlotComponent
     end
 end
 
-_kw_rename(::BoxLabel) = [
+_kw_rename(::BoxLabel) = @Dict(
     :face => :fontface,
     :size => :fontsize,
-]
+)
 
 function make(self::BoxLabel, context)
     bb = boundingbox(self.obj, context.paintc)
@@ -2172,13 +2250,13 @@ end
 
 abstract LabelComponent <: PlotComponent
 
-_kw_rename(::LabelComponent) = [
+_kw_rename(::LabelComponent) = @Dict(
     :face      => :fontface,
     :size      => :fontsize,
     :angle     => :textangle,
     :halign    => :texthalign,
     :valign    => :textvalign,
-]
+)
 
 #function limits(self::LabelComponent)
 #    return BoundingBox()
@@ -2187,7 +2265,7 @@ _kw_rename(::LabelComponent) = [
 type DataLabel <: LabelComponent
     attr::PlotAttributes
     pos::Point
-    str::String
+    str::AbstractString
 
     function DataLabel(x, y, str, args...; kvs...)
         self = new(Dict())
@@ -2213,7 +2291,7 @@ end
 type PlotLabel <: LabelComponent
     attr::PlotAttributes
     pos::Point
-    str::String
+    str::AbstractString
 
     function PlotLabel(x, y, str, args...; kvs...)
         self = new(Dict())
@@ -2278,10 +2356,10 @@ function make_key(self::FillComponent, bbox::BoundingBox)
     return GroupPainter(getattr(self,:style), BoxPainter(p,q))
 end
 
-kw_defaults(::FillComponent) = [
+kw_defaults(::FillComponent) = @Dict(
     :color => config_value("FillComponent","fillcolor"),
     :fillkind => config_value("FillComponent","fillkind"),
-]
+)
 
 type FillAbove <: FillComponent
     attr::PlotAttributes
@@ -2357,8 +2435,8 @@ limits(self::FillBetween, window::BoundingBox) =
     bounds_within(self.x2, self.y2, window)
 
 function make(self::FillBetween, context)
-    x = [self.x1, reverse(self.x2)]
-    y = [self.y1, reverse(self.y2)]
+    x = [self.x1; reverse(self.x2)]
+    y = [self.y1; reverse(self.y2)]
     coords = map((a,b) -> project(context.geom,Point(a,b)), x, y)
     GroupPainter(getattr(self,:style), PolygonPainter(coords))
 end
@@ -2397,17 +2475,82 @@ function make(self::Image, context)
     GroupPainter(getattr(self,:style), ImagePainter(self.img, bbox))
 end
 
+# FramedComponent ---------------------------------------------------------------
+
+abstract FramedComponent <: PlotComponent
+    
+function make_key(self::FramedComponent, bbox::BoundingBox)
+    p = lowerleft(bbox)
+    q = upperright(bbox)
+    GroupPainter(getattr(self, :style), BoxPainter(p, q))
+end
+
+_kw_rename(::FramedComponent) = @Dict(:color => :fillcolor)
+
+# FramedBar ------------------------------------------------------------------
+
+type FramedBar <: FramedComponent
+    attr::PlotAttributes
+    g::AbstractVector
+    h::AbstractVecOrMat
+
+    function FramedBar(g, h, args...; kvs...)
+        self = new(Dict())
+        iniattr(self)
+        kw_init(self, args...; kvs...)
+        self.g = map(string, g)
+        self.h = h
+        self
+    end
+end
+
+_kw_rename(::FramedBar) = @Dict(
+    :color => :fillcolor,
+    :width => :barwidth,
+)
+
+function limits(self::FramedBar, window::BoundingBox)
+    x = [1, length(self.g)] + 
+        getattr(self, "barwidth") * [-.5, .5] +
+        getattr(self, "offset")
+    y = [extrema(self.h)...]
+    !getattr(self, "vertical") && ((x, y) = (y, x))
+    bounds_within(x, y, window)
+end
+
+function make(self::FramedBar, context)
+    style = getattr(self, :style)
+    objs = GroupPainter(style)
+    baseline = getattr(self, "baseline")
+    x = collect(1:length(self.h)) .+ getattr(self, "barwidth") * [-.5 .5] + getattr(self, "offset")
+    y = [baseline .* ones(length(self.h)) self.h]
+    if !getattr(self, "vertical")
+        x, y = y, x
+        bl = LineX(baseline)
+    else
+        bl = LineY(baseline)
+    end
+    for i = 1:length(self.h)
+        corners = [project(context.geom, Point(x[i,c], y[i,c])) for c in (1,2)]
+        push!(objs, BoxPainter(corners...))
+    end
+    if haskey(style, :draw_baseline) && style[:draw_baseline]
+        objs = GroupPainter(objs, make(bl, context))
+    end
+    objs
+end
+
 # SymbolDataComponent --------------------------------------------------------
 
 abstract SymbolDataComponent <: PlotComponent
 
-_kw_rename(::SymbolDataComponent) = [
+_kw_rename(::SymbolDataComponent) = @Dict(
     :kind => :symbolkind,
     :size => :symbolsize,
     # deprecated
     :type => :symbolkind,
     :symboltype => :symbolkind,
-]
+)
 
 function make_key(self::SymbolDataComponent, bbox::BoundingBox)
     pos = center(bbox)
@@ -2429,10 +2572,10 @@ type Points <: SymbolDataComponent
     end
 end
 
-kw_defaults(::SymbolDataComponent) = [
+kw_defaults(::SymbolDataComponent) = @Dict(
     :symbolkind => config_value("Points","symbolkind"),
     :symbolsize => config_value("Points","symbolsize"),
-]
+)
 
 limits(self::SymbolDataComponent, window::BoundingBox) =
     bounds_within(self.x, self.y, window)
@@ -2465,10 +2608,10 @@ type ColoredPoints <: SymbolDataComponent
     end
 end
 
-kw_defaults(::ColoredPoints) = [
+kw_defaults(::ColoredPoints) = @Dict(
     :symbolkind => config_value("Points","symbolkind"),
     :symbolsize => config_value("Points","symbolsize"),
-]
+)
 
 limits(self::ColoredPoints, window::BoundingBox) =
     bounds_within(self.x, self.y, window)
@@ -2529,19 +2672,19 @@ function setattr(self::HasAttr, name::Symbol, value)
     self.attr[key] = value
 end
 
-hasattr(self::HasAttr, name::String) = hasattr(self, symbol(name))
-getattr(self::HasAttr, name::String) = getattr(self, symbol(name))
-getattr(self::HasAttr, name::String, notfound) = getattr(self, symbol(name), notfound)
-setattr(self::HasAttr, name::String, value) = setattr(self, symbol(name), value)
+hasattr(self::HasAttr, name::AbstractString) = hasattr(self, Symbol(name))
+getattr(self::HasAttr, name::AbstractString) = getattr(self, Symbol(name))
+getattr(self::HasAttr, name::AbstractString, notfound) = getattr(self, Symbol(name), notfound)
+setattr(self::HasAttr, name::AbstractString, value) = setattr(self, Symbol(name), value)
 setattr(self::HasAttr; kvs...) = (for (k,v) in kvs; setattr(self, k, v); end)
 
 function iniattr(self::HasAttr, args...; kvs...)
-    types = {typeof(self)}
-    while super(types[end]) != Any
-        push!(types, super(types[end]))
+    types = Any[typeof(self)]
+    while supertype(types[end]) != Any
+        push!(types, supertype(types[end]))
     end
     for t in reverse(types)
-        name = string(t)
+        name = last(split(string(t), '.'))
         for (k,v) in config_options(name)
             setattr(self, k, v)
         end
@@ -2557,7 +2700,7 @@ end
 # HasStyle ---------------------------------------------------------------
 
 kw_defaults(x) = Dict{Symbol,Any}()
-_kw_rename(x) = (Symbol=>Symbol)[]
+_kw_rename(x) = Dict{Symbol,Symbol}()
 
 function kw_init(self::HasStyle, args...; kvs...)
     # jeez, what a mess...
@@ -2616,14 +2759,19 @@ function set_default_plot_size(width::Int, height::Int)
     _ijulia_height = height
 end
 
+if VERSION < v"0.5-"
 writemime(io::IO, ::MIME"image/png", p::PlotContainer) =
-    write_png(p, io, _ijulia_width, _ijulia_height)
+    savepng(p, io, _ijulia_width, _ijulia_height)
+else
+show(io::IO, ::MIME"image/png", p::PlotContainer) =
+    savepng(p, io, _ijulia_width, _ijulia_height)
+end
 
 if isdefined(Main, :IJulia)
     output_surface = :none
 else
     output_surface = Winston.config_value("default","output_surface")
-    output_surface = symbol(lowercase(get(ENV, "WINSTON_OUTPUT", output_surface)))
+    output_surface = Symbol(lowercase(get(ENV, "WINSTON_OUTPUT", output_surface)))
 end
 
 type Figure
@@ -2676,12 +2824,12 @@ end
 _display = WinstonDisplay()
 _pwinston = FramedPlot()
 
-function figure(;name::String="Figure $(nextfig(_display))",
+function figure(;name::AbstractString="Figure $(nextfig(_display))",
                  width::Integer=Winston.config_value("window","width"),
                  height::Integer=Winston.config_value("window","height"))
     i = nextfig(_display)
     w = window(name, width, height, (x...)->dropfig(_display,i))
-    global _pwinston = FramedPlot()
+    isempty(_display.figs) || (global _pwinston = FramedPlot())
     addfig(_display, i, Figure(w,_pwinston))
 end
 
@@ -2701,10 +2849,12 @@ if output_surface != :none
         include("gtk.jl")
         window = gtkwindow
         closefig(i::Integer) = gtkdestroy(getfig(_display,i).window)
+        closeall() = (map(closefig, keys(_display.figs)); nothing)
     elseif output_surface == :tk
         include("tk.jl")
         window = tkwindow
         closefig(i::Integer) = tkdestroy(getfig(_display,i).window)
+        closeall() = (map(closefig, keys(_display.figs)); nothing)
     else
         warn("Selected Winston backend not found. You will not be able to display plots in a window")
     end

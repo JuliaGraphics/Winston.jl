@@ -11,12 +11,11 @@ function ghf()
 end
 ghf(p) = (global _pwinston = p)
 
-#system functions
-file(fname::String, args...; kvs...) = file(_pwinston, fname, args...; kvs...)
-const savefig = file
+savefig(fname::AbstractString, args...; kvs...) = savefig(_pwinston, fname, args...; kvs...)
+@deprecate file savefig
 
 for f in (:xlabel,:ylabel,:title)
-    @eval $f(s::String) = (setattr(_pwinston, $f=s); _pwinston)
+    @eval $f(s::AbstractString) = (setattr(_pwinston, $f=s); _pwinston)
 end
 for (f,k) in ((:xlim,:xrange),(:ylim,:yrange))
     @eval $f(a, b) = (setattr(_pwinston, $k=(a,b)); _pwinston)
@@ -24,39 +23,40 @@ for (f,k) in ((:xlim,:xrange),(:ylim,:yrange))
     @eval $f() = $k(limits(_pwinston))
 end
 
-const chartokens = [
-    '-' => {:linekind => "solid"},
-    ':' => {:linekind => "dotted"},
-    ';' => {:linekind => "dotdashed"},
-    '+' => {:symbolkind => "plus"},
-    'o' => {:symbolkind => "circle"},
-    '*' => {:symbolkind => "asterisk"},
-    '.' => {:symbolkind => "dot"},
-    'x' => {:symbolkind => "cross"},
-    's' => {:symbolkind => "square"},
-    'd' => {:symbolkind => "diamond"},
-    '^' => {:symbolkind => "triangle"},
-    'v' => {:symbolkind => "down-triangle"},
-    '>' => {:symbolkind => "right-triangle"},
-    '<' => {:symbolkind => "left-triangle"},
-    'y' => {:color => "yellow"},
-    'm' => {:color => "magenta"},
-    'c' => {:color => "cyan"},
-    'r' => {:color => "red"},
-    'g' => {:color => "green"},
-    'b' => {:color => "blue"},
-    'w' => {:color => "white"},
-    'k' => {:color => "black"},
-]
+const chartokens = @Dict(
+    '-' => (:linekind, "solid"),
+    ':' => (:linekind, "dotted"),
+    ';' => (:linekind, "dotdashed"),
+    '+' => (:symbolkind, "plus"),
+    'o' => (:symbolkind, "circle"),
+    '*' => (:symbolkind, "asterisk"),
+    '.' => (:symbolkind, "dot"),
+    'x' => (:symbolkind, "cross"),
+    's' => (:symbolkind, "square"),
+    'd' => (:symbolkind, "diamond"),
+    '^' => (:symbolkind, "triangle"),
+    'v' => (:symbolkind, "down-triangle"),
+    '>' => (:symbolkind, "right-triangle"),
+    '<' => (:symbolkind, "left-triangle"),
+    'y' => (:color, colorant"yellow"),
+    'm' => (:color, colorant"magenta"),
+    'c' => (:color, colorant"cyan"),
+    'r' => (:color, colorant"red"),
+    'g' => (:color, colorant"green"),
+    'b' => (:color, colorant"blue"),
+    'w' => (:color, colorant"white"),
+    'k' => (:color, colorant"black"),
+)
 
-function _parse_spec(spec::String)
-    try
-        return { :color => Color.color(spec) }
-    end
-
+function _parse_spec(spec::AbstractString)
     style = Dict()
 
-    for (k,v) in [ "--" => "dashed", "-." => "dotdashed" ]
+    try
+        style[:color] = parse(Colors.Colorant, spec)
+        return style
+    end
+
+    for (k,v) in (("--","dashed"), ("-.","dotdashed"))
         splitspec = split(spec, k)
         if length(splitspec) > 1
             style[:linekind] = v
@@ -66,9 +66,8 @@ function _parse_spec(spec::String)
 
     for char in spec
         if haskey(chartokens, char)
-            for (k,v) in chartokens[char]
-                style[k] = v
-            end
+            (k,v) = chartokens[char]
+            style[k] = v
         else
             warn("unrecognized style '$char'")
         end
@@ -105,7 +104,7 @@ function _process_keywords(kvs, p, components...)
     end
 end
 
-typealias PlotArg Union(String,AbstractVector,AbstractMatrix,Function,Real)
+@compat typealias PlotArg Union{AbstractString,AbstractVector,AbstractMatrix,Function,Real}
 
 isrowvec(x::AbstractArray) = ndims(x) == 2 && size(x,1) == 1 && size(x,2) > 1
 
@@ -113,12 +112,12 @@ isvector(x::AbstractVector) = true
 isvector(x::AbstractMatrix) = size(x,1) == 1
 
 function plot(p::FramedPlot, args::PlotArg...; kvs...)
-    args = {args...}
-    components = {}
+    args = Any[args...]
+    components = Any[]
     color_idx = 0
 
     default_style = Dict()
-    attr = {}
+    attr = Any[]
     xrange = nothing
     for (k,v) in kvs
         if k in (:linestyle, :linetype)
@@ -136,7 +135,7 @@ function plot(p::FramedPlot, args::PlotArg...; kvs...)
     end
 
     # parse the args into tuples of the form (x, y, spec) or (func, lims, spec)
-    parsed_args = {}
+    parsed_args = Any[]
 
     i = 0
     need_xrange = false
@@ -170,7 +169,7 @@ function plot(p::FramedPlot, args::PlotArg...; kvs...)
             error("expected array or function for argument #$i; got $(typeof(a))")
         end
         spec = ""
-        if length(args) > 0 && isa(args[1], String)
+        if length(args) > 0 && isa(args[1], AbstractString)
             spec = shift!(args); i += 1
         end
         push!(parsed_args, (x,y,spec))
@@ -199,18 +198,18 @@ function plot(p::FramedPlot, args::PlotArg...; kvs...)
 
         local xys
         if isa(x, AbstractVector) && isa(y, AbstractVector)
-            xys = { (x,y) }
+            xys = [ (x,y) ]
         elseif isa(x, AbstractVector)
             xys = length(x) == size(y,1) ?
-                  { (x, sub(y,:,j)) for j = 1:size(y,2) } :
-                  { (x, sub(y,i,:)) for i = 1:size(y,1) }
+                  [ (x, sub(y,:,j)) for j = 1:size(y,2) ] :
+                  [ (x, sub(y,i,:)) for i = 1:size(y,1) ]
         elseif isa(y, AbstractVector)
             xys = size(x,1) == length(y) ?
-                  { (sub(x,:,j), y) for j = 1:size(x,2) } :
-                  { (sub(x,i,:), y) for i = 1:size(x,1) }
+                  [ (sub(x,:,j), y) for j = 1:size(x,2) ] :
+                  [ (sub(x,i,:), y) for i = 1:size(x,1) ]
         else
             @assert size(x) == size(y)
-            xys = { (sub(x,:,j), sub(y,:,j)) for j = 1:size(y,2) }
+            xys = [ (sub(x,:,j), sub(y,:,j)) for j = 1:size(y,2) ]
         end
 
         for (x,y) in xys
@@ -248,10 +247,10 @@ semilogx(args::PlotArg...; kvs...) = plot(args...; xlog=true, kvs...)
 semilogy(args::PlotArg...; kvs...) = plot(args...; ylog=true, kvs...)
 loglog(args::PlotArg...; kvs...) = plot(args...; xlog=true, ylog=true, kvs...)
 
-typealias Interval (Real,Real)
+typealias Interval @compat(Tuple{Real,Real})
 
-function data2rgb{T<:Real}(data::AbstractArray{T}, limits::Interval, colormap::Array{Uint32,1})
-    img = similar(data, Uint32)
+function data2rgb{T<:Real}(data::AbstractArray{T}, limits::Interval, colormap::Array{UInt32,1})
+    img = similar(data, UInt32)
     ncolors = length(colormap)
     limlower = limits[1]
     limscale = ncolors/(limits[2]-limits[1])
@@ -259,10 +258,9 @@ function data2rgb{T<:Real}(data::AbstractArray{T}, limits::Interval, colormap::A
         datai = data[i]
         if isfinite(datai)
             idxr = limscale*(datai - limlower)
-            idx = itrunc(idxr)
+            idx = trunc(Int, idxr)
             idx += idxr > convert(T, idx)
-            if idx < 1 idx = 1 end
-            if idx > ncolors idx = ncolors end
+            idx = clamp(idx, 1, ncolors)
             img[i] = colormap[idx]
         else
             img[i] = 0x00000000
@@ -281,14 +279,14 @@ function jetrgb(x)
 end
 
 colormap() = (global _current_colormap; _current_colormap)
-colormap(c::Array{Uint32,1}) = (global _current_colormap = c; nothing)
-colormap{C<:ColorValue}(cs::Array{C,1}) =
-    colormap(Uint32[convert(RGB24,c) for c in cs])
-function colormap(name::String, n::Int=256)
+colormap(c::Array{UInt32,1}) = (global _current_colormap = c; nothing)
+colormap{C<:Color}(cs::Array{C,1}) =
+    colormap(reinterpret(UInt32, [convert(RGB24,c) for c in cs]))
+function colormap(name::AbstractString, n::Int=256)
     if name == "jet"
         colormap([jetrgb(x) for x in linspace(0.,1.,n)])
     else
-        colormap(Color.colormap(name, n))
+        colormap(Colors.colormap(name, n))
     end
 end
 colormap("jet")
@@ -300,6 +298,8 @@ function imagesc{T<:Real}(xrange::Interval, yrange::Interval, data::AbstractArra
         setattr(p, :yrange, reverse(yrange))
     end
     img = data2rgb(data, clims, _current_colormap)
+    xrange[1] > xrange[2] && (img = flipdim(img,2))
+    yrange[1] < yrange[2] && (img = flipdim(img,1))
     add(p, Image(xrange, reverse(yrange), img))
     ghf(p)
 end
@@ -331,10 +331,10 @@ function spy(S::SparseMatrixCSC, nrS::Integer, ncS::Integer)
     imagesc((1,m), (1,n), target)
 end
 
-scatter(x::AbstractVecOrMat, y::AbstractVecOrMat, spec::ASCIIString="o"; kvs...) = scatter(x, y, 1., spec; kvs...)
-scatter{C<:Complex}(z::AbstractVecOrMat{C}, spec::ASCIIString="o"; kvs...) = scatter(real(z), imag(z), 1., spec; kvs...)
+scatter(x::AbstractVecOrMat, y::AbstractVecOrMat, spec::String="o"; kvs...) = scatter(x, y, 1., spec; kvs...)
+scatter{C<:Complex}(z::AbstractVecOrMat{C}, spec::String="o"; kvs...) = scatter(real(z), imag(z), 1., spec; kvs...)
 function scatter(x::AbstractVecOrMat, y::AbstractVecOrMat,
-                 s::Real, spec::ASCIIString="o"; kvs...)
+                 s::Real, spec::String="o"; kvs...)
     sopts = _parse_spec(spec)
     p = ghf()
     c = Points(x, y, sopts, symbolsize=s)
@@ -349,19 +349,19 @@ function scatter(x::AbstractVecOrMat, y::AbstractVecOrMat,
     ghf(p)
 end
 function scatter(x::AbstractVecOrMat, y::AbstractVecOrMat,
-                 s::AbstractVecOrMat, spec::ASCIIString="o"; kvs...)
+                 s::AbstractVecOrMat, spec::String="o"; kvs...)
     c = convert(RGB24, color(get(_parse_spec(spec), :color, RGB(0,0,0))))
     scatter(x, y, s, fill(c,size(x)...), spec; kvs...)
 end
 function scatter(x::AbstractVecOrMat, y::AbstractVecOrMat,
-                 s::Union(Real,AbstractVecOrMat), c::AbstractVecOrMat,
-                 spec::ASCIIString="o"; kvs...)
+                 s::(@compat Union{Real,AbstractVecOrMat}), c::AbstractVecOrMat,
+                 spec::String="o"; kvs...)
     if typeof(s) <: Real
         s = fill(s, size(x)...)
     end
     if eltype(c) <: Real
         c = data2rgb(c, extrema(c), _current_colormap)
-    elseif !(eltype(c) <: ColorValue)
+    elseif !(eltype(c) <: Color)
         error("bad color array")
     end
     sopts = _parse_spec(spec)
@@ -380,8 +380,8 @@ end
 
 ## stem ##
 
-stem(y::AbstractVecOrMat, spec::ASCIIString="o"; kvs...) = stem(1:length(y), y, spec; kvs...)
-function stem(x::AbstractVecOrMat, y::AbstractVecOrMat, spec::ASCIIString="o"; kvs...)
+stem(y::AbstractVecOrMat, spec::String="o"; kvs...) = stem(1:length(y), y, spec; kvs...)
+function stem(x::AbstractVecOrMat, y::AbstractVecOrMat, spec::String="o"; kvs...)
     p = ghf()
     sopts = _parse_spec(spec)
     s = Stems(x, y, sopts)
@@ -392,7 +392,7 @@ function stem(x::AbstractVecOrMat, y::AbstractVecOrMat, spec::ASCIIString="o"; k
     ghf(p)
 end
 
-function text(x::Real, y::Real, s::String; kvs...)
+function text(x::Real, y::Real, s::AbstractString; kvs...)
     p = _pwinston
     c = DataLabel(x, y, s, halign="left")
     _process_keywords(kvs, p, c)
@@ -403,7 +403,7 @@ spy(S::SparseMatrixCSC) = spy(S, 100, 100)
 spy(A::AbstractMatrix, nrS, ncS) = spy(sparse(A), nrS, ncS)
 spy(A::AbstractMatrix) = spy(sparse(A))
 
-function plothist(p::FramedPlot, h::(Range,Vector); kvs...)
+function plothist(p::FramedPlot, h::@compat(Tuple{Range,Vector}); kvs...)
     c = Histogram(h...)
     add(p, c)
 
@@ -429,10 +429,10 @@ _default_kernel2d=(1.0/273.)*[1.0 4.0 7.0 4.0 1.0;
                              4.0 16. 26. 16. 4.0;
                              7.0 26. 41. 26. 7.0;
                              1.0 4.0 7.0 4.0 1.0;
-                             4.0 16. 26. 16. 4.0]                 
+                             4.0 16. 26. 16. 4.0]
 
 #hist2d
-function plothist2d(p::FramedPlot, h::(Union(Range,Vector),Union(Range,Vector),Array{Int,2}); colormap=_current_colormap, smooth=0, kernel=_default_kernel2d, kvs...)
+function plothist2d(p::FramedPlot, h::@compat(Tuple{(@compat Union{Range,Vector}),(@compat Union{Range,Vector}),Array{Int,2}}); colormap=_current_colormap, smooth=0, kernel=_default_kernel2d, kvs...)
     xr, yr, hdata = h
 
     for i in 1:smooth
@@ -565,11 +565,11 @@ function fplot(f::Function, limits, args...; kvs...)
     pargs = []
     fopts = Dict()
     for arg in args
-        if typeof(arg) <: String
+        if typeof(arg) <: AbstractString
             pargs = [arg]
         elseif typeof(arg) <: Integer
             fopts[:min_points] = arg
-        elseif typeof(arg) <: FloatingPoint
+        elseif typeof(arg) <: @compat AbstractFloat
             fopts[:tol] = arg
         else
             error("unrecognized argument ", arg)
@@ -580,3 +580,114 @@ function fplot(f::Function, limits, args...; kvs...)
     x,y = fplot_points(f, xmin, xmax; fopts...)
     plot(x, y, pargs...; kvs...)
 end
+
+# bar, barh
+ax = @compat Dict{Any,Any}(:bar => :x, :barh => :y)
+ax1 = @compat Dict{Any,Any}(:bar => :x1, :barh => :y1)
+vert = @compat Dict{Any,Any}(:bar => true, :barh => false)
+for fn in (:bar, :barh)
+    eval(quote
+          function $fn(p::FramedPlot, b::FramedBar, args...; kvs...)
+              setattr(b, vertical=$(vert[fn]))
+              setattr(p.$(ax[fn]), draw_subticks=false)
+              setattr(p.$(ax[fn]), ticks=collect(1.:length(b.h)))
+              setattr(p.$(ax1[fn]), ticklabels=b.g)
+              add(p, b)
+              global _pwinston = p
+              p
+          end
+          function $fn(p::FramedPlot, g::AbstractVector, h::AbstractVector, args...; kvs...)
+              b = FramedBar(g, h[:,end], args...; kvs...)
+              $fn(p, b, args...; kvs...)
+          end
+          function $fn(p::FramedPlot, g::AbstractVector, h::AbstractMatrix, args...; kvs...)
+              nc = size(h,2)
+              barwidth = config_value("FramedBar", "barwidth")/nc
+              offsets = barwidth * (nc - 1) * linspace(-.5, .5, nc)
+              for c = 1:nc-1
+                  b = FramedBar(g, h[:,c], args...; kvs...)
+                  setattr(b, offset=offsets[c])
+                  setattr(b, barwidth=barwidth)
+                  setattr(b, vertical=$(vert[fn]))
+                  style(b, fillcolor=default_color(c))
+                  style(b, draw_baseline=false)
+                  add(p, b)
+              end
+              b = FramedBar(g, h[:,nc], args...; kvs...)
+              setattr(b, offset=offsets[nc])
+              setattr(b, barwidth=barwidth)
+              style(b, fillcolor=default_color(nc))
+              $fn(p, b, args...; kvs...)
+          end
+          $fn(p::FramedPlot, h::AbstractVecOrMat, args...; kvs...) =
+              $fn(p, [1:size(h,1)], h, args...; kvs...)
+          $fn(args...; kvs...) = $fn(ghf(), args...; kvs...)
+    end )
+end
+
+grid(p::FramedPlot, tf::Bool) = (setattr(p.frame, draw_grid=tf); p)
+grid(p::FramedPlot) = grid(p, !any(map(x->getattr(x, "draw_grid"), p.frame.objs)))
+grid(args...) = grid(_pwinston, args...)
+
+function legend(p::FramedPlot, lab::AbstractVector, args...; kvs...)
+    if length(args) > 0 && length(args[1]) == 2 && eltype(args[1]) <: Real
+        position = args[1]
+        args = args[2:end]
+    elseif length(args) > 1 && eltype(args[1:2]) <: Real
+        position = args[1:2]
+        args = args[3:end]
+    else
+        position = [0.1, 0.9]
+    end
+    # TODO: define other legend positions
+    plotcomp = getcomponents(p)
+    nitems = min(length(lab), length(plotcomp))
+    for c in 1:nitems
+        setattr(plotcomp[c], label=lab[c])
+    end
+    add(p, Legend(position..., plotcomp[1:nitems], args...; kvs...))
+end
+legend(lab::AbstractVector, args...; kvs...) = legend(_pwinston, lab, args...; kvs...)
+
+function timeplot(p::FramedPlot, x::Vector{DateTime}, y::AbstractArray, args...; kvs...)
+    limits = datetime2unix([minimum(x), maximum(x)])
+
+    ticks = collect(0.0:0.2:1.0)
+    ticklabels = x[round(Int64, ticks * (length(x) - 1) + 1)]
+    normalized_x = (datetime2unix(x) - limits[1]) / (limits[2] - limits[1])
+
+    span = @compat Int(x[end] - x[1]) / 1000
+    kvs = Dict(kvs)
+
+    if :format in keys(kvs)
+        format = kvs[:format]
+        delete!(kvs, :format)
+    else
+        if span > 365 * 24 * 60 * 60 # 1 year
+            format = "%Y-%m"
+        elseif 365 * 24 * 60 * 60 > span > 30 * 24 * 60 * 60 # 1 month
+            format = "%Y-%m-%d"
+        elseif 30 * 24 * 60 * 60 > span > 24 * 60 * 60 # 1 day
+            format = "%Y-%m-%d\n%H:%M"
+        elseif 24 * 60 * 60 > span > 60 * 60 # 1 hour
+            format = "%H:%M"
+        elseif 60 * 60 > 60 # 1 minute
+            format = "%H:%M:%S"
+        else
+            format = "%H:%M:%S"
+        end
+    end
+
+    ticklabels = map(d -> strftime(format, datetime2unix(d)), ticklabels)
+
+    setattr(p.x1, :ticklabels, ticklabels)
+    setattr(p.x1, :ticks, ticks)
+    setattr(p.x1, :ticklabels_style, @compat Dict(:fontsize=>1.5))
+
+    plot(p, normalized_x, y, args...; kvs...)
+end
+
+timeplot(x::Vector{DateTime}, y::AbstractArray, args...; kvs...) = timeplot(ghf(), x, y, args...; kvs...)
+timeplot(x::Vector{Date}, y::AbstractArray, arg...; kvs...) = timeplot(ghf(), DateTime(x), y, arg...; kvs...)
+timeplot(p::FramedPlot, x::Vector{Date}, y::AbstractArray, arg...; kvs...) =
+    timeplot(p, DateTime(x), y, arg...; kvs...)

@@ -48,10 +48,10 @@ height(r::CairoRenderer) = height(r.ctx.surface)
 boundingbox(c::CairoRenderer) = BoundingBox(0., width(c), 0., height(c))
 
 # convert to postscipt pt = in/72
-const xx2pt = [ "in"=>72., "pt"=>1., "mm"=>2.835, "cm"=>28.35 ]
+const xx2pt = @Dict( "in"=>72., "pt"=>1., "mm"=>2.835, "cm"=>28.35 )
 function _str_size_to_pts(str)
     m = match(r"([\d.]+)([^\s]+)", str)
-    num_xx = float64(m.captures[1])
+    num_xx = parse(Float64, m.captures[1])
     units = m.captures[2]
     num_pt = num_xx*xx2pt[units]
     return num_pt
@@ -59,11 +59,11 @@ end
 
 ## state commands
 
-color_to_rgb(i::Integer) = convert(RGB, RGB24(unsigned(i)))
-color_to_rgb(s::String) = color(s)
-color_to_rgb(rgb::(Real,Real,Real)) = RGB(rgb...)
-color_to_rgb(cv::ColorValue) = convert(RGB, cv)
-color_to_rgb(cv::AlphaColorValue) = cv
+color_to_rgb(i::Integer) = convert(RGB, reinterpret(RGB24, UInt32(unsigned(i))))
+color_to_rgb(s::AbstractString) =parse(Colorant,s)
+color_to_rgb(rgb::@compat(Tuple{Real,Real,Real})) = RGB(rgb...)
+color_to_rgb(cv::Color) = convert(RGB, cv)
+color_to_rgb(cv::TransparentColor) = cv
 
 set_color(ctx::CairoContext, color) = set_source(ctx, color_to_rgb(color))
 
@@ -72,7 +72,7 @@ function set_clip_rect(ctx::CairoContext, bb::BoundingBox)
     clip(ctx)
 end
 
-const __pl_style_func = [
+const __pl_style_func = @Dict(
     :color     => set_color,
     :linecolor => set_color,
     :fillcolor => set_color,
@@ -81,7 +81,7 @@ const __pl_style_func = [
     :linewidth => set_line_width,
     :filltype  => set_fill_type,
     :cliprect  => set_clip_rect,
-]
+)
 
 function set(self::CairoRenderer, key::Symbol, value)
     set(self.state, key, value)
@@ -95,12 +95,12 @@ function set(self::CairoRenderer, key::Symbol, value)
         __pl_style_func[key](self.ctx, value)
     end
 end
-set(self::CairoRenderer, key::String, value) = set(self, symbol(key), value)
+set(self::CairoRenderer, key::AbstractString, value) = set(self, Symbol(key), value)
 
 function get(self::CairoRenderer, parameter::Symbol, notfound=nothing)
     return get(self.state, parameter, notfound)
 end
-get(self::CairoRenderer, parameter::String, notfound=nothing) = get(self, symbol(parameter), notfound)
+get(self::CairoRenderer, parameter::AbstractString, notfound=nothing) = get(self, Symbol(parameter), notfound)
 
 function save_state(self::CairoRenderer)
     save(self.state)
@@ -126,7 +126,7 @@ function line(self::CairoRenderer, px, py, qx, qy)
     stroke(self.ctx)
 end
 
-const symbol_funcs = {
+const symbol_funcs = @Dict(
     "asterisk" => (c, x, y, r) -> (
         move_to(c, x, y+r);
         line_to(c, x, y-r);
@@ -190,7 +190,7 @@ const symbol_funcs = {
         line_to(c, x+0.5r, y-0.866r);
         close_path(c)
     ),
-}
+)
 
 function symbols(self::CairoRenderer, x, y)
     fullname = get(self.state, :symbolkind, "circle")
@@ -256,11 +256,16 @@ function polygon(self::CairoRenderer, points::Vector)
     fill(self.ctx)
 end
 
-function layout_text(self::CairoRenderer, str::String)
+function rectangle(self::CairoRenderer, bbox::BoundingBox, filled::Bool=true)
+    rectangle(self.ctx, bbox)
+    filled ? fill(self.ctx) : stroke(self.ctx)
+end
+
+function layout_text(self::CairoRenderer, str::AbstractString)
     set_latex(self.ctx, str, get(self,:fontsize))
 end
 
-function textdraw(self::CairoRenderer, x::Real, y::Real, str::String; kwargs...)
+function textdraw(self::CairoRenderer, x::Real, y::Real, str::AbstractString; kwargs...)
     return Cairo.text(self.ctx, x, y, set_latex(self.ctx, str, get(self,:fontsize)); markup=true, kwargs...)
 end
 

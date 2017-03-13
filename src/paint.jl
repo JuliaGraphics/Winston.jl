@@ -36,13 +36,14 @@ GroupPainter(d::Dict{Symbol,Any}, args::AbstractPainter...) =
     GroupPainter(d, AbstractPainter[arg for arg in args])
 
 function GroupPainter(args::AbstractPainter...; kvs...)
-    self = GroupPainter(Dict{Symbol,Any}(), {args...})
+    self = GroupPainter(Dict{Symbol,Any}(), Any[args...])
     for (k,v) in kvs
         self.style[k] = v
     end
     self
 end
 
+Base.isempty(g::GroupPainter) = isempty(g.children)
 Base.push!(g::GroupPainter, p::AbstractPainter...) = push!(g.children, p...)
 
 function boundingbox(g::GroupPainter, context::PaintContext)
@@ -80,16 +81,16 @@ immutable LabelsPainter <: AbstractPainter
     points::Vector{Point}
     labels::Vector
     angle::Float64
-    halign::ASCIIString
-    valign::ASCIIString
+    halign::String
+    valign::String
 end
 
 function LabelsPainter(points, labels; angle=0., halign="center", valign="center")
     LabelsPainter(points, labels, angle, halign, valign)
 end
 
-__halign_offset = [ "right"=>Vec2(-1,0), "center"=>Vec2(-.5,.5), "left"=>Vec2(0,1) ]
-__valign_offset = [ "top"=>Vec2(-1,0), "center"=>Vec2(-.5,.5), "bottom"=>Vec2(0,1) ]
+__halign_offset = @Dict( "right"=>Vec2(-1,0), "center"=>Vec2(-.5,.5), "left"=>Vec2(0,1) )
+__valign_offset = @Dict( "top"=>Vec2(-1,0), "center"=>Vec2(-.5,.5), "bottom"=>Vec2(0,1) )
 
 function boundingbox(self::LabelsPainter, context::PaintContext)
     bb = BoundingBox()
@@ -214,10 +215,10 @@ end
 
 immutable TextPainter <: AbstractPainter
     pos::Point
-    str::ByteString
+    str::String
     angle::Float64
-    halign::ASCIIString
-    valign::ASCIIString
+    halign::String
+    valign::String
 end
 
 function TextPainter(pos, str; angle=0., halign="center", valign="center")
@@ -272,6 +273,27 @@ function paint(self::PolygonPainter, context::PaintContext)
     polygon(context.device, self.points)
 end
 
+immutable BoxPainter <: AbstractPainter
+    p::Point
+    q::Point
+end
+
+function boundingbox(self::BoxPainter, context::PaintContext)
+    return BoundingBox(self.p, self.q)
+end
+
+function paint(self::BoxPainter, context::PaintContext)
+    linecolor = get(context.device, :linecolor)
+    linecolor != nothing && set_color(context.device.ctx, linecolor)
+    fillcolor = get(context.device, :fillcolor)
+    fillcolor != nothing && set_color(context.device.ctx, fillcolor)
+    rectangle(context.device, BoundingBox(self.p, self.q), true)
+    if linecolor != nothing
+        set_color(context.device.ctx, linecolor)
+        rectangle(context.device, BoundingBox(self.p, self.q), false)
+    end
+end
+
 immutable ImagePainter <: AbstractPainter
     img
     bbox
@@ -288,3 +310,12 @@ function paint(self::ImagePainter, context::PaintContext)
     image(context.device, self.img, ll.x, ll.y, w, h)
 end
 
+immutable StrutPainter <: AbstractPainter
+    bbox::BoundingBox
+end
+
+boundingbox(self::StrutPainter, context::PaintContext) = self.bbox
+
+function paint(self::StrutPainter, context::PaintContext)
+    # do nothing -- just for sizing
+end

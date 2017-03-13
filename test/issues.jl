@@ -5,11 +5,12 @@ export
     issue100,
     issue143,
     issue146a,
-    issue146b
+    issue146b,
+    issue176
 
 function issue008()
     large = [i^4 + 1e12 for i in 1:10^3]
-    small = [1:10^3]
+    small = [1:10^3;]
     plot(small,large)
 end
 
@@ -34,3 +35,13 @@ end
 
 issue146a() = plot(sin, 0, 2pi)
 issue146b() = plot(sin, cos, xrange=[0,2pi], yrange=[-2,2])
+
+function issue176()
+    t = Table(2,2)
+    z = reshape(1:100, 10, 10)
+    t[1,1] = imagesc((1,10), (1,10), z)
+    t[1,2] = imagesc((1,10), (10,1), z)
+    t[2,1] = imagesc((10,1), (1,10), z)
+    t[2,2] = imagesc((10,1), (10,1), z)
+    t
+end

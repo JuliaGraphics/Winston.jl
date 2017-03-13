@@ -16,7 +16,7 @@ end
 
 if VERSION < v"0.3-"
     Rectangle(x0::Real, x1::Real, y0::Real, y1::Real) =
-        Rectangle(float64(x0), float64(x1), float64(y0), float64(y1))
+        Rectangle(@compat Float64(x0), @compat Float64(x1), @compat Float64(y0), @compat Float64(y1))
 end
 
 Rectangle() = Rectangle(NaN, NaN, NaN, NaN)
@@ -82,7 +82,7 @@ immutable LogProjection <: AbstractProjection1
 end
 
 project(p::LogProjection, u) = p.a .+ p.b .* log10(u)
-deproject(p::LinearProjection, x) = 10.0 .^ ((x .- p.a) ./ p.b)
+deproject(p::LogProjection, x) = 10.0 .^ ((x .- p.a) ./ p.b)
 
 immutable SeparableProjection2{P1<:AbstractProjection1,
                                P2<:AbstractProjection1} <: AbstractProjection2

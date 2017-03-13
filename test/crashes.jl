@@ -2,6 +2,8 @@
 
 using Winston
 
+println("Testing that bad inputs don't cause a crash...")
+
 # bad ranges
 display(plot(1:10, xlog=true, xrange=(-10,10)))
 display(plot(1:10, ylog=true, yrange=(-10,10)))
@@ -24,3 +26,5 @@ x = 1:10
 y = 1:10
 display(plot(x',y'))
 display(plot(x'',y''))
+
+println("Done testing bad inputs")

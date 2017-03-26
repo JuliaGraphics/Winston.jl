@@ -31,7 +31,7 @@ function restore(self::RendererState)
     splice!(self.saved, 1)
 end
 
-abstract Renderer
+@compat abstract type Renderer end
 
 type CairoRenderer <: Renderer
     ctx::CairoContext
@@ -48,7 +48,7 @@ height(r::CairoRenderer) = height(r.ctx.surface)
 boundingbox(c::CairoRenderer) = BoundingBox(0., width(c), 0., height(c))
 
 # convert to postscipt pt = in/72
-const xx2pt = @Dict( "in"=>72., "pt"=>1., "mm"=>2.835, "cm"=>28.35 )
+const xx2pt = Dict( "in"=>72., "pt"=>1., "mm"=>2.835, "cm"=>28.35 )
 function _str_size_to_pts(str)
     m = match(r"([\d.]+)([^\s]+)", str)
     num_xx = parse(Float64, m.captures[1])
@@ -61,7 +61,7 @@ end
 
 color_to_rgb(i::Integer) = convert(RGB, reinterpret(RGB24, UInt32(unsigned(i))))
 color_to_rgb(s::AbstractString) =parse(Colorant,s)
-color_to_rgb(rgb::@compat(Tuple{Real,Real,Real})) = RGB(rgb...)
+color_to_rgb(rgb::Tuple{Real,Real,Real}) = RGB(rgb...)
 color_to_rgb(cv::Color) = convert(RGB, cv)
 color_to_rgb(cv::TransparentColor) = cv
 
@@ -72,7 +72,7 @@ function set_clip_rect(ctx::CairoContext, bb::BoundingBox)
     clip(ctx)
 end
 
-const __pl_style_func = @Dict(
+const __pl_style_func = Dict(
     :color     => set_color,
     :linecolor => set_color,
     :fillcolor => set_color,
@@ -126,7 +126,7 @@ function line(self::CairoRenderer, px, py, qx, qy)
     stroke(self.ctx)
 end
 
-const symbol_funcs = @Dict(
+const symbol_funcs = Dict(
     "asterisk" => (c, x, y, r) -> (
         move_to(c, x, y+r);
         line_to(c, x, y-r);

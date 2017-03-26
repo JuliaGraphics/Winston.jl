@@ -2,8 +2,8 @@ language: julia
 sudo: required
 os:
   - linux
+  - osx
 julia:
-  - 0.4
   - 0.5
   - nightly
 notifications:
@@ -11,6 +11,10 @@ notifications:
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
   - julia -e 'Pkg.clone(pwd()); Pkg.build("Winston")'
-  - xvfb-run julia --check-bounds=yes -e 'Pkg.test("Winston", coverage=true)'
+  - if [ `uname` = "Linux" ]; then
+      xvfb-run julia --check-bounds=yes -e 'Pkg.test("Winston", coverage=true)';
+    elif [ `uname` = "Darwin" ]; then
+      julia --check-bounds=yes -e 'Pkg.test("Winston", coverage=true)';
+    fi
 after_success:
-  - if [ $TRAVIS_JULIA_VERSION = "nightly" ]; then julia -e 'cd(Pkg.dir("Winston")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'; fi
+  - julia -e 'cd(Pkg.dir("Winston")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())';

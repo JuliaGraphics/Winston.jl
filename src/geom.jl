@@ -14,11 +14,6 @@ immutable Rectangle
     y1::Float64
 end
 
-if VERSION < v"0.3-"
-    Rectangle(x0::Real, x1::Real, y0::Real, y1::Real) =
-        Rectangle(@compat Float64(x0), @compat Float64(x1), @compat Float64(y0), @compat Float64(y1))
-end
-
 Rectangle() = Rectangle(NaN, NaN, NaN, NaN)
 Rectangle(lowerleft::Point, upperright::Point) =
     Rectangle(lowerleft.x, lowerleft.y, upperright.x, upperright.y)
@@ -28,8 +23,8 @@ function Rectangle(bb::BoundingBox, xflipped::Bool, yflipped::Bool)
     Rectangle(p, q)
 end
 
-BoundingBox(r::Rectangle) = BoundingBox(min(r.x0,r.x1), max(r.x0,r.x1),
-                                        min(r.y0,r.y1), max(r.y0,r.y1))
+BoundingBox(r::Rectangle) = BoundingBox(NaNMath.min(r.x0,r.x1), NaNMath.max(r.x0,r.x1),
+                                        NaNMath.min(r.y0,r.y1), NaNMath.max(r.y0,r.y1))
 
 isincomplete(bb::BoundingBox) = isnan(bb.xmin) || isnan(bb.xmax) ||
                                 isnan(bb.ymin) || isnan(bb.ymax)
@@ -63,8 +58,8 @@ end
 
 # --------------------------------------------------------------------------
 
-abstract AbstractProjection1
-abstract AbstractProjection2
+@compat abstract type AbstractProjection1 end
+@compat abstract type AbstractProjection2 end
 
 project(p::AbstractProjection2, pt::Point) = Point(project(p, pt.x, pt.y)...)
 
@@ -81,7 +76,7 @@ immutable LogProjection <: AbstractProjection1
     b::Float64
 end
 
-project(p::LogProjection, u) = p.a .+ p.b .* log10(u)
+project(p::LogProjection, u) = p.a .+ p.b .* log10.(u)
 deproject(p::LogProjection, x) = 10.0 .^ ((x .- p.a) ./ p.b)
 
 immutable SeparableProjection2{P1<:AbstractProjection1,
@@ -101,8 +96,8 @@ immutable PolarProjection
 end
 
 function project(p::PolarProjection, r, θ)
-    x = p.x0 .+ p.sx .* r .* cos(θ)
-    y = p.y0 .+ p.sy .* r .* sin(θ)
+    x = p.x0 .+ p.sx .* r .* cos.(θ)
+    y = p.y0 .+ p.sy .* r .* sin.(θ)
     x, y
 end
 

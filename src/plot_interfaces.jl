@@ -9,7 +9,7 @@
 ## plot(fs::Array{Function, 2}, a::Real, b::Real, args...; kwargs...) table of plots
 
 
-typealias ScatterPlotPoints{T<:Real, S<:Real} @compat(Tuple{Vector{T}, Vector{S}})
+@compat const ScatterPlotPoints{T<:Real, S<:Real} = Tuple{Vector{T}, Vector{S}}
 
 ## plot a scatterplot (verbose alternative to plot(x, y, "o")
 ## use named argument symbol to pass in symbol -- not args)
@@ -21,7 +21,7 @@ end
 errs_to_nan(f) = (x) -> try f(x) catch e NaN end
 
 ## parametric plot
-typealias ParametricFunctionPair @compat(Tuple{Function, Function})
+const ParametricFunctionPair = Tuple{Function, Function}
 function plot(p::FramedPlot, fs::ParametricFunctionPair, a::Real, b::Real, args...; npoints::Int=500, kwargs...)
     us = linspace(a, b, npoints)
     xs = map(errs_to_nan(fs[1]), us)

@@ -89,7 +89,7 @@ function project(this::Canvas3D, v::AbstractMatrix)
     broadcast(+, this.sctm * broadcast(-,v,this.center), this.wincenter)
 end
 
-const cube4sides = {[1,5,6,2], [2,6,7,3], [3,7,8,4], [4,8,5,1]}
+const cube4sides = [[1,5,6,2], [2,6,7,3], [3,7,8,4], [4,8,5,1]]
 
 function draw(gc, this::Canvas3D, motion::Bool)
     bv = similar(this.boxv)

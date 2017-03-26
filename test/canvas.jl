@@ -14,7 +14,7 @@ pack(c, expand=true, fill="both")
 
 p = FramedPlot()
 x = linspace(0,10,1001)
-y = sin(x)
+y = sin.(x)
 add(p, Curve(x, y, "color", colorant"green"))
 
 Winston.display(c, p)

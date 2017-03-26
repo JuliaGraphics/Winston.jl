@@ -1,5 +1,3 @@
-using Compat; import Compat.String
-
 _winston_config = Inifile()
 
 begin
@@ -11,12 +9,6 @@ begin
         if isfile(fn) break end
     end
     read(_winston_config, fn)
-end
-
-if VERSION < v"0.4-"
-    split_keep_false(a, b) = split(a, b, false)
-else
-    split_keep_false(a, b) = split(a, b, keep=false)
 end
 
 function _atox(s::AbstractString)
@@ -34,9 +26,9 @@ function _atox(s::AbstractString)
         end
     elseif x[1] == '{' && x[end] == '}'
         style = Dict{Symbol,Any}()
-        pairs = map(strip, split_keep_false(x[2:end-1], ','))
+        pairs = map(strip, split(x[2:end-1], ',', keep=false))
         for pair in pairs
-            kv = split_keep_false(pair, ':')
+            kv = split(pair, ':', keep=false)
             style[ Symbol(strip(kv[1])) ] = _atox(strip(kv[2]))
         end
         return style

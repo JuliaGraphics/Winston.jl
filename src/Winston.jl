@@ -2,18 +2,14 @@ module Winston
 
 using Cairo
 using Colors
-if VERSION < v"0.4.0-dev+3275"
-    importall Base.Graphics
-    using Dates
-else
-    importall Graphics
-    using Base.Dates
-    import Base: *
-end
+importall Graphics
 using IniFile
-using Compat; import Compat.String
-isdefined(Base, :Libc) && (strftime = Libc.strftime)
-isdefined(Base, :Dates) && (datetime2unix = Dates.datetime2unix)
+using Compat
+using StatsBase
+using NaNMath
+using Base.Dates
+using Base.Libc: strftime
+import Base: *, copy, display, get, getindex, isempty, setindex!, show
 
 export
     bar,
@@ -44,9 +40,8 @@ export
     xlabel,
     xlim,
     ylabel,
-    ylim
+    ylim,
 
-export
     # FramedArray
     FramedPlot,
     Plot,
@@ -76,50 +71,26 @@ export
     setattr,
     style,
     svg,
-    
+
     getcomponents,
     rmcomponents,
     grid,
-    legend
+    legend,
 
-import Base: copy,
-    display,
-    get,
-    getindex,
-    isempty,
-    setindex!,
-    show
-
-if VERSION < v"0.5-"
-import Base: writemime
-end
-
-export get_context, device_to_data, data_to_device
-
-if VERSION < v"0.3-"
-    typealias AbstractVecOrMat{T}(@compat Union{AbstractVector{T}, AbstractMatrix{T}})
-    extrema(x) = (minimum(x),maximum(x))
-    Base.push!(x, a, b) = (push!(x, a); push!(x, b))
-elseif VERSION < v"0.4-"
-    macro Dict(pairs...)
-        Expr(:dict, pairs...)
-    end
-else
-    macro Dict(pairs...)
-        Expr(:call, :Dict, pairs...)
-    end
-end
+    get_context,
+    device_to_data,
+    data_to_device
 
 type WinstonException <: Exception
     msg::String
 end
 
-abstract HasAttr
-abstract HasStyle <: HasAttr
-abstract PlotComponent <: HasStyle
-abstract PlotContainer <: HasAttr
+@compat abstract type HasAttr end
+@compat abstract type HasStyle <: HasAttr end
+@compat abstract type PlotComponent <: HasStyle end
+@compat abstract type PlotContainer <: HasAttr end
 
-typealias PlotAttributes Associative # TODO: does Associative need {K,V}?
+const PlotAttributes = Associative # TODO: does Associative need {K,V}?
 
 include("config.jl")
 include("geom.jl")
@@ -163,10 +134,10 @@ function bounds_within(x, y, window::BoundingBox)
         xi = x[i]
         yi = y[i]
         if (window.xmin < xi < window.xmax) && (window.ymin < yi < window.ymax)
-            xmin = min(xmin, xi)
-            xmax = max(xmax, xi)
-            ymin = min(ymin, yi)
-            ymax = max(ymax, yi)
+            xmin = NaNMath.min(xmin, xi)
+            xmax = NaNMath.max(xmax, xi)
+            ymin = NaNMath.min(ymin, yi)
+            ymax = NaNMath.max(ymax, yi)
         end
     end
     BoundingBox(xmin, xmax, ymin, ymax)
@@ -174,7 +145,7 @@ end
 
 # relative size ---------------------------------------------------------------
 
-@compat typealias Box Union{BoundingBox,Rectangle}
+const Box = Union{BoundingBox,Rectangle}
 
 function _size_relative(relsize, bbox::Box)
     w = width(bbox)
@@ -187,7 +158,7 @@ function _fontsize_relative(relsize, bbox::Box, device_bbox::Box)
     devsize = _size_relative(relsize, bbox)
     fontsize_min = config_value("default", "fontsize_min")
     devsize_min = _size_relative(fontsize_min, device_bbox)
-    return max(devsize, devsize_min)
+    return NaNMath.max(devsize, devsize_min)
 end
 
 # PlotContext -------------------------------------------------------------
@@ -235,7 +206,7 @@ function _get_context(device::Renderer, ext_bbox::BoundingBox, pc::PlotContainer
         ext_bbox = deform(ext_bbox, 0, 0, 0, -offset-fontsize)
     end
     int_bbox = interior(pc, device, ext_bbox)
-    invoke(compose_interior, (PlotContainer,Renderer,BoundingBox), pc, device, int_bbox)
+    invoke(compose_interior, Tuple{PlotContainer,Renderer,BoundingBox}, pc, device, int_bbox)
     ret = _context1(pc, device, int_bbox)
     ret
 end
@@ -244,7 +215,7 @@ function device_to_data(ctx::PlotContext, x::Real, y::Real)
     deproject(ctx.geom, x, y)
 end
 
-function data_to_device{T<:Real}(ctx::PlotContext, x::(@compat Union{T,AbstractArray{T}}), y::(@compat Union{T,AbstractArray{T}}))
+function data_to_device{T<:Real}(ctx::PlotContext, x::Union{T,AbstractArray{T}}, y::Union{T,AbstractArray{T}})
     project(ctx.geom, x, y)
 end
 
@@ -267,7 +238,7 @@ type Legend <: PlotComponent
     end
 end
 
-_kw_rename(::Legend) = @Dict(
+_kw_rename(::Legend) = Dict(
     :face      => :fontface,
     :size      => :fontsize,
     :angle     => :textangle,
@@ -306,9 +277,9 @@ end
 
 # ErrorBars --------------------------------------------------------------------
 
-abstract ErrorBar <: PlotComponent
+@compat abstract type ErrorBar <: PlotComponent end
 
-_kw_rename(::ErrorBar) = @Dict(
+_kw_rename(::ErrorBar) = Dict(
     :color => :linecolor,
     :width => :linewidth,
     :kind => :linekind,
@@ -402,7 +373,7 @@ end
 
 # Inset -----------------------------------------------------------------------
 
-abstract _Inset <: PlotComponent
+@compat abstract type _Inset <: PlotComponent end
 
 function render(self::_Inset, context::PlotContext)
     region = boundingbox(self, context)
@@ -451,7 +422,7 @@ function _magform(x)
         return 0., 0
     end
     a, b = modf(log10(abs(x)))
-    a, b = 10^a, @compat Int(b)
+    a, b = 10^a, Int(b)
     if a < 1.
         a, b = a * 10, b - 1
     end
@@ -461,21 +432,15 @@ function _magform(x)
     return a, b
 end
 
-if VERSION < v"0.4-"
-    const grisu = Base.Grisu.grisu
-elseif VERSION >= v"0.5-"
-    grisu(a,b,c) = ((w,x,y) = Base.Grisu.grisu(a,b,c); (y,Base.Grisu.DIGITS[1:w],x))
-else
-    grisu(a,b,c) = ((w,x,y,z) = Base.Grisu.grisu(a,b,c); (y,z[1:w],x))
-end
+grisu(a,b,c) = ((w,x,y) = Base.Grisu.grisu(a,b,c); (y,Base.Grisu.DIGITS[1:w],x))
 
 function _format_ticklabel(x, range=0.; min_pow10=4)
     if x == 0
         return "0"
     end
-    neg, digits, b = grisu(x, Base.Grisu.SHORTEST, @compat Int32(0))
+    neg, digits, b = grisu(x, Base.Grisu.SHORTEST, Int32(0))
     if length(digits) > 5
-        neg, digits, b = grisu(x, Base.Grisu.PRECISION, @compat Int32(6))
+        neg, digits, b = grisu(x, Base.Grisu.PRECISION, Int32(6))
         n = length(digits)
         while digits[n] == UInt32('0')
             n -= 1
@@ -487,11 +452,11 @@ function _format_ticklabel(x, range=0.; min_pow10=4)
         s = IOBuffer()
         if neg write(s, '-') end
         if digits != [0x31]
-            write(s, @compat Char(digits[1]))
+            write(s, Char(digits[1]))
             if length(digits) > 1
                 write(s, '.')
                 for i = 2:length(digits)
-                    write(s, @compat Char(digits[i]))
+                    write(s, Char(digits[i]))
                 end
             end
             write(s, "\\times ")
@@ -499,7 +464,7 @@ function _format_ticklabel(x, range=0.; min_pow10=4)
         write(s, "10^{")
         write(s, dec(b))
         write(s, '}')
-        return takebuf_string(s)
+        return @compat String(take!(s))
     end
     # XXX: @sprint doesn't implement %.*f
     #if range < 1e-6
@@ -555,7 +520,7 @@ _ticks_num_log(lim, num) = logspace(log10(lim[1]), log10(lim[2]), num)
 
 function _subticks_linear(lim, ticks, num=nothing)
     major_div = abs(ticks[end] - ticks[1])/float(length(ticks) - 1)
-    if is(num,nothing)
+    if num === nothing
         _num = 4
         a, b = _magform(major_div)
         if 1. < a < (2 + 5)/2.
@@ -592,7 +557,7 @@ function _subticks_log(lim, ticks, num=nothing)
     end
 end
 
-abstract HalfAxis <: PlotComponent
+@compat abstract type HalfAxis <: PlotComponent end
 
 type HalfAxisX <: HalfAxis
     attr::Dict
@@ -635,11 +600,11 @@ function _align(self::HalfAxisX)
 end
 
 function _intercept(self::HalfAxisX, context)
-    if !is(getattr(self,"intercept"),nothing)
+    if getattr(self,"intercept") !== nothing
         return getattr(self, "intercept")
     end
     limits = context.data_bbox
-    if (getattr(self, "ticklabels_dir") < 0) $ context.yflipped
+    if xor(getattr(self, "ticklabels_dir") < 0, context.yflipped)
         return yrange(limits)[1]
     else
         return yrange(limits)[2]
@@ -647,7 +612,7 @@ function _intercept(self::HalfAxisX, context)
 end
 
 function _log(self::HalfAxisX, context)
-    if is(getattr(self,"log"),nothing)
+    if getattr(self,"log") === nothing
         return context.xlog
     end
     return getattr(self, "log")
@@ -663,14 +628,14 @@ end
 
 function _range(self::HalfAxisX, context)
     r = getattr(self, "range")
-    if !is(r,nothing)
+    if r !== nothing
         a,b = r
-        if is(a,nothing) || is(b,nothing)
+        if a === nothing || b === nothing
             c,d = xrange(context.data_bbox)
-            if is(a,nothing)
+            if a === nothing
                 a = c
             end
-            if is(b,nothing)
+            if b === nothing
                 b = d
             end
             return a,b
@@ -734,11 +699,11 @@ end
 
 function _intercept(self::HalfAxisY, context)
     intercept = getattr(self, "intercept")
-    if !is(intercept,nothing)
+    if intercept !== nothing
         return intercept
     end
     limits = context.data_bbox
-    if (getattr(self, "ticklabels_dir") > 0) $ context.xflipped
+    if xor(getattr(self, "ticklabels_dir") > 0, context.xflipped)
         return xrange(limits)[2]
     else
         return xrange(limits)[1]
@@ -746,7 +711,7 @@ function _intercept(self::HalfAxisY, context)
 end
 
 function _log(self::HalfAxisY, context)
-    if is(getattr(self,"log"),nothing)
+    if getattr(self,"log") === nothing
         return context.ylog
     end
     return getattr(self, "log")
@@ -762,14 +727,14 @@ end
 
 function _range(self::HalfAxisY, context)
     r = getattr(self, "range")
-    if !is(r,nothing)
+    if r !== nothing
         a,b = r
-        if is(a,nothing) || is(b,nothing)
+        if a === nothing || b === nothing
             c,d = yrange(context.data_bbox)
-            if is(a,nothing)
+            if a === nothing
                 a = c
             end
-            if is(b,nothing)
+            if b === nothing
                 b = d
             end
             return a,b
@@ -794,7 +759,7 @@ end
 
 # defaults
 
-_attr_map(::HalfAxis) = @Dict(
+_attr_map(::HalfAxis) = Dict(
     :labeloffset       => :label_offset,
     :major_ticklabels  => :ticklabels,
     :major_ticks       => :ticks,
@@ -905,17 +870,17 @@ function make(self::HalfAxis, context)
     draw_subticks = getattr(self, "draw_subticks")
     draw_ticklabels = getattr(self, "draw_ticklabels")
 
-    implicit_draw_subticks = is(draw_subticks,nothing) && draw_ticks
+    implicit_draw_subticks = draw_subticks === nothing && draw_ticks
 
-    implicit_draw_ticklabels = is(draw_ticklabels,nothing) &&
-        (!is(getattr(self, "range"),nothing) || !is(getattr(self, "ticklabels"),nothing))
+    implicit_draw_ticklabels = draw_ticklabels === nothing &&
+        (getattr(self, "range") !== nothing || getattr(self, "ticklabels") !== nothing)
 
     if getattr(self, "draw_grid")
         push!(objs, _make_grid(self, context, ticks))
     end
 
     if getattr(self, "draw_axis")
-        if (!is(draw_subticks,nothing) && draw_subticks) || implicit_draw_subticks
+        if (draw_subticks !== nothing && draw_subticks) || implicit_draw_subticks
             push!(objs, _make_ticks(self, context, subticks,
                 getattr(self, "subticks_size"),
                 getattr(self, "subticks_style")))
@@ -932,13 +897,13 @@ function make(self::HalfAxis, context)
         end
     end
 
-    if (!is(draw_ticklabels,nothing) && draw_ticklabels) || implicit_draw_ticklabels
+    if (draw_ticklabels !== nothing && draw_ticklabels) || implicit_draw_ticklabels
         push!(objs, _make_ticklabels(self, context, ticks, ticklabels))
     end
 
     # has to be made last
     if hasattr(self, "label")
-        if !is(getattr(self, "label"),nothing) # XXX:remove
+        if getattr(self, "label") !== nothing # XXX:remove
             isempty(objs) && push!(objs, _make_strut(self, context))
             bl = BoxLabel(
                 objs,
@@ -1070,7 +1035,7 @@ type FramedPlot <: PlotContainer
     end
 end
 
-_attr_map(fp::FramedPlot) = @Dict(
+_attr_map(fp::FramedPlot) = Dict(
     :xlabel    => (fp.x1, :label),
     :ylabel    => (fp.y1, :label),
     :xlog      => (fp.x1, :log),
@@ -1126,14 +1091,14 @@ function user_range(range)
         b1 = typeof(range[1]) <: Real
         b2 = typeof(range[2]) <: Real
         if b1 && b2
-            x1 = @compat Float64(range[1])
-            x2 = @compat Float64(range[2])
-            lo = myprevfloat(min(x1, x2))
-            hi = mynextfloat(max(x1, x2))
+            x1 = Float64(range[1])
+            x2 = Float64(range[2])
+            lo = myprevfloat(NaNMath.min(x1, x2))
+            hi = mynextfloat(NaNMath.max(x1, x2))
             flipped = x1 > x2
         else
-            b1 && (lo = myprevfloat(@compat Float64(range[1])))
-            b2 && (hi = mynextfloat(@compat Float64(range[2])))
+            b1 && (lo = myprevfloat(Float64(range[1])))
+            b2 && (hi = mynextfloat(Float64(range[2])))
         end
     end
     lo, hi, flipped
@@ -1265,7 +1230,7 @@ function exterior(self::FramedPlot, device::Renderer, region::BoundingBox)
 end
 
 function compose_interior(self::FramedPlot, device::Renderer, region::BoundingBox)
-    invoke(compose_interior, (PlotContainer,Renderer,BoundingBox), self, device, region)
+    invoke(compose_interior, Tuple{PlotContainer,Renderer,BoundingBox}, self, device, region)
 
     context1 = _context1(self, device, region)
     context2 = _context2(self, device, region)
@@ -1308,7 +1273,7 @@ function rmcomponents(p::FramedPlot, t::Type, args...)
     todel = find(map(x -> (x <: t), ctypes))
     rmcomponents(p, todel, args...)
 end
-    
+
 # Table ------------------------------------------------------------------------
 
 type _Grid
@@ -1354,7 +1319,7 @@ type Table <: PlotContainer
         iniattr(self, args...)
         self.rows = rows
         self.cols = cols
-        self.content = cell(rows, cols)
+        self.content = Matrix{Any}(rows, cols)
         self
     end
 end
@@ -1370,7 +1335,7 @@ end
 function isempty(self::Table)
     for i = 1:self.rows
         for j = 1:self.cols
-            isdefined(self.content, i, j) && return false
+            isassigned(self.content, i, j) && return false
         end
     end
     true
@@ -1385,7 +1350,7 @@ function exterior(self::Table, device::Renderer, intbbox::BoundingBox)
 
         for i = 1:self.rows
             for j = 1:self.cols
-                if isdefined(self.content, i, j)
+                if isassigned(self.content, i, j)
                     obj = self.content[i,j]
                     subregion = cellbb(g, i, j)
                     ext += exterior(obj, device, subregion)
@@ -1397,14 +1362,14 @@ function exterior(self::Table, device::Renderer, intbbox::BoundingBox)
 end
 
 function compose_interior(self::Table, device::Renderer, intbbox::BoundingBox)
-    invoke(compose_interior, (PlotContainer,Renderer,BoundingBox), self, device, intbbox)
+    invoke(compose_interior, Tuple{PlotContainer,Renderer,BoundingBox}, self, device, intbbox)
 
     g = _Grid(self.rows, self.cols, intbbox,
         getattr(self,"cellpadding"), getattr(self,"cellspacing"))
 
     for i = 1:self.rows
         for j = 1:self.cols
-            if isdefined(self.content, i, j)
+            if isassigned(self.content, i, j)
                 obj = self.content[i,j]
                 subregion = cellbb(g, i, j)
                 if getattr(self, "align_interiors")
@@ -1449,7 +1414,7 @@ end
 compose_interior(self::Plot, device::Renderer, region::BoundingBox) =
     compose_interior(self, device, region, nothing)
 function compose_interior(self::Plot, device, region, lmts)
-    if is(lmts,nothing)
+    if lmts === nothing
         lmts = limits(self)
     end
     xlog = getattr(self,"xlog")
@@ -1492,13 +1457,13 @@ function _frame_bbox(obj, device, region, limits, labelticks)
 end
 
 function _range_union(a, b)
-    if is(a,nothing)
+    if a === nothing
         return b
     end
-    if is(b,nothing)
+    if b === nothing
         return a
     end
-    return min(a[1],b[1]), max(a[2],b[2])
+    return NaNMath.min(a[1],b[1]), NaNMath.max(a[2],b[2])
 end
 
 type FramedArray <: PlotContainer
@@ -1511,7 +1476,7 @@ type FramedArray <: PlotContainer
         self = new(Dict())
         self.nrows = nrows
         self.ncols = ncols
-        self.content = cell(nrows, ncols)
+        self.content = Matrix{Any}(nrows, ncols)
         for i in 1:nrows
             for j in 1:ncols
                 self.content[i,j] = Plot()
@@ -1617,10 +1582,10 @@ function exterior(self::FramedArray, device::Renderer, int_bbox::BoundingBox)
         getattr(self,"label_size"), int_bbox, boundingbox(device))
     margin = labeloffset + labelsize
 
-    if !is(getattr(self,"xlabel"),nothing)
+    if getattr(self,"xlabel") !== nothing
         bb = deform(bb, 0, 0, margin, 0)
     end
-    if !is(getattr(self,"ylabel"),nothing)
+    if getattr(self,"ylabel") !== nothing
         bb = deform(bb, margin, 0, 0, 0)
     end
 
@@ -1665,12 +1630,12 @@ function _labels_draw(self::FramedArray, device::Renderer, int_bbox::BoundingBox
 
     save_state(device)
     set(device, "fontsize", labelsize)
-    if !is(getattr(self,"xlabel"),nothing)
+    if getattr(self,"xlabel") !== nothing
         x = center(int_bbox).x
         y = ymin(bb) - labeloffset
         textdraw(device, x, y, getattr(self,"xlabel"); halign="center", valign="top")
     end
-    if !is(getattr(self,"ylabel"),nothing)
+    if getattr(self,"ylabel") !== nothing
         x = xmin(bb) - labeloffset
         y = center(int_bbox).y
         textdraw(device, x, y, getattr(self,"ylabel"); angle=90., halign="center", valign="bottom")
@@ -1687,7 +1652,7 @@ function add(self::FramedArray, args::PlotComponent...)
 end
 
 function compose_interior(self::FramedArray, device::Renderer, int_bbox::BoundingBox)
-    invoke(compose_interior, (PlotContainer,Renderer,BoundingBox), self, device, int_bbox)
+    invoke(compose_interior, Tuple{PlotContainer,Renderer,BoundingBox}, self, device, int_bbox)
     _data_draw(self, device, int_bbox)
     _frames_draw(self, device, int_bbox)
     _labels_draw(self, device, int_bbox)
@@ -1782,7 +1747,7 @@ function interior(self::PlotContainer, device::Renderer, exterior_bbox::Bounding
         if sll < TOL && sur < TOL
             # XXX:fixme
             ar = getattr(self, "aspect_ratio")
-            if !is(ar,nothing)
+            if ar !== nothing
                 interior_bbox = with_aspect_ratio(interior_bbox, ar)
             end
             return interior_bbox
@@ -1868,7 +1833,7 @@ function savesvg(p::PlotContainer, io::IO, width, height)
 end
 
 function savesvg(p::PlotContainer, filename::AbstractString, width, height)
-    io = Base.FS.open(filename, Base.JL_O_CREAT|Base.JL_O_TRUNC|Base.JL_O_WRONLY, 0o644)
+    io = Base.Filesystem.open(filename, Base.JL_O_CREAT|Base.JL_O_TRUNC|Base.JL_O_WRONLY, 0o644)
     savesvg(p, io, width, height)
     close(io)
     nothing
@@ -1902,7 +1867,7 @@ function savepdf{T<:PlotContainer}(plots::Vector{T}, filename::AbstractString, w
     finish(surface)
 end
 
-function savepng(self::PlotContainer, io_or_filename::(@compat Union{IO,AbstractString}), width::Int, height::Int)
+function savepng(self::PlotContainer, io_or_filename::Union{IO,AbstractString}, width::Int, height::Int)
     surface = CairoRGBSurface(width, height)
     r = CairoRenderer(surface)
     set_source_rgb(r.ctx, 1.,1.,1.)
@@ -1976,9 +1941,9 @@ end
 
 # LineComponent ---------------------------------------------------------------
 
-abstract LineComponent <: PlotComponent
+@compat abstract type LineComponent <: PlotComponent end
 
-_kw_rename(::LineComponent) = @Dict(
+_kw_rename(::LineComponent) = Dict(
     :color => :linecolor,
     :kind => :linekind,
     :width => :linewidth,
@@ -2173,14 +2138,14 @@ type BoxLabel <: PlotComponent
     offset
 
     function BoxLabel(obj, str::AbstractString, side, offset, args...; kvs...)
-        @assert !is(str,nothing)
+        @assert str !== nothing
         self = new(Dict(), obj, str, side, offset)
         kw_init(self, args...; kvs...)
         self
     end
 end
 
-_kw_rename(::BoxLabel) = @Dict(
+_kw_rename(::BoxLabel) = Dict(
     :face => :fontface,
     :size => :fontsize,
 )
@@ -2248,9 +2213,9 @@ end
 
 # LabelComponent --------------------------------------------------------------
 
-abstract LabelComponent <: PlotComponent
+@compat abstract type LabelComponent <: PlotComponent end
 
-_kw_rename(::LabelComponent) = @Dict(
+_kw_rename(::LabelComponent) = Dict(
     :face      => :fontface,
     :size      => :fontsize,
     :angle     => :textangle,
@@ -2348,7 +2313,7 @@ end
 
 # FillComponent -------------------------------------------------------------
 
-abstract FillComponent <: PlotComponent
+@compat abstract type FillComponent <: PlotComponent end
 
 function make_key(self::FillComponent, bbox::BoundingBox)
     p = lowerleft(bbox)
@@ -2356,7 +2321,7 @@ function make_key(self::FillComponent, bbox::BoundingBox)
     return GroupPainter(getattr(self,:style), BoxPainter(p,q))
 end
 
-kw_defaults(::FillComponent) = @Dict(
+kw_defaults(::FillComponent) = Dict(
     :color => config_value("FillComponent","fillcolor"),
     :fillkind => config_value("FillComponent","fillkind"),
 )
@@ -2443,7 +2408,7 @@ end
 
 # ImageComponent -------------------------------------------------------------
 
-abstract ImageComponent <: PlotComponent
+@compat abstract type ImageComponent <: PlotComponent end
 
 type Image <: ImageComponent
     attr::PlotAttributes
@@ -2477,15 +2442,15 @@ end
 
 # FramedComponent ---------------------------------------------------------------
 
-abstract FramedComponent <: PlotComponent
-    
+@compat abstract type FramedComponent <: PlotComponent end
+
 function make_key(self::FramedComponent, bbox::BoundingBox)
     p = lowerleft(bbox)
     q = upperright(bbox)
     GroupPainter(getattr(self, :style), BoxPainter(p, q))
 end
 
-_kw_rename(::FramedComponent) = @Dict(:color => :fillcolor)
+_kw_rename(::FramedComponent) = Dict(:color => :fillcolor)
 
 # FramedBar ------------------------------------------------------------------
 
@@ -2504,13 +2469,13 @@ type FramedBar <: FramedComponent
     end
 end
 
-_kw_rename(::FramedBar) = @Dict(
+_kw_rename(::FramedBar) = Dict(
     :color => :fillcolor,
     :width => :barwidth,
 )
 
 function limits(self::FramedBar, window::BoundingBox)
-    x = [1, length(self.g)] + 
+    x = [1, length(self.g)] +
         getattr(self, "barwidth") * [-.5, .5] +
         getattr(self, "offset")
     y = [extrema(self.h)...]
@@ -2542,9 +2507,9 @@ end
 
 # SymbolDataComponent --------------------------------------------------------
 
-abstract SymbolDataComponent <: PlotComponent
+@compat abstract type SymbolDataComponent <: PlotComponent end
 
-_kw_rename(::SymbolDataComponent) = @Dict(
+_kw_rename(::SymbolDataComponent) = Dict(
     :kind => :symbolkind,
     :size => :symbolsize,
     # deprecated
@@ -2572,7 +2537,7 @@ type Points <: SymbolDataComponent
     end
 end
 
-kw_defaults(::SymbolDataComponent) = @Dict(
+kw_defaults(::SymbolDataComponent) = Dict(
     :symbolkind => config_value("Points","symbolkind"),
     :symbolsize => config_value("Points","symbolsize"),
 )
@@ -2608,7 +2573,7 @@ type ColoredPoints <: SymbolDataComponent
     end
 end
 
-kw_defaults(::ColoredPoints) = @Dict(
+kw_defaults(::ColoredPoints) = Dict(
     :symbolkind => config_value("Points","symbolkind"),
     :symbolsize => config_value("Points","symbolsize"),
 )
@@ -2759,13 +2724,8 @@ function set_default_plot_size(width::Int, height::Int)
     _ijulia_height = height
 end
 
-if VERSION < v"0.5-"
-writemime(io::IO, ::MIME"image/png", p::PlotContainer) =
-    savepng(p, io, _ijulia_width, _ijulia_height)
-else
 show(io::IO, ::MIME"image/png", p::PlotContainer) =
     savepng(p, io, _ijulia_width, _ijulia_height)
-end
 
 if isdefined(Main, :IJulia)
     output_surface = :none
@@ -2866,9 +2826,7 @@ if output_surface != :none
         display(d, f)
     end
     pushdisplay(_display)
-    if VERSION >= v"0.3-"
-        display(::Base.REPL.REPLDisplay, ::MIME"text/plain", p::PlotContainer) = display(p)
-    end
+    display(::Base.REPL.REPLDisplay, ::MIME"text/plain", p::PlotContainer) = display(p)
 end
 
 end # module

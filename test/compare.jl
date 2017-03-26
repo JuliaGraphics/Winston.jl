@@ -2,7 +2,6 @@ import Cairo
 using Colors
 using Base.Test
 using Winston
-using Compat; import Compat.String
 
 module ImageComparisons
     using Winston, Colors
@@ -17,11 +16,11 @@ function read_png_data(fn::String)
     h = Cairo.height(surface)
     p = ccall((:cairo_image_surface_get_data,Cairo._jl_libcairo),
               Ptr{UInt8}, (Ptr{Void},), surface.ptr)
-    a = pointer_to_array(convert(Ptr{UInt32},p), (convert(Int,w),convert(Int,h)))
+    a = unsafe_wrap(Array, convert(Ptr{UInt32}, p), (convert(Int, w), convert(Int, h)))
     copy(a)
 end
 
-function img_dist{T<:Array{UInt32,2}}(img1::T, img2::T)
+function img_dist(img1::Matrix{UInt32}, img2::Matrix{UInt32})
     @assert size(img1) == size(img2)
     s = 0.
     for i = 1:length(img1)
@@ -32,29 +31,28 @@ function img_dist{T<:Array{UInt32,2}}(img1::T, img2::T)
     s
 end
 
-function main()
+@testset "Image comparison" begin
     root = dirname(task_local_storage()[:SOURCE_PATH])
-    dir1,dir2 = "$root/_baseline","$root/_current"
+    dir1, dir2 = joinpath(root, "_baseline"), joinpath(root, "_current")
     isdir(dir1) || mkdir(dir1)
     isdir(dir2) || mkdir(dir2)
 
-    for name in sort(names(ImageComparisons))
-
+    for name in sort!(names(ImageComparisons))
         name == :ImageComparisons && continue
-        p = eval(:((ImageComparisons.$name)()))
 
-        fn1 = "$dir1/$name.png"
-        fn2 = "$dir2/$name.png"
-        isfile(fn1) || savefig(p, fn1)
-        savefig(p, fn2)
+        @testset "$name" begin
+            p = eval(:((ImageComparisons.$name)()))
 
-        img1 = read_png_data(fn1)
-        img2 = read_png_data(fn2)
+            fn1 = joinpath(dir1, "$name.png")
+            fn2 = joinpath(dir2, "$name.png")
+            isfile(fn1) || savefig(p, fn1)
+            savefig(p, fn2)
 
-        d = img_dist(img1, img2)
-        println("$name $d")
-        d < 0.1 || error("$name failed")
+            img1 = read_png_data(fn1)
+            img2 = read_png_data(fn2)
+            @test size(img1) == size(img2)
+
+            @test img_dist(img1, img2) < 0.1
+        end
     end
 end
-
-main()

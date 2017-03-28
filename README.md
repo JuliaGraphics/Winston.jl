@@ -1,8 +1,8 @@
 Winston: 2D Plotting for Julia
 ==============================
 
-[![Build Status](https://travis-ci.org/nolta/Winston.jl.svg?branch=master)](https://travis-ci.org/nolta/Winston.jl)
-[![Coverage Status](https://coveralls.io/repos/github/nolta/Winston.jl/badge.svg)](https://coveralls.io/github/nolta/Winston.jl)
+[![Build Status](https://travis-ci.org/JuliaGraphics/Winston.jl.svg?branch=master)](https://travis-ci.org/JuliaGraphics/Winston.jl)
+[![Coverage Status](https://coveralls.io/repos/github/JuliaGraphics/Winston.jl/badge.svg)](https://coveralls.io/github/JuliaGraphics/Winston.jl)
 [![Winston](http://pkg.julialang.org/badges/Winston_0.5.svg)](http://pkg.julialang.org/?pkg=Winston)
 [![Winston](http://pkg.julialang.org/badges/Winston_0.6.svg)](http://pkg.julialang.org/?pkg=Winston)
 

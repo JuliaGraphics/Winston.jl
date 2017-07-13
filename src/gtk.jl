@@ -1,7 +1,7 @@
 import Gtk
 
 function gtkwindow(name, w, h, closecb=nothing)
-    c = Gtk.@Canvas()
+    c = Gtk.GtkCanvas()
     win = Gtk.GtkWindow(c, name, w, h)
     if closecb !== nothing
         Gtk.on_signal_destroy(closecb, win)

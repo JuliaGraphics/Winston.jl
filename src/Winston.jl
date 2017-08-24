@@ -464,7 +464,7 @@ function _format_ticklabel(x, range=0.; min_pow10=4)
         write(s, "10^{")
         write(s, dec(b))
         write(s, '}')
-        return @compat String(take!(s))
+        return String(take!(s))
     end
     # XXX: @sprint doesn't implement %.*f
     #if range < 1e-6

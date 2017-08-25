@@ -44,9 +44,9 @@ class winston(docutils.nodes.Inline, docutils.nodes.TextElement):
     pass
 
 def html_visit_winston(self, node):
-    script = node['script'].encode("utf-8")
+    script = node['script'] #.encode("utf-8")
     var = node.get('var', 'Winston._pwinston')
-    sha1 = hashlib.sha1(script).hexdigest()
+    sha1 = hashlib.sha1(script.encode("utf-8")).hexdigest()
     fn = "winston/%s.png" % sha1
 
     if 'READTHEDOCS' in os.environ:

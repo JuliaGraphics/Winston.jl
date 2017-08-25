@@ -12,7 +12,7 @@ Example
 .. winston::
 
     x = 0:0.1:2pi
-    y1 = sin(x) + randn(length(x)) / 10
+    y1 = sin.(x) + randn(length(x)) / 10
     y2 = x + randn(length(x)) / 10
 
     p1 = Points(x, y1, color="red", symbolkind="plus")

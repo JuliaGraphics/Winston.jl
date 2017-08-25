@@ -14,7 +14,7 @@ Example
 
 .. winston::
 
-   x = exp(-randn(1000) / 2)
+   x = exp.(-randn(1000) / 2)
    y = randn(1000)
    nbins = 50
 

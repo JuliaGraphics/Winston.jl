@@ -12,7 +12,7 @@ Example
 .. winston::
 
     x = 0:0.05:2pi
-    y = sin(x)
+    y = sin.(x)
     c = Curve(x, y, color="red")
     p = FramedPlot()
     add(p, c)

@@ -17,6 +17,6 @@ Example
 
     x = linspace(0, 10)
     p1 = plot(x, x.^2)
-    p2 = plot(x, sin(x), color="red")
+    p2 = plot(x, sin.(x), color="red")
     inset = PlotInset((0.1, 0.6), (0.7, 0.9), p2)
     add(p1, inset)

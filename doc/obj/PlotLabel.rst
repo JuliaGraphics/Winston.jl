@@ -14,6 +14,6 @@ Example
 .. winston::
 
     x = linspace(0, 10)
-    p = plot(x, sin(x))
+    p = plot(x, sin.(x))
     l = PlotLabel(0.5, 0.8, "Hello World!")
     add(p, l)

@@ -13,7 +13,7 @@ Example
 .. winston::
 
    x = 0:0.1:2pi
-   plot(x, sin(x), "r")
+   plot(x, sin.(x), "r")
    hold(true)
    fplot(cos, [0,2pi], "g")
 

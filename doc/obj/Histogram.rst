@@ -22,7 +22,7 @@ Example
 .. winston::
 
     edges = -10:11
-    counts = abs(-10:10)
+    counts = abs.(-10:10)
     h = Histogram(edges, counts)
     p = FramedPlot()
     add(p, h)

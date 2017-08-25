@@ -13,7 +13,7 @@ Example
 .. winston::
 
     x = linspace(-5, 5, 50)
-    y = 1 / sqrt(2pi) * exp(-x.^2 / 2)
+    y = 1 / sqrt(2pi) * exp.(-x.^2 / 2)
 
     s = Stems(x, y, color="blue")
     p = FramedPlot()

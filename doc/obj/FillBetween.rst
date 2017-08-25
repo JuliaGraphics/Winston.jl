@@ -23,8 +23,8 @@ Example
 
     x1 = 0:0.05:2pi
     x2 = x1
-    y1 = 0.5 * sin(x1)
-    y2 = 1.0 * sin(x2)
+    y1 = 0.5 * sin.(x1)
+    y2 = 1.0 * sin.(x2)
     f = FillBetween(x1, y1, x2, y2, fillcolor="magenta")
     p = FramedPlot()
     add(p, f)

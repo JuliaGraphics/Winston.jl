@@ -20,10 +20,7 @@ function display(c::Gtk.Canvas, pc::PlotContainer)
         try
             Winston.page_compose(pc, Gtk.cairo_surface(c))
         catch e
-            if isa(e, WinstonException)
-              println("Hallo")
-              rethrow(e)
-            end
+            isa(e, WinstonException) || rethrow(e)
             println("Winston: ", e.msg)
         end
     end

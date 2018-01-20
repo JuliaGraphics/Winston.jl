@@ -20,7 +20,6 @@ function display(c::Gtk.Canvas, pc::PlotContainer)
         try
             Winston.page_compose(pc, Gtk.cairo_surface(c))
         catch e
-            bad = true
             if isa(e, WinstonException)
               println("Hallo")
               rethrow(e)
@@ -29,25 +28,6 @@ function display(c::Gtk.Canvas, pc::PlotContainer)
         end
     end
 end
-
-#=
-c.draw = let bad=false
-        function (_)
-            bad && return
-            ctx = getgc(c)
-            set_source_rgb(ctx, 1, 1, 1)
-            paint(ctx)
-            try
-                Winston.page_compose(pc, Gtk.cairo_surface(c))
-            catch e
-                bad = true
-                isa(e, WinstonException) || rethrow(e)
-                println("Winston: ", e.msg)
-            end
-        end
-    end
-    Gtk.draw(c)
-end =#
 
 gtkdestroy(c::Gtk.Canvas) = Gtk.destroy(Gtk.toplevel(c))
 

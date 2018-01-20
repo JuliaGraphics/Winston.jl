@@ -3,14 +3,35 @@ import Gtk
 function gtkwindow(name, w, h, closecb=nothing)
     c = Gtk.Canvas()
     win = Gtk.Window(c, name, w, h)
+
     if closecb !== nothing
-        Gtk.on_signal_destroy(closecb, win)
+        Gtk.signal_connect(win, :destroy) do widget
+            closecb()
+        end
     end
     show(c)
 end
 
 function display(c::Gtk.Canvas, pc::PlotContainer)
-    c.draw = let bad=false
+    Gtk.@guarded Gtk.draw(c) do widget
+        ctx = getgc(c)
+        set_source_rgb(ctx, 1, 1, 1)
+        paint(ctx)
+        try
+            Winston.page_compose(pc, Gtk.cairo_surface(c))
+        catch e
+            bad = true
+            if isa(e, WinstonException)
+              println("Hallo")
+              rethrow(e)
+            end
+            println("Winston: ", e.msg)
+        end
+    end
+end
+
+#=
+c.draw = let bad=false
         function (_)
             bad && return
             ctx = getgc(c)
@@ -26,7 +47,7 @@ function display(c::Gtk.Canvas, pc::PlotContainer)
         end
     end
     Gtk.draw(c)
-end
+end =#
 
 gtkdestroy(c::Gtk.Canvas) = Gtk.destroy(Gtk.toplevel(c))
 

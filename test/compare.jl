@@ -1,10 +1,5 @@
-import Cairo
-using Colors
-using Base.Test
-using Winston
-
 module ImageComparisons
-    using Winston, Colors
+    using Winston, Compat, Colors
     include("examples.jl")
     include("issues.jl")
     include("plot.jl")
@@ -15,7 +10,7 @@ function read_png_data(fn::String)
     w = Cairo.width(surface)
     h = Cairo.height(surface)
     p = ccall((:cairo_image_surface_get_data,Cairo._jl_libcairo),
-              Ptr{UInt8}, (Ptr{Void},), surface.ptr)
+              Ptr{UInt8}, (Ptr{Cvoid},), surface.ptr)
     a = unsafe_wrap(Array, convert(Ptr{UInt32}, p), (convert(Int, w), convert(Int, h)))
     copy(a)
 end

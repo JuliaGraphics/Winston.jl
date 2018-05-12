@@ -249,7 +249,7 @@ loglog(args::PlotArg...; kvs...) = plot(args...; xlog=true, ylog=true, kvs...)
 
 const Interval = Tuple{Real,Real}
 
-function data2rgb{T<:Real}(data::AbstractArray{T}, limits::Interval, colormap::Array{UInt32,1})
+function data2rgb(data::AbstractArray{T}, limits::Interval, colormap::AbstractVector{UInt32}) where T<:Real
     img = similar(data, UInt32)
     ncolors = length(colormap)
     limlower = limits[1]
@@ -279,19 +279,19 @@ function jetrgb(x)
 end
 
 colormap() = (global _current_colormap; _current_colormap)
-colormap(c::Array{UInt32,1}) = (global _current_colormap = c; nothing)
-colormap{C<:Color}(cs::Array{C,1}) =
+colormap(c::AbstractVector{UInt32}) = (global _current_colormap = c; nothing)
+colormap(cs::AbstractVector{<:Color}) =
     colormap(reinterpret(UInt32, [convert(RGB24,c) for c in cs]))
 function colormap(name::AbstractString, n::Int=256)
     if name == "jet"
-        colormap([jetrgb(x) for x in linspace(0.,1.,n)])
+        colormap([jetrgb(x) for x in Compat.range(0.0, stop=1.0, length=n)])
     else
         colormap(Colors.colormap(name, n))
     end
 end
 colormap("jet")
 
-function imagesc{T<:Real}(xrange::Interval, yrange::Interval, data::AbstractArray{T,2}, clims::Interval)
+function imagesc(xrange::Interval, yrange::Interval, data::AbstractArray{T,2}, clims::Interval) where T<:Real
     p = ghf()
     if !_hold
         setattr(p, :xrange, xrange)
@@ -306,7 +306,7 @@ end
 
 imagesc(xrange, yrange, data) = imagesc(xrange, yrange, data, (minimum(data),maximum(data)+1))
 imagesc(data) = ((h, w) = size(data); imagesc((0,w), (0,h), data))
-imagesc{T}(data::AbstractArray{T,2}, clims::Interval) = ((h, w) = size(data); imagesc((0,w), (0,h), data, clims))
+imagesc(data::AbstractArray{T,2}, clims::Interval) where {T} = ((h, w) = size(data); imagesc((0,w), (0,h), data, clims))
 
 function spy(S::SparseMatrixCSC, nrS::Integer, ncS::Integer)
     m, n = size(S)
@@ -332,7 +332,7 @@ function spy(S::SparseMatrixCSC, nrS::Integer, ncS::Integer)
 end
 
 scatter(x::AbstractVecOrMat, y::AbstractVecOrMat, spec::String="o"; kvs...) = scatter(x, y, 1., spec; kvs...)
-scatter{C<:Complex}(z::AbstractVecOrMat{C}, spec::String="o"; kvs...) = scatter(real(z), imag(z), 1., spec; kvs...)
+scatter(z::AbstractVecOrMat{C}, spec::String="o"; kvs...) where {C<:Complex} = scatter(real(z), imag(z), 1., spec; kvs...)
 function scatter(x::AbstractVecOrMat, y::AbstractVecOrMat,
                  s::Real, spec::String="o"; kvs...)
     sopts = _parse_spec(spec)
@@ -410,7 +410,7 @@ function hist(args...)
     return (first(h.edges), h.weights)
 end
 
-function plothist(p::FramedPlot, h::Tuple{Range,Vector}; kvs...)
+function plothist(p::FramedPlot, h::Tuple{AbstractRange,Vector}; kvs...)
     c = Histogram(h...)
     add(p, c)
 
@@ -439,7 +439,7 @@ _default_kernel2d=(1.0/273.)*[1.0 4.0 7.0 4.0 1.0;
                              4.0 16. 26. 16. 4.0]
 
 #hist2d
-function plothist2d(p::FramedPlot, h::Tuple{Union{Range,Vector},Union{Range,Vector},Array{Int,2}}; colormap=_current_colormap, smooth=0, kernel=_default_kernel2d, kvs...)
+function plothist2d(p::FramedPlot, h::Tuple{Union{AbstractRange,Vector},Union{AbstractRange,Vector},Array{Int,2}}; colormap=_current_colormap, smooth=0, kernel=_default_kernel2d, kvs...)
     xr, yr, hdata = h
 
     for i in 1:smooth

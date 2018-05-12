@@ -7,7 +7,7 @@
 #  y0 +------+
 #     x0     x1
 #
-immutable Rectangle
+struct Rectangle
     x0::Float64
     x1::Float64
     y0::Float64
@@ -58,12 +58,12 @@ end
 
 # --------------------------------------------------------------------------
 
-@compat abstract type AbstractProjection1 end
-@compat abstract type AbstractProjection2 end
+abstract type AbstractProjection1 end
+abstract type AbstractProjection2 end
 
 project(p::AbstractProjection2, pt::Point) = Point(project(p, pt.x, pt.y)...)
 
-immutable LinearProjection <: AbstractProjection1
+struct LinearProjection <: AbstractProjection1
     a::Float64
     b::Float64
 end
@@ -71,7 +71,7 @@ end
 project(p::LinearProjection, u) = p.a .+ p.b .* u
 deproject(p::LinearProjection, x) = (x .- p.a) ./ p.b
 
-immutable LogProjection <: AbstractProjection1
+struct LogProjection <: AbstractProjection1
     a::Float64
     b::Float64
 end
@@ -79,7 +79,7 @@ end
 project(p::LogProjection, u) = p.a .+ p.b .* log10.(u)
 deproject(p::LogProjection, x) = 10.0 .^ ((x .- p.a) ./ p.b)
 
-immutable SeparableProjection2{P1<:AbstractProjection1,
+struct SeparableProjection2{P1<:AbstractProjection1,
                                P2<:AbstractProjection1} <: AbstractProjection2
     x::P1
     y::P2
@@ -88,7 +88,7 @@ end
 project(p::SeparableProjection2, u, v) = (project(p.x,u), project(p.y,v))
 deproject(p::SeparableProjection2, u, v) = (deproject(p.x,u), deproject(p.y,v))
 
-immutable PolarProjection
+struct PolarProjection
     x0::Float64
     y0::Float64
     sx::Float64

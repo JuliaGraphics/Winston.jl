@@ -1,4 +1,3 @@
-using Winston, Colors
 if Winston.output_surface == :tk
     using Tk
 elseif Winston.output_surface == :gtk

@@ -9,7 +9,7 @@
 ## plot(fs::Array{Function, 2}, a::Real, b::Real, args...; kwargs...) table of plots
 
 
-@compat const ScatterPlotPoints{T<:Real, S<:Real} = Tuple{Vector{T}, Vector{S}}
+const ScatterPlotPoints{T<:Real, S<:Real} = Tuple{Vector{T}, Vector{S}}
 
 ## plot a scatterplot (verbose alternative to plot(x, y, "o")
 ## use named argument symbol to pass in symbol -- not args)

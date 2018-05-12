@@ -1,4 +1,4 @@
-type RendererState
+mutable struct RendererState
     current::Dict{Symbol,Any}
     saved::Vector{Dict{Symbol,Any}}
 
@@ -22,7 +22,7 @@ function get(self::RendererState, name::Symbol, notfound=nothing)
 end
 
 function save(self::RendererState)
-    unshift!(self.saved, self.current)
+    pushfirst!(self.saved, self.current)
     self.current = Dict{Symbol,Any}()
 end
 
@@ -31,9 +31,9 @@ function restore(self::RendererState)
     splice!(self.saved, 1)
 end
 
-@compat abstract type Renderer end
+abstract type Renderer end
 
-type CairoRenderer <: Renderer
+mutable struct CairoRenderer <: Renderer
     ctx::CairoContext
     state::RendererState
 

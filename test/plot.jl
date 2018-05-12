@@ -27,7 +27,7 @@ for i = 1:length(args)
     f = Symbol(@sprintf("plot%03d",i))
     body = copy(args[i])
     body.head = :call
-    unshift!(body.args, :plot)
+    pushfirst!(body.args, :plot)
     push!(body.args, Expr(:kw, :title, string(body)))
     eval(Expr(:toplevel, Expr(:export, f), :(($f)() = $body)))
 end

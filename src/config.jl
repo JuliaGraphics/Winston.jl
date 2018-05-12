@@ -35,11 +35,15 @@ function _atox(s::AbstractString)
     elseif x[1] == '"' && x[end] == '"'
         return x[2:end-1]
     end
-    if ismatch(r"^[+-]?\d+$",x)
-        return parse(Int,x)
+    if occursin(r"^[+-]?\d+$", x)
+        return parse(Int, x)
     end
-    r  = tryparse(Float64, x)
-    isnull(r) ? x : get(r)
+    r = tryparse(Float64, x)
+    @static if VERSION < v"0.7.0-DEV.3017"
+        return isnull(r) ? x : get(r)
+    else
+        return r === nothing ? x : r
+    end
 end
 
 function config_value(section, option)

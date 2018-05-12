@@ -1,7 +1,5 @@
 # make sure the following examples don't crash
 
-using Winston
-
 println("Testing that bad inputs don't cause a crash...")
 
 # bad ranges

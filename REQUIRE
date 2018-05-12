@@ -1,9 +1,9 @@
-julia 0.5
+julia 0.6
 Cairo
 Colors
 IniFile 0.3.1
 Gtk
-Compat 0.18.0
+Compat 0.60.0
 Graphics 0.2.0
 StatsBase 0.13.1
 NaNMath 0.2.4

@@ -10,10 +10,15 @@ function read_png_data(fn::String)
     surface = Cairo.read_from_png(fn)
     w = Cairo.width(surface)
     h = Cairo.height(surface)
+    a = Array{UInt32}(undef, convert(Int, w), convert(Int, h))
+        
     p = ccall((:cairo_image_surface_get_data,Cairo._jl_libcairo),
-              Ptr{UInt8}, (Ptr{Cvoid},), surface.ptr)
-    a = unsafe_wrap(Array, convert(Ptr{UInt32}, p), (convert(Int, w), convert(Int, h)))
-    copy(a)
+              Ptr{UInt32}, (Ptr{Cvoid},), surface.ptr)
+
+    for i = 1:length(a)
+        a[i] = unsafe_load(p, i)
+    end
+    return a
 end
 
 function img_dist(img1::Matrix{UInt32}, img2::Matrix{UInt32})
@@ -41,8 +46,6 @@ end
             figure()
             func = eval(:(ImageComparisons.$name))
             global p = func()
-
-            display(p)
 
             fn1 = joinpath(dir1, "$name.png")
             fn2 = joinpath(dir2, "$name.png")

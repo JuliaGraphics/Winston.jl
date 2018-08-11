@@ -8,6 +8,12 @@ julia:
   - 1.0
 notifications:
   email: false
+addons:
+    apt:
+        packages:
+            - xvfb
+            - xauth
+            - libgtk-3-0
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
   - julia -e 'using Pkg; Pkg.clone(pwd()); Pkg.build("Winston")'

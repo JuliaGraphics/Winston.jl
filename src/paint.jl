@@ -1,5 +1,5 @@
 
-immutable PaintContext
+struct PaintContext
     device
     yardstick::Float64
     min_fontsize::Float64
@@ -25,9 +25,9 @@ function pop_style(context::PaintContext)
     restore_state(context.device)
 end
 
-@compat abstract type AbstractPainter end
+abstract type AbstractPainter end
 
-immutable GroupPainter <: AbstractPainter
+struct GroupPainter <: AbstractPainter
     style::Dict{Symbol,Any}
     children::Array{AbstractPainter,1}
 end
@@ -64,7 +64,7 @@ function paint(g::GroupPainter, context::PaintContext)
     pop_style(context)
 end
 
-immutable LinePainter <: AbstractPainter
+struct LinePainter <: AbstractPainter
     p::Point
     q::Point
 end
@@ -77,7 +77,7 @@ function paint(self::LinePainter, context::PaintContext)
     line(context.device, self.p.x, self.p.y, self.q.x, self.q.y)
 end
 
-immutable LabelsPainter <: AbstractPainter
+struct LabelsPainter <: AbstractPainter
     points::Vector{Point}
     labels::Vector
     angle::Float64
@@ -125,7 +125,7 @@ function paint(self::LabelsPainter, context::PaintContext)
     end
 end
 
-immutable CombPainter <: AbstractPainter
+struct CombPainter <: AbstractPainter
     points::Vector{Point}
     dp
 end
@@ -142,7 +142,7 @@ function paint(self::CombPainter, context::PaintContext)
     stroke(context.device)
 end
 
-immutable SymbolPainter <: AbstractPainter
+struct SymbolPainter <: AbstractPainter
     pos::Point
 end
 
@@ -159,7 +159,7 @@ function paint(self::SymbolPainter, context::PaintContext)
     symbols(context.device, [self.pos.x], [self.pos.y])
 end
 
-immutable SymbolsPainter <: AbstractPainter
+struct SymbolsPainter <: AbstractPainter
     x
     y
 end
@@ -176,7 +176,7 @@ function paint(self::SymbolsPainter, context::PaintContext)
     symbols(context.device, self.x, self.y)
 end
 
-immutable ColoredSymbolsPainter <: AbstractPainter
+struct ColoredSymbolsPainter <: AbstractPainter
     x::AbstractVecOrMat
     y::AbstractVecOrMat
     s::AbstractVecOrMat
@@ -213,7 +213,7 @@ function paint(self::ColoredSymbolsPainter, context::PaintContext)
     restore(device)
 end
 
-immutable TextPainter <: AbstractPainter
+struct TextPainter <: AbstractPainter
     pos::Point
     str::String
     angle::Float64
@@ -244,7 +244,7 @@ function paint(self::TextPainter, context::PaintContext)
              angle=self.angle, halign=self.halign, valign=self.valign)
 end
 
-immutable PathPainter <: AbstractPainter
+struct PathPainter <: AbstractPainter
     x::AbstractArray
     y::AbstractArray
 end
@@ -261,7 +261,7 @@ function paint(self::PathPainter, context::PaintContext)
     curve(context.device, self.x, self.y)
 end
 
-immutable PolygonPainter <: AbstractPainter
+struct PolygonPainter <: AbstractPainter
     points::Vector{Point}
 end
 
@@ -273,7 +273,7 @@ function paint(self::PolygonPainter, context::PaintContext)
     polygon(context.device, self.points)
 end
 
-immutable BoxPainter <: AbstractPainter
+struct BoxPainter <: AbstractPainter
     p::Point
     q::Point
 end
@@ -294,7 +294,7 @@ function paint(self::BoxPainter, context::PaintContext)
     end
 end
 
-immutable ImagePainter <: AbstractPainter
+struct ImagePainter <: AbstractPainter
     img
     bbox
 end
@@ -310,7 +310,7 @@ function paint(self::ImagePainter, context::PaintContext)
     image(context.device, self.img, ll.x, ll.y, w, h)
 end
 
-immutable StrutPainter <: AbstractPainter
+struct StrutPainter <: AbstractPainter
     bbox::BoundingBox
 end
 

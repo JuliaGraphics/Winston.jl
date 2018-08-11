@@ -2,11 +2,11 @@
 ## Contour plot -- but this is too slow to be usable
 ## algorithm from MATLAB
 ## cf. http://www.mathworks.com/help/matlab/creating_plots/contour-plots.html
-type Contourc
+mutable struct Contourc
     contours
 end
 
-function contourc(f::Function, x, y; cs::Union{Void,Number}=nothing)
+function contourc(f::Function, x, y; cs::Union{Nothing,Number}=nothing)
 
     fxy = [f(x,y) for x in x, y in y]
 
@@ -117,7 +117,7 @@ function contourc(f::Function, x, y; cs::Union{Void,Number}=nothing)
             next_square(c, which_next(edge, i,j)..., edge, cx, cy, m)
         end
         ## out is array of tuples
-        if !isa(out[1], Void)
+        if !isa(out[1], Nothing)
             ([reverse(out[1][1]), out[2][1]], [reverse(out[1][2]), out[2][2]])
         else
             nothing
@@ -129,8 +129,8 @@ function contourc(f::Function, x, y; cs::Union{Void,Number}=nothing)
 
 
 ## for each level to plot
-    if isa(cs, Void)
-        cs = linspace(minimum(fxy), maximum(fxy), 7+2)[2:8]
+    if isa(cs, Nothing)
+        cs = range(minimum(fxy), stop=maximum(fxy), length=7+2)[2:8]
     else
         cs = [cs]
     end
@@ -148,7 +148,7 @@ function contourc(f::Function, x, y; cs::Union{Void,Number}=nothing)
             if insquare(sq)
                 path = chase_square(c, i,j, m)
 ##                println("Chased path:", path)
-                if !isa(path, Void)
+                if !isa(path, Nothing)
                     push!(c_contours, path)
                 end
             else
@@ -175,4 +175,3 @@ function plot(f::Contourc; kwargs...)
 
     p
 end
-

@@ -10,10 +10,9 @@ Example
 -------
 
 .. winston::
-   :preamble: srand(802)
+   :preamble: Random.seed!(802)
 
    randomwalk(n) = (r = randn(n); [sum(r[1:i]) for i=1:n])
    plot()
    oplot(randomwalk(300))
    oplot(randomwalk(300))
-

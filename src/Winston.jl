@@ -2,14 +2,24 @@ module Winston
 
 using Cairo
 using Colors
-importall Graphics
+using Reexport
+@reexport using Graphics
+@reexport using LinearAlgebra
+using Random
+using Printf
+using Pkg
+using SparseArrays
 using IniFile
 using Compat
 using StatsBase
 using NaNMath
-using Base.Dates
+using Dates
+using REPL
 using Base.Libc: strftime
-import Base: *, copy, display, get, getindex, isempty, setindex!, show
+import Base: *, copy, display, get, getindex, isempty, setindex!, show, range
+import Graphics: paint, width, height, save, deform, diagonal, restore,
+                 rectangle, polygon, move_to, line_to, stroke, rel_line_to,
+                 shift
 
 export
     bar,
@@ -81,16 +91,16 @@ export
     device_to_data,
     data_to_device
 
-type WinstonException <: Exception
+mutable struct WinstonException <: Exception
     msg::String
 end
 
-@compat abstract type HasAttr end
-@compat abstract type HasStyle <: HasAttr end
-@compat abstract type PlotComponent <: HasStyle end
-@compat abstract type PlotContainer <: HasAttr end
+abstract type HasAttr end
+abstract type HasStyle <: HasAttr end
+abstract type PlotComponent <: HasStyle end
+abstract type PlotContainer <: HasAttr end
 
-const PlotAttributes = Associative # TODO: does Associative need {K,V}?
+const PlotAttributes = AbstractDict # TODO: does Associative need {K,V}?
 
 include("config.jl")
 include("geom.jl")
@@ -101,19 +111,20 @@ include("paint.jl")
 
 function args2dict(args...; kvs...)
     opts = Dict{Symbol,Any}()
-    iter = start(args)
-    while !done(args, iter)
-        arg, iter = next(args, iter)
-        if typeof(arg) <: Associative
+    iter_result = iterate(args)
+    while iter_result !== nothing
+        (arg, iter) = iter_result
+        if typeof(arg) <: AbstractDict
             for (k,v) in arg
                 opts[Symbol(k)] = v
             end
         elseif typeof(arg) <: Tuple
             opts[Symbol(arg[1])] = arg[2]
         else
-            val, iter = next(args, iter)
+            (val, iter) = iterate(args, iter)
             opts[Symbol(arg)] = val
         end
+        iter_result = iterate(args, iter)
     end
     for (k,v) in kvs
         opts[k] = v
@@ -163,7 +174,7 @@ end
 
 # PlotContext -------------------------------------------------------------
 
-type PlotContext
+mutable struct PlotContext
     draw::Renderer
     dev_bbox::BoundingBox
     data_bbox::BoundingBox
@@ -215,13 +226,13 @@ function device_to_data(ctx::PlotContext, x::Real, y::Real)
     deproject(ctx.geom, x, y)
 end
 
-function data_to_device{T<:Real}(ctx::PlotContext, x::Union{T,AbstractArray{T}}, y::Union{T,AbstractArray{T}})
+function data_to_device(ctx::PlotContext, x::Union{T,AbstractArray{T}}, y::Union{T,AbstractArray{T}}) where T<:Real
     project(ctx.geom, x, y)
 end
 
 # Legend ----------------------------------------------------------------------
 
-type Legend <: PlotComponent
+mutable struct Legend <: PlotComponent
     attr::PlotAttributes
     x
     y
@@ -277,7 +288,7 @@ end
 
 # ErrorBars --------------------------------------------------------------------
 
-@compat abstract type ErrorBar <: PlotComponent end
+abstract type ErrorBar <: PlotComponent end
 
 _kw_rename(::ErrorBar) = Dict(
     :color => :linecolor,
@@ -285,7 +296,7 @@ _kw_rename(::ErrorBar) = Dict(
     :kind => :linekind,
 )
 
-type ErrorBarsX <: ErrorBar
+mutable struct ErrorBarsX <: ErrorBar
     attr::PlotAttributes
     y
     lo
@@ -322,7 +333,7 @@ function make(self::ErrorBarsX, context)
     objs
 end
 
-type ErrorBarsY <: ErrorBar
+mutable struct ErrorBarsY <: ErrorBar
     attr::PlotAttributes
     x
     lo
@@ -373,14 +384,14 @@ end
 
 # Inset -----------------------------------------------------------------------
 
-@compat abstract type _Inset <: PlotComponent end
+abstract type _Inset <: PlotComponent end
 
 function render(self::_Inset, context::PlotContext)
     region = boundingbox(self, context)
     compose_interior(self.plot, context.draw, region)
 end
 
-type DataInset <: _Inset
+mutable struct DataInset <: _Inset
     plot_limits::BoundingBox
     plot::PlotContainer
     DataInset(p::Point, q::Point, plot) = new(BoundingBox(p, q), plot)
@@ -397,7 +408,7 @@ function limits(self::DataInset, window::BoundingBox)
     return self.plot_limits
 end
 
-type PlotInset <: _Inset
+mutable struct PlotInset <: _Inset
     plot_limits::BoundingBox
     plot::PlotContainer
     PlotInset(p::Point, q::Point, plot) = new(BoundingBox(p, q), plot)
@@ -462,7 +473,7 @@ function _format_ticklabel(x, range=0.; min_pow10=4)
             write(s, "\\times ")
         end
         write(s, "10^{")
-        write(s, dec(b))
+        write(s, string(b))
         write(s, '}')
         return String(take!(s))
     end
@@ -471,7 +482,7 @@ function _format_ticklabel(x, range=0.; min_pow10=4)
     #    a, b = _magform(range)
     #    return @sprintf "%.*f" (abs(b),x)
     #end
-    s = sprint(showcompact, x)
+    s = sprint(show, x; context=:compact => true)
     endswith(s, ".0") ? s[1:end-2] : s
 end
 
@@ -515,7 +526,7 @@ function _ticks_default_log(lim)
     end
 end
 
-_ticks_num_linear(lim, num) = linspace(lim[1], lim[2], num)
+_ticks_num_linear(lim, num) = range(lim[1], stop=lim[2], length=num)
 _ticks_num_log(lim, num) = logspace(log10(lim[1]), log10(lim[2]), num)
 
 function _subticks_linear(lim, ticks, num=nothing)
@@ -557,9 +568,9 @@ function _subticks_log(lim, ticks, num=nothing)
     end
 end
 
-@compat abstract type HalfAxis <: PlotComponent end
+abstract type HalfAxis <: PlotComponent end
 
-type HalfAxisX <: HalfAxis
+mutable struct HalfAxisX <: HalfAxis
     attr::Dict
     func_ticks_default
     func_ticks_num
@@ -658,7 +669,7 @@ function _make_grid(self::HalfAxisX, context, ticks)
     objs
 end
 
-type HalfAxisY <: HalfAxis
+mutable struct HalfAxisY <: HalfAxis
     attr::Dict
     func_ticks_default
     func_ticks_num
@@ -919,7 +930,7 @@ end
 
 # PlotComposite ---------------------------------------------------------------
 
-type PlotComposite <: HasStyle
+mutable struct PlotComposite <: HasStyle
     attr::Dict
     components::Vector{Any}
     dont_clip::Bool
@@ -980,7 +991,7 @@ end
 
 # FramedPlot ------------------------------------------------------------------
 
-type _Alias <: HasAttr
+mutable struct _Alias <: HasAttr
     objs
     _Alias(args...) = new(args)
 end
@@ -991,8 +1002,8 @@ function setattr(self::_Alias, name::Symbol, value)
     end
 end
 
-type FramedPlot <: PlotContainer
-    attr::Associative # TODO: does Associative need {K,V}?
+mutable struct FramedPlot <: PlotContainer
+    attr::AbstractDict # TODO: does Associative need {K,V}?
     content1::PlotComposite
     content2::PlotComposite
     x1::HalfAxis
@@ -1270,13 +1281,13 @@ end
 
 function rmcomponents(p::FramedPlot, t::Type, args...)
     ctypes = map(typeof, getcomponents(p, args...))
-    todel = find(map(x -> (x <: t), ctypes))
+    todel = findall(map(x -> (x <: t), ctypes))
     rmcomponents(p, todel, args...)
 end
 
 # Table ------------------------------------------------------------------------
 
-type _Grid
+mutable struct _Grid
     nrows::Int
     ncols::Int
     origin
@@ -1308,7 +1319,7 @@ function cellbb(self::_Grid, i::Int, j::Int)
     return BoundingBox(p.x, p.x+self.cell_dimen[1], p.y, p.y + self.cell_dimen[2])
 end
 
-type Table <: PlotContainer
+mutable struct Table <: PlotContainer
     attr::PlotAttributes
     rows::Int
     cols::Int
@@ -1319,7 +1330,7 @@ type Table <: PlotContainer
         iniattr(self, args...)
         self.rows = rows
         self.cols = cols
-        self.content = Matrix{Any}(rows, cols)
+        self.content = Matrix{Any}(undef, rows, cols)
         self
     end
 end
@@ -1384,7 +1395,7 @@ end
 
 # Plot ------------------------------------------------------------------------
 
-type Plot <: PlotContainer
+mutable struct Plot <: PlotContainer
     attr::PlotAttributes
     content
 
@@ -1466,7 +1477,7 @@ function _range_union(a, b)
     return NaNMath.min(a[1],b[1]), NaNMath.max(a[2],b[2])
 end
 
-type FramedArray <: PlotContainer
+mutable struct FramedArray <: PlotContainer
     attr::PlotAttributes
     nrows::Int
     ncols::Int
@@ -1857,7 +1868,7 @@ function savepdf(self::PlotContainer, filename::AbstractString, width::Real, hei
     write_to_surface(self, surface)
 end
 
-function savepdf{T<:PlotContainer}(plots::Vector{T}, filename::AbstractString, width::Real, height::Real)
+function savepdf(plots::Vector{T}, filename::AbstractString, width::Real, height::Real) where T<:PlotContainer
     surface = CairoPDFSurface(filename, width, height)
     r = CairoRenderer(surface)
     for plt in plots
@@ -1902,7 +1913,7 @@ function savefig(self::PlotContainer, filename::AbstractString, args...; kvs...)
     end
 end
 
-function savefig{T<:PlotContainer}(plots::Vector{T}, filename::AbstractString, args...; kvs...)
+function savefig(plots::Vector{T}, filename::AbstractString, args...; kvs...) where T<:PlotContainer
     extn = filename[end-2:end]
     opts = args2dict(args...; kvs...)
     if extn == "pdf"
@@ -1941,7 +1952,7 @@ end
 
 # LineComponent ---------------------------------------------------------------
 
-@compat abstract type LineComponent <: PlotComponent end
+abstract type LineComponent <: PlotComponent end
 
 _kw_rename(::LineComponent) = Dict(
     :color => :linecolor,
@@ -1959,7 +1970,7 @@ function make_key(self::LineComponent, bbox::BoundingBox)
     GroupPainter(getattr(self,:style), LinePainter(p, q))
 end
 
-type Curve <: LineComponent
+mutable struct Curve <: LineComponent
     attr::Dict
     x
     y
@@ -1980,7 +1991,7 @@ function make(self::Curve, context)
     GroupPainter(getattr(self,:style), PathPainter(x,y))
 end
 
-type Slope <: LineComponent
+mutable struct Slope <: LineComponent
     attr::Dict
     slope::Real
     intercept
@@ -2034,7 +2045,7 @@ function make(self::Slope, context::PlotContext)
     objs
 end
 
-type Histogram <: LineComponent
+mutable struct Histogram <: LineComponent
     attr::PlotAttributes
     edges::AbstractVector
     values::AbstractVector
@@ -2082,7 +2093,7 @@ function make(self::Histogram, context::PlotContext)
     GroupPainter(getattr(self,:style), PathPainter(u, v))
 end
 
-type LineX <: LineComponent
+mutable struct LineX <: LineComponent
     attr::PlotAttributes
     x::Float64
 
@@ -2106,7 +2117,7 @@ function make(self::LineX, context::PlotContext)
     GroupPainter(getattr(self,:style), LinePainter(a, b))
 end
 
-type LineY <: LineComponent
+mutable struct LineY <: LineComponent
     attr::PlotAttributes
     y::Float64
 
@@ -2130,7 +2141,7 @@ function make(self::LineY, context::PlotContext)
     GroupPainter(getattr(self,:style), LinePainter(a, b))
 end
 
-type BoxLabel <: PlotComponent
+mutable struct BoxLabel <: PlotComponent
     attr::PlotAttributes
     obj
     str::AbstractString
@@ -2171,16 +2182,16 @@ function make(self::BoxLabel, context)
     midpoint = 0.5*(p + q)
     direction = q - p
     direction /= norm(direction)
-    angle = atan2(direction.y, direction.x)
+    angle = atan(direction.y, direction.x)
     direction = rotate(direction, pi/2)
     pos = midpoint + offset*direction
 
     valign = (offset > 0) ? "bottom" : "top"
-    tp = TextPainter(pos, self.str; angle=angle*180./pi, valign=valign)
+    tp = TextPainter(pos, self.str; angle=rad2deg(angle), valign=valign)
     GroupPainter(getattr(self,:style), tp)
 end
 
-type Stems <: LineComponent
+mutable struct Stems <: LineComponent
     attr::PlotAttributes
     x
     y
@@ -2213,7 +2224,7 @@ end
 
 # LabelComponent --------------------------------------------------------------
 
-@compat abstract type LabelComponent <: PlotComponent end
+abstract type LabelComponent <: PlotComponent end
 
 _kw_rename(::LabelComponent) = Dict(
     :face      => :fontface,
@@ -2227,7 +2238,7 @@ _kw_rename(::LabelComponent) = Dict(
 #    return BoundingBox()
 #end
 
-type DataLabel <: LabelComponent
+mutable struct DataLabel <: LabelComponent
     attr::PlotAttributes
     pos::Point
     str::AbstractString
@@ -2253,7 +2264,7 @@ function make(self::DataLabel, context)
     GroupPainter(getattr(self,:style), tp)
 end
 
-type PlotLabel <: LabelComponent
+mutable struct PlotLabel <: LabelComponent
     attr::PlotAttributes
     pos::Point
     str::AbstractString
@@ -2313,7 +2324,7 @@ end
 
 # FillComponent -------------------------------------------------------------
 
-@compat abstract type FillComponent <: PlotComponent end
+abstract type FillComponent <: PlotComponent end
 
 function make_key(self::FillComponent, bbox::BoundingBox)
     p = lowerleft(bbox)
@@ -2326,7 +2337,7 @@ kw_defaults(::FillComponent) = Dict(
     :fillkind => config_value("FillComponent","fillkind"),
 )
 
-type FillAbove <: FillComponent
+mutable struct FillAbove <: FillComponent
     attr::PlotAttributes
     x
     y
@@ -2351,7 +2362,7 @@ function make(self::FillAbove, context)
     GroupPainter(getattr(self,:style), PolygonPainter(coords))
 end
 
-type FillBelow <: FillComponent
+mutable struct FillBelow <: FillComponent
     attr::PlotAttributes
     x
     y
@@ -2376,7 +2387,7 @@ function make(self::FillBelow, context)
     GroupPainter(getattr(self,:style), PolygonPainter(coords))
 end
 
-type FillBetween <: FillComponent
+mutable struct FillBetween <: FillComponent
     attr::PlotAttributes
     x1
     y1
@@ -2408,9 +2419,9 @@ end
 
 # ImageComponent -------------------------------------------------------------
 
-@compat abstract type ImageComponent <: PlotComponent end
+abstract type ImageComponent <: PlotComponent end
 
-type Image <: ImageComponent
+mutable struct Image <: ImageComponent
     attr::PlotAttributes
     img
     x
@@ -2442,7 +2453,7 @@ end
 
 # FramedComponent ---------------------------------------------------------------
 
-@compat abstract type FramedComponent <: PlotComponent end
+abstract type FramedComponent <: PlotComponent end
 
 function make_key(self::FramedComponent, bbox::BoundingBox)
     p = lowerleft(bbox)
@@ -2454,7 +2465,7 @@ _kw_rename(::FramedComponent) = Dict(:color => :fillcolor)
 
 # FramedBar ------------------------------------------------------------------
 
-type FramedBar <: FramedComponent
+mutable struct FramedBar <: FramedComponent
     attr::PlotAttributes
     g::AbstractVector
     h::AbstractVecOrMat
@@ -2507,7 +2518,7 @@ end
 
 # SymbolDataComponent --------------------------------------------------------
 
-@compat abstract type SymbolDataComponent <: PlotComponent end
+abstract type SymbolDataComponent <: PlotComponent end
 
 _kw_rename(::SymbolDataComponent) = Dict(
     :kind => :symbolkind,
@@ -2522,7 +2533,7 @@ function make_key(self::SymbolDataComponent, bbox::BoundingBox)
     return GroupPainter(getattr(self,:style), SymbolPainter(pos))
 end
 
-type Points <: SymbolDataComponent
+mutable struct Points <: SymbolDataComponent
     attr::PlotAttributes
     x
     y
@@ -2554,7 +2565,7 @@ function Points(x::Real, y::Real, args...)
     return Points([x], [y], args...)
 end
 
-type ColoredPoints <: SymbolDataComponent
+mutable struct ColoredPoints <: SymbolDataComponent
     attr::PlotAttributes
     x
     y
@@ -2734,12 +2745,12 @@ else
     output_surface = Symbol(lowercase(get(ENV, "WINSTON_OUTPUT", output_surface)))
 end
 
-type Figure
+mutable struct Figure
     window
     plot::PlotContainer
 end
 
-type WinstonDisplay <: Display
+mutable struct WinstonDisplay <: AbstractDisplay
     figs::Dict{Int,Figure}
     fig_order::Vector{Int}
     current_fig::Int
@@ -2776,13 +2787,13 @@ nextfig(d::WinstonDisplay) = d.next_fig
 function dropfig(d::WinstonDisplay, i::Int)
     haskey(d.figs,i) || return
     delete!(d.figs, i)
-    splice!(d.fig_order, findfirst(d.fig_order,i))
+    splice!(d.fig_order, something(findfirst(isequal(i), d.fig_order), 0) )
     d.next_fig = min(d.next_fig, i)
     d.current_fig = isempty(d.fig_order) ? 0 : d.fig_order[end]
 end
 
-_display = WinstonDisplay()
-_pwinston = FramedPlot()
+global _display = WinstonDisplay()
+global _pwinston = FramedPlot()
 
 function figure(;name::AbstractString="Figure $(nextfig(_display))",
                  width::Integer=Winston.config_value("window","width"),
@@ -2804,29 +2815,21 @@ end
 gcf() = _display.current_fig
 closefig() = closefig(_display.current_fig)
 
-if output_surface != :none
-    if output_surface == :gtk
-        include("gtk.jl")
-        window = gtkwindow
-        closefig(i::Integer) = gtkdestroy(getfig(_display,i).window)
-        closeall() = (map(closefig, keys(_display.figs)); nothing)
-    elseif output_surface == :tk
-        include("tk.jl")
-        window = tkwindow
-        closefig(i::Integer) = tkdestroy(getfig(_display,i).window)
-        closeall() = (map(closefig, keys(_display.figs)); nothing)
-    else
-        warn("Selected Winston backend not found. You will not be able to display plots in a window")
-    end
-    display(d::WinstonDisplay, f::Figure) = display(f.window, f.plot)
-    function display(d::WinstonDisplay, p::PlotContainer)
-        isempty(d.figs) && figure()
-        f = curfig(d)
-        f.plot = p
-        display(d, f)
-    end
-    pushdisplay(_display)
-    display(::Base.REPL.REPLDisplay, ::MIME"text/plain", p::PlotContainer) = display(p)
+
+include("gtk.jl")
+global window = gtkwindow
+closefig(i::Integer) = gtkdestroy(getfig(_display,i).window)
+closeall() = (map(closefig, keys(_display.figs)); nothing)
+
+display(d::WinstonDisplay, f::Figure) = display(f.window, f.plot)
+function display(d::WinstonDisplay, p::PlotContainer)
+    isempty(d.figs) && figure()
+    f = curfig(d)
+    f.plot = p
+    display(d, f)
 end
+pushdisplay(_display)
+display(::REPL.REPLDisplay, ::MIME"text/plain", p::PlotContainer) = display(_display, p)
+
 
 end # module

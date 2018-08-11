@@ -9,7 +9,7 @@ export
     example07
 
 function example01()
-    x = linspace(0, 3pi, 100)
+    x = range(0, stop=3pi, length=100)
     c = cos.(x)
     s = sin.(x)
 
@@ -26,14 +26,14 @@ function example01()
 end
 
 function example02()
-    srand(42)
+    Random.seed!(42)
     p = FramedPlot(
             aspect_ratio=1,
             xrange=(0,100),
             yrange=(0,100))
 
     n = 21
-    x = linspace(0, 100, n)
+    x = range(0, stop=100, length=n)
     yA = 40 .+ 10*randn(n)
     yB = x + 5*randn(n)
 
@@ -54,7 +54,7 @@ function example02()
 end
 
 function example03()
-    srand(42)
+    Random.seed!(42)
     p = FramedPlot(
             title="Title",
             xlabel="X axis",
@@ -74,7 +74,7 @@ function example03()
 end
 
 function example04()
-    x = linspace(0., 2pi, 40)
+    x = range(0., stop=2pi, length=40)
     s = sin.(x)
     c = cos.(x)
 
@@ -93,7 +93,7 @@ function example04()
 end
 
 function example05()
-    x = linspace(0., 2pi, 30)
+    x = range(0., stop=2pi, length=30)
     y = sin.(x)
 
     p = FramedArray(2, 2,
@@ -114,7 +114,7 @@ function example05()
 end
 
 function example06()
-    x = linspace(pi, 3pi, 60)
+    x = range(pi, stop=3pi, length=60)
     c = cos.(x)
     s = sin.(x)
 
@@ -135,8 +135,8 @@ end
 
 function example07()
     n = 300
-    x = linspace(10., -10., n)
-    t = linspace(-1., 1., n)
+    x = range(10., stop=-10., length=n)
+    t = range(-1., stop=1., length=n)
     z = (3. .+ 4*cosh.(2x' .- 8t) .+ cosh.(4x' .- 64t)) ./
         (3*cosh.(x' .- 28t) + cosh.(3x' .- 36t)) .^ 2
 

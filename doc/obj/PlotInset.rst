@@ -15,7 +15,7 @@ Example
 
 .. winston::
 
-    x = linspace(0, 10)
+    x = range(0, stop=10, length=100)
     p1 = plot(x, x.^2)
     p2 = plot(x, sin.(x), color="red")
     inset = PlotInset((0.1, 0.6), (0.7, 0.9), p2)

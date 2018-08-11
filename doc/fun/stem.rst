@@ -11,6 +11,5 @@ Example
 
 .. winston::
 
-    x = linspace(0, 5pi, 40)
+    x = range(0, stop=5pi, length=40)
     stem(x, sin.(x), "r")
-

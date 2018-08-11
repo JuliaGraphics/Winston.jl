@@ -6,13 +6,14 @@ if output_surface == :tk
 elseif output_surface == :gtk
     eval(Expr(:toplevel, Expr(:using, :Gtk)))
 end
+using Compat
 using Colors
 using Graphics
 
 export plot3d, surf
 #export demo_sombrero, demo_sphere
 
-type Canvas3D
+mutable struct Canvas3D
     win::Canvas
     ctm::Matrix{Float64}
     sctm::Matrix{Float64}
@@ -223,7 +224,7 @@ function evalsurface(xf, yf, zf, ur, vr)
      reshape(Z, 1, N)]
 end
 
-type Polygons3D
+mutable struct Polygons3D
     V::Matrix{Float64}
     P::Vector{Vector{Int}}
     colors

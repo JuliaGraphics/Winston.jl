@@ -406,7 +406,7 @@ spy(A::AbstractMatrix) = spy(sparse(A))
 
 # Match old (pre 0.5) Base.hist API for convenience
 function hist(args...)
-    h = fit(StatsBase.Histogram, args...)
+    h = fit(StatsBase.Histogram, args...; closed=:right)
     length(h.edges) == 1 || throw(ArgumentError("only 1-dimensional histograms are supported"))
     return (first(h.edges), h.weights)
 end

@@ -4,17 +4,17 @@ os:
   - linux
   - osx
 julia:
-  - 0.6
-  - nightly
+  - 0.7
+  - 1.0
 notifications:
   email: false
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-  - julia -e 'Pkg.clone(pwd()); Pkg.build("Winston")'
+  - julia -e 'using Pkg; Pkg.clone(pwd()); Pkg.build("Winston")'
   - if [ `uname` = "Linux" ]; then
       xvfb-run julia --check-bounds=yes -e 'Pkg.test("Winston", coverage=true)';
     elif [ `uname` = "Darwin" ]; then
       julia --check-bounds=yes -e 'Pkg.test("Winston", coverage=true)';
     fi
 after_success:
-  - julia -e 'cd(Pkg.dir("Winston")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())';
+  - julia -e 'using Pkg; cd(Pkg.dir("Winston")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())';

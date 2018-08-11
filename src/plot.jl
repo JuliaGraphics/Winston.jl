@@ -54,6 +54,7 @@ function _parse_spec(spec::AbstractString)
     try
         style[:color] = parse(Colors.Colorant, spec)
         return style
+    catch
     end
 
     for (k,v) in (("--","dashed"), ("-.","dotdashed"))
@@ -141,11 +142,11 @@ function plot(p::FramedPlot, args::PlotArg...; kvs...)
     need_xrange = false
     while length(args) > 0
         local x, y
-        a = shift!(args); i += 1
+        a = popfirst!(args); i += 1
         if isa(a, Function)
             x = a
             if length(args) > 1 && isa(args[1],Real) && isa(args[2],Real)
-                y = (shift!(args),shift!(args)); i += 2
+                y = (popfirst!(args),popfirst!(args)); i += 2
             else
                 y = ()
                 need_xrange = true
@@ -158,7 +159,7 @@ function plot(p::FramedPlot, args::PlotArg...; kvs...)
             elseif length(args) > 0 && isa(args[1], AbstractVecOrMat) &&
                elt <: Real && eltype(args[1]) <: Real
                 x = a
-                y = shift!(args); i += 1
+                y = popfirst!(args); i += 1
             elseif elt <: Real
                 y = a
                 x = 1:(isrowvec(y) ? size(y,2) : size(y,1))
@@ -170,7 +171,7 @@ function plot(p::FramedPlot, args::PlotArg...; kvs...)
         end
         spec = ""
         if length(args) > 0 && isa(args[1], AbstractString)
-            spec = shift!(args); i += 1
+            spec = popfirst!(args); i += 1
         end
         push!(parsed_args, (x,y,spec))
     end

@@ -2,14 +2,22 @@ module Winston
 
 using Cairo
 using Colors
-importall Graphics
+using Reexport
+@reexport using Graphics
+@reexport using LinearAlgebra
+using Pkg
+using SparseArrays
 using IniFile
 using Compat
 using StatsBase
 using NaNMath
-using Base.Dates
+using Dates
+using REPL
 using Base.Libc: strftime
 import Base: *, copy, display, get, getindex, isempty, setindex!, show
+import Graphics: paint, width, height, save, deform, diagonal, restore,
+                 rectangle, polygon, move_to, line_to, stroke, rel_line_to,
+                 shift
 
 export
     bar,
@@ -101,9 +109,9 @@ include("paint.jl")
 
 function args2dict(args...; kvs...)
     opts = Dict{Symbol,Any}()
-    iter = start(args)
-    while !done(args, iter)
-        arg, iter = next(args, iter)
+    iter_result = iterate(args)
+    while iter_result !== nothing
+        (arg, iter) = iter_result
         if typeof(arg) <: AbstractDict
             for (k,v) in arg
                 opts[Symbol(k)] = v
@@ -111,9 +119,10 @@ function args2dict(args...; kvs...)
         elseif typeof(arg) <: Tuple
             opts[Symbol(arg[1])] = arg[2]
         else
-            val, iter = next(args, iter)
+            (val, iter) = iterate(args, iter)
             opts[Symbol(arg)] = val
         end
+        iter_result = iterate(args, iter)
     end
     for (k,v) in kvs
         opts[k] = v
@@ -2826,7 +2835,7 @@ if output_surface != :none
         display(d, f)
     end
     pushdisplay(_display)
-    display(::Base.REPL.REPLDisplay, ::MIME"text/plain", p::PlotContainer) = display(p)
+    display(::REPL.REPLDisplay, ::MIME"text/plain", p::PlotContainer) = display(p)
 end
 
 end # module

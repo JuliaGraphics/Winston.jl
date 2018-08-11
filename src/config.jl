@@ -2,7 +2,7 @@ _winston_config = Inifile()
 
 begin
     local fn
-    for dir in [".";Pkg.dir();LOAD_PATH]
+    for dir in [".";@__DIR__;LOAD_PATH]
         fn = joinpath(dir, "Winston.ini")
         if isfile(fn) break end
         fn = joinpath(dir, "Winston", "src", "Winston.ini")
@@ -21,14 +21,15 @@ function _atox(s::AbstractString)
         return false
     elseif length(x) > 2 && lowercase(x[1:2]) == "0x"
         try
-            h = parse(Int, x[3:end], 16)
+            h = parse(Int, x[3:end], base=16)
             return h
+        catch
         end
     elseif x[1] == '{' && x[end] == '}'
         style = Dict{Symbol,Any}()
-        pairs = map(strip, split(x[2:end-1], ',', keep=false))
+        pairs = map(strip, split(x[2:end-1], ',', keepempty=false))
         for pair in pairs
-            kv = split(pair, ':', keep=false)
+            kv = split(pair, ':', keepempty=false)
             style[ Symbol(strip(kv[1])) ] = _atox(strip(kv[2]))
         end
         return style
@@ -64,4 +65,3 @@ function config_options(sec::AbstractString)
     end
     opts
 end
-

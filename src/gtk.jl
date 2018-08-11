@@ -13,7 +13,7 @@ function gtkwindow(name, w, h, closecb=nothing)
 end
 
 function display(c::Gtk.Canvas, pc::PlotContainer)
-    Gtk.@guarded Gtk.draw(c) do widget
+    Gtk.@guarded function redraw(widget)
         ctx = getgc(c)
         set_source_rgb(ctx, 1, 1, 1)
         paint(ctx)
@@ -24,6 +24,7 @@ function display(c::Gtk.Canvas, pc::PlotContainer)
             println("Winston: ", e.msg)
         end
     end
+    Gtk.draw(redraw, c)
 end
 
 gtkdestroy(c::Gtk.Canvas) = Gtk.destroy(Gtk.toplevel(c))

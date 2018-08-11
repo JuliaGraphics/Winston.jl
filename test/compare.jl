@@ -39,8 +39,8 @@ end
         @testset "$name" begin
             println("Testing $name")
             func = eval(:(ImageComparisons.$name))
-            p = func()
-            sleep(11.0)
+            global p = func()
+            sleep(20.0)
 
             fn1 = joinpath(dir1, "$name.png")
             fn2 = joinpath(dir2, "$name.png")

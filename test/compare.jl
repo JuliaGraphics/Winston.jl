@@ -40,8 +40,8 @@ end
             println("Testing $name")
             func = eval(:(ImageComparisons.$name))
             p = func()
-            sleep(4.0)
-            
+            sleep(10.0)
+
             fn1 = joinpath(dir1, "$name.png")
             fn2 = joinpath(dir2, "$name.png")
             isfile(fn1) || savefig(p, fn1)

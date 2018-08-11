@@ -1,5 +1,6 @@
 module ImageComparisons
     using Winston, Compat, Colors
+    using Printf, Random
     include("examples.jl")
     include("issues.jl")
     include("plot.jl")

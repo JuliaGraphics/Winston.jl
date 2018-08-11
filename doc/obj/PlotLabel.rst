@@ -13,7 +13,7 @@ Example
 
 .. winston::
 
-    x = linspace(0, 10)
+    x = range(0, stop=10, length=100)
     p = plot(x, sin.(x))
     l = PlotLabel(0.5, 0.8, "Hello World!")
     add(p, l)

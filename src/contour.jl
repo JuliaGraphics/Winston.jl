@@ -130,7 +130,7 @@ function contourc(f::Function, x, y; cs::Union{Nothing,Number}=nothing)
 
 ## for each level to plot
     if isa(cs, Nothing)
-        cs = linspace(minimum(fxy), maximum(fxy), 7+2)[2:8]
+        cs = range(minimum(fxy), stop=maximum(fxy), length=7+2)[2:8]
     else
         cs = [cs]
     end
@@ -175,4 +175,3 @@ function plot(f::Contourc; kwargs...)
 
     p
 end
-

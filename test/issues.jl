@@ -22,7 +22,7 @@ function issue010()
 end
 
 function issue100()
-    x = linspace(0, 6pi, 100)
+    x = range(0, stop=6pi, length=100)
     y = sin.(x)
     stem(x, y, "b;")
 end

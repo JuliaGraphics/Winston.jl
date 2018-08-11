@@ -7,7 +7,7 @@ Example 1
 .. winston::
    :var: p
 
-    x = linspace(0, 3pi, 100)
+    x = range(0, stop=3pi, length=100)
     c = cos.(x)
     s = sin.(x)
 
@@ -32,7 +32,7 @@ Example 2
             yrange=(0,100))
 
     n = 21
-    x = linspace(0, 100, n)
+    x = range(0, stop=100, length=n)
     yA = 40 .+ 10randn(n)
     yB = x .+ 5randn(n)
 
@@ -78,7 +78,7 @@ Example 4
 .. winston::
    :var: p
 
-    x = linspace(0., 2pi, 40)
+    x = range(0., stop=2pi, length=40)
     s = sin.(x)
     c = cos.(x)
 
@@ -100,7 +100,7 @@ Example 5
 .. winston::
    :var: p
 
-    x = linspace(pi, 3pi, 60)
+    x = range(pi, stop=3pi, length=60)
     c = cos.(x)
     s = sin.(x)
 
@@ -116,4 +116,3 @@ Example 5
 
     add(p, Curve(x, c, kind="dash"))
     add(p, Curve(x, s))
-

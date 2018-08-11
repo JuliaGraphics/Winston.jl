@@ -299,8 +299,8 @@ function imagesc(xrange::Interval, yrange::Interval, data::AbstractArray{T,2}, c
         setattr(p, :yrange, reverse(yrange))
     end
     img = data2rgb(data, clims, _current_colormap)
-    xrange[1] > xrange[2] && (img = flipdim(img,2))
-    yrange[1] < yrange[2] && (img = flipdim(img,1))
+    xrange[1] > xrange[2] && (img = reverse(img,dims=2))
+    yrange[1] < yrange[2] && (img = reverse(img,dims=1))
     add(p, Image(xrange, reverse(yrange), img))
     ghf(p)
 end
@@ -505,9 +505,9 @@ function fplot_points(f::Function, xmin::Real, xmax::Real;
 
     xs = Float64[]
     ys = Float64[]
-    cs = Vector{Float64}(max_recursion)
-    fcs = Vector{Float64}(max_recursion)
-    ls = Vector{Int}(max_recursion)
+    cs = Vector{Float64}(undef, max_recursion)
+    fcs = Vector{Float64}(undef, max_recursion)
+    ls = Vector{Int}(undef, max_recursion)
 
     local c::Float64
     local fc::Float64
@@ -522,7 +522,7 @@ function fplot_points(f::Function, xmin::Real, xmax::Real;
         n*n > d2*(1. - tol)
     end
 
-    p = linspace(xmin, xmax, min_points)
+    p = range(xmin, stop=xmax, length=min_points)
     q = [f(x) for x in p]
 
     if max_recursion == 0
@@ -611,7 +611,7 @@ for fn in (:bar, :barh)
           function $fn(p::FramedPlot, g::AbstractVector, h::AbstractMatrix, args...; kvs...)
               nc = size(h,2)
               barwidth = config_value("FramedBar", "barwidth")/nc
-              offsets = barwidth * (nc - 1) * linspace(-.5, .5, nc)
+              offsets = barwidth * (nc - 1) * range(-.5, stop=.5, length=nc)
               for c = 1:nc-1
                   b = FramedBar(g, h[:,c], args...; kvs...)
                   setattr(b, offset=offsets[c])

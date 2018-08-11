@@ -5,6 +5,8 @@ using Colors
 using Reexport
 @reexport using Graphics
 @reexport using LinearAlgebra
+using Random
+using Printf
 using Pkg
 using SparseArrays
 using IniFile
@@ -14,7 +16,7 @@ using NaNMath
 using Dates
 using REPL
 using Base.Libc: strftime
-import Base: *, copy, display, get, getindex, isempty, setindex!, show
+import Base: *, copy, display, get, getindex, isempty, setindex!, show, range
 import Graphics: paint, width, height, save, deform, diagonal, restore,
                  rectangle, polygon, move_to, line_to, stroke, rel_line_to,
                  shift
@@ -471,7 +473,7 @@ function _format_ticklabel(x, range=0.; min_pow10=4)
             write(s, "\\times ")
         end
         write(s, "10^{")
-        write(s, dec(b))
+        write(s, string(b))
         write(s, '}')
         return String(take!(s))
     end
@@ -480,7 +482,7 @@ function _format_ticklabel(x, range=0.; min_pow10=4)
     #    a, b = _magform(range)
     #    return @sprintf "%.*f" (abs(b),x)
     #end
-    s = sprint(showcompact, x)
+    s = sprint(show, x; context=:compact => true)
     endswith(s, ".0") ? s[1:end-2] : s
 end
 
@@ -524,7 +526,7 @@ function _ticks_default_log(lim)
     end
 end
 
-_ticks_num_linear(lim, num) = linspace(lim[1], lim[2], num)
+_ticks_num_linear(lim, num) = range(lim[1], stop=lim[2], length=num)
 _ticks_num_log(lim, num) = logspace(log10(lim[1]), log10(lim[2]), num)
 
 function _subticks_linear(lim, ticks, num=nothing)
@@ -1328,7 +1330,7 @@ mutable struct Table <: PlotContainer
         iniattr(self, args...)
         self.rows = rows
         self.cols = cols
-        self.content = Matrix{Any}(rows, cols)
+        self.content = Matrix{Any}(undef, rows, cols)
         self
     end
 end
@@ -2180,7 +2182,7 @@ function make(self::BoxLabel, context)
     midpoint = 0.5*(p + q)
     direction = q - p
     direction /= norm(direction)
-    angle = atan2(direction.y, direction.x)
+    angle = atan(direction.y, direction.x)
     direction = rotate(direction, pi/2)
     pos = midpoint + offset*direction
 

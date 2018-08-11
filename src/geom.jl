@@ -103,7 +103,7 @@ end
 
 function deproject(p::PolarProjection, x, y)
     r = hypot(x, y)
-    θ = atan2(y, x)
+    θ = atan(y, x)
     hypot
 end
 
@@ -135,4 +135,3 @@ function PlotGeometry(orig::Rectangle, dest::BoundingBox, xlog, ylog)
 end
 
 PlotGeometry(orig::Rectangle, dest::BoundingBox) = PlotGeometry(orig, dest, false, false)
-

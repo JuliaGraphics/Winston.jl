@@ -1,6 +1,7 @@
 import Gtk
 
 function gtkwindow(name, w, h, closecb=nothing)
+    println("Creating Window")
     c = Gtk.Canvas()
     win = Gtk.Window(c, name, w, h)
 
@@ -9,12 +10,11 @@ function gtkwindow(name, w, h, closecb=nothing)
             closecb()
         end
     end
-    show(c)
+    showall(c)
 end
 
 function display(c::Gtk.Canvas, pc::PlotContainer)
-    #Gtk.@guarded 
-    Gtk.draw(c) do widget
+    Gtk.@guarded Gtk.draw(c) do widget
         ctx = getgc(c)
         set_source_rgb(ctx, 1, 1, 1)
         paint(ctx)

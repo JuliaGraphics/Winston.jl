@@ -37,18 +37,21 @@ end
         name == :ImageComparisons && continue
 
         @testset "$name" begin
-            p = eval(:((ImageComparisons.$name)()))
+            global p = eval(:((ImageComparisons.$name)()))
 
             fn1 = joinpath(dir1, "$name.png")
             fn2 = joinpath(dir2, "$name.png")
             isfile(fn1) || savefig(p, fn1)
+            sleep(10.0)
             savefig(p, fn2)
+            sleep(3.0)
 
             img1 = read_png_data(fn1)
             img2 = read_png_data(fn2)
             @test size(img1) == size(img2)
 
             @test img_dist(img1, img2) < 0.1
+            sleep(4.0)
         end
     end
 end

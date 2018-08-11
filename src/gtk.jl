@@ -1,7 +1,6 @@
 import Gtk
 
 function gtkwindow(name, w, h, closecb=nothing)
-    println("Creating Window")
     c = Gtk.Canvas()
     win = Gtk.Window(c, name, w, h)
 
@@ -32,10 +31,10 @@ gtkdestroy(c::Gtk.Canvas) = Gtk.destroy(Gtk.toplevel(c))
 # JWN: copied the following from tk.jl, but I don't know
 # what it does, so I can't make sure it works
 #
-#function get_context(c::Gtk.Canvas, pc::PlotContainer)
-#    device = CairoRenderer(Gtk.cairo_surface(c))
-#    ext_bbox = BoundingBox(0,width(c),0,height(c))
-#    _get_context(device, ext_bbox, pc)
-#end
-#
-#get_context(pc::PlotContainer) = get_context(curfig(_display), pc)
+function get_context(c::Gtk.Canvas, pc::PlotContainer)
+    device = CairoRenderer(Gtk.cairo_surface(c))
+    ext_bbox = BoundingBox(0,width(c),0,height(c))
+    _get_context(device, ext_bbox, pc)
+end
+
+get_context(pc::PlotContainer) = get_context(curfig(_display), pc)

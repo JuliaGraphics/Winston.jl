@@ -2787,13 +2787,13 @@ nextfig(d::WinstonDisplay) = d.next_fig
 function dropfig(d::WinstonDisplay, i::Int)
     haskey(d.figs,i) || return
     delete!(d.figs, i)
-    splice!(d.fig_order, findfirst(d.fig_order,i))
+    splice!(d.fig_order, something(findfirst(isequal(i), d.fig_order), 0) )
     d.next_fig = min(d.next_fig, i)
     d.current_fig = isempty(d.fig_order) ? 0 : d.fig_order[end]
 end
 
-_display = WinstonDisplay()
-_pwinston = FramedPlot()
+global _display = WinstonDisplay()
+global _pwinston = FramedPlot()
 
 function figure(;name::AbstractString="Figure $(nextfig(_display))",
                  width::Integer=Winston.config_value("window","width"),
@@ -2815,29 +2815,21 @@ end
 gcf() = _display.current_fig
 closefig() = closefig(_display.current_fig)
 
-if output_surface != :none
-    if output_surface == :gtk
-        include("gtk.jl")
-        window = gtkwindow
-        closefig(i::Integer) = gtkdestroy(getfig(_display,i).window)
-        closeall() = (map(closefig, keys(_display.figs)); nothing)
-    elseif output_surface == :tk
-        include("tk.jl")
-        window = tkwindow
-        closefig(i::Integer) = tkdestroy(getfig(_display,i).window)
-        closeall() = (map(closefig, keys(_display.figs)); nothing)
-    else
-        warn("Selected Winston backend not found. You will not be able to display plots in a window")
-    end
-    display(d::WinstonDisplay, f::Figure) = display(f.window, f.plot)
-    function display(d::WinstonDisplay, p::PlotContainer)
-        isempty(d.figs) && figure()
-        f = curfig(d)
-        f.plot = p
-        display(d, f)
-    end
-    pushdisplay(_display)
-    display(::REPL.REPLDisplay, ::MIME"text/plain", p::PlotContainer) = display(p)
+
+include("gtk.jl")
+global window = gtkwindow
+closefig(i::Integer) = gtkdestroy(getfig(_display,i).window)
+closeall() = (map(closefig, keys(_display.figs)); nothing)
+
+display(d::WinstonDisplay, f::Figure) = display(f.window, f.plot)
+function display(d::WinstonDisplay, p::PlotContainer)
+    isempty(d.figs) && figure()
+    f = curfig(d)
+    f.plot = p
+    display(d, f)
 end
+pushdisplay(_display)
+display(::REPL.REPLDisplay, ::MIME"text/plain", p::PlotContainer) = display(_display, p)
+
 
 end # module

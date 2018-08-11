@@ -3,7 +3,7 @@ module ImageComparisons
     using Printf, Random
     include("examples.jl")
     include("issues.jl")
-    #include("plot.jl")
+    include("plot.jl")
 end
 
 function read_png_data(fn::String)
@@ -28,45 +28,30 @@ function img_dist(img1::Matrix{UInt32}, img2::Matrix{UInt32})
 end
 
 @testset "Image comparison" begin
-    root = dirname(@__FILE__)
+    root = dirname(task_local_storage()[:SOURCE_PATH])
     dir1, dir2 = joinpath(root, "_baseline"), joinpath(root, "_current")
     isdir(dir1) || mkdir(dir1)
     isdir(dir2) || mkdir(dir2)
-    
-    funcs = [ ImageComparisons.example01,
-    ImageComparisons.example02,
-    ImageComparisons.example03,
-    ImageComparisons.example04,
-    ImageComparisons.example06,
-    ImageComparisons.example07,    
-    ImageComparisons.issue008,
-    ImageComparisons.issue010,
-    ImageComparisons.issue100,
-    ImageComparisons.issue143,
-    ImageComparisons.issue146a,
-    ImageComparisons.issue146b,
-    ImageComparisons.issue176]
 
-    for func in funcs #for name in sort!(names(ImageComparisons))
-       n = string(func)
-       println(n)
-       name = split(n,".")[3]
-       println(name)
-       # name == :ImageComparisons && continue
+    for name in sort!(names(ImageComparisons))
+        name == :ImageComparisons && continue
 
         @testset "$name" begin
-            #global p = eval(:((ImageComparisons.$name)()))
+            println("Testing $name")
+            func = eval(:(ImageComparisons.$name))
             p = func()
-
+            sleep(4.0)
+            
             fn1 = joinpath(dir1, "$name.png")
             fn2 = joinpath(dir2, "$name.png")
             isfile(fn1) || savefig(p, fn1)
-            sleep(7.0)
+
             savefig(p, fn2)
 
             img1 = read_png_data(fn1)
             img2 = read_png_data(fn2)
             @test size(img1) == size(img2)
+
             @test img_dist(img1, img2) < 0.1
         end
     end

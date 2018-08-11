@@ -38,6 +38,7 @@ end
 
         @testset "$name" begin
             println("Testing $name")
+            figure()
             func = eval(:(ImageComparisons.$name))
             global p = func()
 
@@ -47,7 +48,7 @@ end
             fn2 = joinpath(dir2, "$name.png")
             isfile(fn1) || savefig(p, fn1)
 
-            savefig(p, fn2) 
+            savefig(p, fn2)
 
             img1 = read_png_data(fn1)
             img2 = read_png_data(fn2)

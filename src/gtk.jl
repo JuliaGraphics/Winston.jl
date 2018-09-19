@@ -9,7 +9,7 @@ function gtkwindow(name, w, h, closecb=nothing)
             closecb()
         end
     end
-    showall(c)
+    Gtk.showall(c)
 end
 
 function display(c::Gtk.Canvas, pc::PlotContainer)

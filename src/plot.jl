@@ -18,8 +18,8 @@ for f in (:xlabel,:ylabel,:title)
     @eval $f(s::AbstractString) = (setattr(_pwinston, $f=s); _pwinston)
 end
 for (f,k) in ((:xlim,:xrange),(:ylim,:yrange))
-    @eval $f(a, b) = (setattr(_pwinston, $k=(a,b)); _pwinston)
-    @eval $f(a) = (setattr(_pwinston, $k=(a[1],a[2])); _pwinston)
+    @eval $f(a::Number, b::Number) = (setattr(_pwinston, $k=(a,b)); _pwinston)
+    @eval $f(a::Vector{T}) where T<:Number = (setattr(_pwinston, $k=(a[1],a[2])); _pwinston)
     @eval $f() = $k(limits(_pwinston))
 end
 

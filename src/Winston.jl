@@ -21,6 +21,12 @@ import Graphics: paint, width, height, save, deform, diagonal, restore,
                  rectangle, polygon, move_to, line_to, stroke, rel_line_to,
                  shift
 
+if isdefined(Base, :Grisu)
+    import Base.Grisu
+else
+    import Grisu
+end
+
 export
     bar,
     barh,
@@ -443,15 +449,15 @@ function _magform(x)
     return a, b
 end
 
-grisu(a,b,c) = ((w,x,y) = Base.Grisu.grisu(a,b,c); (y,Base.Grisu.DIGITS[1:w],x))
+grisu(a,b,c) = ((w,x,y) = Grisu.grisu(a,b,c); (y,Grisu.DIGITS[1:w],x))
 
 function _format_ticklabel(x, range=0.; min_pow10=4)
     if x == 0
         return "0"
     end
-    neg, digits, b = grisu(x, Base.Grisu.SHORTEST, Int(0))
+    neg, digits, b = grisu(x, Grisu.SHORTEST, Int(0))
     if length(digits) > 5
-        neg, digits, b = grisu(x, Base.Grisu.PRECISION, Int(6))
+        neg, digits, b = grisu(x, Grisu.PRECISION, Int(6))
         n = length(digits)
         while digits[n] == UInt32('0')
             n -= 1

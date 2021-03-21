@@ -657,12 +657,11 @@ function legend(p::FramedPlot, lab::AbstractVector, args...; kvs...)
 end
 legend(lab::AbstractVector, args...; kvs...) = legend(_pwinston, lab, args...; kvs...)
 
-function timeplot(p::FramedPlot, x::Vector{DateTime}, y::AbstractArray, args...; kvs...)
-    limits = datetime2unix([minimum(x), maximum(x)])
-
+function timeplot(p::FramedPlot, x::Vector{DateTime}, y::AbstractArray, args...; xrange = [minimum(x),maximum(x)], kvs...)
+    limits = datetime2unix(xrange)
+    normalized_x = (datetime2unix(x)-limits[1])/(limits[2]-limits[1])
     ticks = collect(0.0:0.2:1.0)
-    ticklabels = x[round(Int64, ticks * (length(x) - 1) + 1)]
-    normalized_x = (datetime2unix(x) - limits[1]) / (limits[2] - limits[1])
+    ticklabels = x[round(Int64, ticks*(length(x)-1)+1)]
 
     span = Int(x[end] - x[1]) / 1000
     kvs = Dict(kvs)
@@ -692,7 +691,7 @@ function timeplot(p::FramedPlot, x::Vector{DateTime}, y::AbstractArray, args...;
     setattr(p.x1, :ticks, ticks)
     setattr(p.x1, :ticklabels_style, Dict(:fontsize=>1.5))
 
-    plot(p, normalized_x, y, args...; kvs...)
+    plot(p, normalized_x, y, args...; xrange = [0,1], kvs...)
 end
 
 timeplot(x::Vector{DateTime}, y::AbstractArray, args...; kvs...) = timeplot(ghf(), x, y, args...; kvs...)

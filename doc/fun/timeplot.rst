@@ -17,7 +17,7 @@ Example
 
 .. winston::
 
-    using Base.Dates
+    using Dates
 
     t0 = DateTime(Year(2000), Month(3), Day(14), Hour(21), Minute(45))
     t1 = DateTime(Year(2000), Month(3), Day(14), Hour(22), Minute(22))

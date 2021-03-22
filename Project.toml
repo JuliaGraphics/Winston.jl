@@ -1,6 +1,6 @@
 name = "Winston"
 uuid = "bd07be1c-e76f-5ff0-9c0b-f51ef45303c6"
-version = "0.15.1"
+version = "0.15.2"
 
 [deps]
 Cairo = "159f3aea-2a34-519c-b102-8c37f9878175"

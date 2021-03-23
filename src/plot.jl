@@ -263,8 +263,10 @@ function data2rgb(data::AbstractArray{T}, limits::Interval, colormap::AbstractVe
             idx += idxr > convert(T, idx)
             idx = clamp(idx, 1, ncolors)
             img[i] = colormap[idx]
-        else
-            img[i] = 0x00000000
+        elseif (isnan(datai))
+            img[i] = 0xaaaaaaaa
+        else 
+            img[i] = 0x55555555
         end
     end
     img

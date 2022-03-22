@@ -6,7 +6,8 @@ export
     example04,
     #example05,
     example06,
-    example07
+    example07,
+    example08
 
 function example01()
     x = range(0, stop=3pi, length=100)
@@ -154,4 +155,14 @@ function example07()
     t[1,2] = p
 
     t
+end
+
+function example08()
+    t0 = DateTime(Year(2000), Month(3), Day(14), Hour(21), Minute(45))
+    t1 = DateTime(Year(2000), Month(3), Day(14), Hour(22), Minute(22))
+
+    x = collect(t0:Second(1):t1)
+    y = randn(length(x))
+
+    timeplot(x, y, format="%x\n%X")
 end

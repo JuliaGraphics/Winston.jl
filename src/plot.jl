@@ -660,13 +660,13 @@ end
 legend(lab::AbstractVector, args...; kvs...) = legend(_pwinston, lab, args...; kvs...)
 
 function timeplot(p::FramedPlot, x::Vector{DateTime}, y::AbstractArray, args...; kvs...)
-    limits = datetime2unix([minimum(x), maximum(x)])
+    limits = datetime2unix.([minimum(x), maximum(x)])
 
     ticks = collect(0.0:0.2:1.0)
-    ticklabels = x[round(Int64, ticks * (length(x) - 1) + 1)]
-    normalized_x = (datetime2unix(x) - limits[1]) / (limits[2] - limits[1])
+    ticklabels = x[round.(Int64, ticks .* (length(x) - 1) .+ 1)]
+    normalized_x = (datetime2unix.(x) .- limits[1]) ./ (limits[2] - limits[1])
 
-    span = Int(x[end] - x[1]) / 1000
+    span = Dates.value(x[end] - x[1]) / 1000
     kvs = Dict(kvs)
 
     if :format in keys(kvs)

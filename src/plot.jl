@@ -266,7 +266,7 @@ function data2rgb(data::AbstractArray{T}, limits::Interval, colormap::AbstractVe
         elseif (isnan(datai))
             img[i] = 0xaaaaaaaa
         else 
-            img[i] = 0x55555555
+            img[i] = 0xcccccccc
         end
     end
     img

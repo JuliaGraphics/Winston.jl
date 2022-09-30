@@ -2861,5 +2861,6 @@ end
 pushdisplay(_display)
 display(::REPL.REPLDisplay, ::MIME"text/plain", p::PlotContainer) = display(_display, p)
 
+include("precompile.jl")
 
 end # module

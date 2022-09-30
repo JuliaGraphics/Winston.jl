@@ -1,7 +1,7 @@
 Winston: 2D Plotting for Julia
 ==============================
 
-[![Build Status](https://travis-ci.org/JuliaGraphics/Winston.jl.svg?branch=master)](https://travis-ci.org/JuliaGraphics/Winston.jl)
+[![CI](https://github.com/JuliaGraphics/Winston.jl/workflows/CI/badge.svg)](https://github.com/JuliaGraphics/Winston.jl/actions?query=workflow%3ACI)
 [![Coverage Status](https://coveralls.io/repos/github/JuliaGraphics/Winston.jl/badge.svg)](https://coveralls.io/github/JuliaGraphics/Winston.jl)
 
 Installation

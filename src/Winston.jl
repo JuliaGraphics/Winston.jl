@@ -492,13 +492,13 @@ function _format_ticklabel(x, range=0.; min_pow10=4)
     endswith(s, ".0") ? s[1:end-2] : s
 end
 
-range(a::Real, b::Real) = (a <= b) ? (ceil(Int, a):floor(Int, b)) :
+sym_range(a::Real, b::Real) = (a <= b) ? (ceil(Int, a):floor(Int, b)) :
                                      (floor(Int, a):-1:ceil(Int, b))
 
 function _ticklist_linear(lo, hi, sep, origin=0.)
     a = (lo - origin)/sep
     b = (hi - origin)/sep
-    [ origin + i*sep for i in range(a,b) ]
+    [ origin + i*sep for i in sym_range(a,b) ]
 end
 
 function _ticks_default_linear(lim)
@@ -520,7 +520,7 @@ end
 function _ticks_default_log(lim)
     a = log10(lim[1])
     b = log10(lim[2])
-    r = range(a, b)
+    r = sym_range(a, b)
     nn = length(r)
 
     if nn >= 10
@@ -553,7 +553,7 @@ end
 function _subticks_log(lim, ticks, num=nothing)
     a = log10(lim[1])
     b = log10(lim[2])
-    r = range(a, b)
+    r = sym_range(a, b)
     nn = length(r)
 
     if nn >= 10

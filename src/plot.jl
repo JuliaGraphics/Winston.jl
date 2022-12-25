@@ -379,6 +379,23 @@ function scatter(x::AbstractVecOrMat, y::AbstractVecOrMat,
     ghf(p)
 end
 
+## quiver
+ function quiver(x::AbstractVecOrMat, y::AbstractVecOrMat,
+                  s::AbstractVecOrMat, l::AbstractVecOrMat, spec::String="/"; kvs...)
+     sopts = _parse_spec(spec)
+     p = ghf()
+     c = Arrows(x, y, s,l, sopts)
+     add(p, c)
+     for (k,v) in kvs
+         if k in [:linekind,:color,:linecolor,:linewidth]
+             style(c, k, v)
+         else
+             setattr(p, k, v)
+         end
+     end
+     ghf(p)
+ end
+
 ## stem ##
 
 stem(y::AbstractVecOrMat, spec::String="o"; kvs...) = stem(1:length(y), y, spec; kvs...)

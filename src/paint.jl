@@ -64,6 +64,32 @@ function paint(g::GroupPainter, context::PaintContext)
     pop_style(context)
 end
 
+struct ArrowPainter <: AbstractPainter
+  x::AbstractVecOrMat
+  y::AbstractVecOrMat
+  s::AbstractVecOrMat
+  l::AbstractVecOrMat
+end
+
+function paint(self::ArrowPainter, context::PaintContext)
+
+  #show(context)
+  device = context.device.ctx
+  save(device)
+  set_dash(device, Float64[])
+  new_path(device)
+  for (x,y,s,l) in zip(self.x, self.y, self.s, self.l)
+      #set_color(device, c)
+      symbol_arrow(device, x, y, s, l*context.yardstick)
+
+      #if filled
+      #    fill_preserve(device)
+      #end
+      #stroke(device), inside
+  end
+  restore(device)
+end
+
 struct LinePainter <: AbstractPainter
     p::Point
     q::Point

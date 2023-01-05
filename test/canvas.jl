@@ -1,11 +1,5 @@
-if Winston.output_surface == :tk
-    using Tk
-elseif Winston.output_surface == :gtk
-    using Gtk
-    include("canvasgtkcompat.jl")
-else
-    error("unsupported output_surface for this test")
-end
+using Gtk4
+include("canvasgtkcompat.jl")
 
 win = Toplevel("TestCanvas", 400, 200)
 c = Canvas(win, 400, 200)

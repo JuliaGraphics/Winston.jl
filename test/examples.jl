@@ -158,6 +158,7 @@ function example07()
 end
 
 function example08()
+    Random.seed!(42)
     t0 = DateTime(Year(2000), Month(3), Day(14), Hour(21), Minute(45))
     t1 = DateTime(Year(2000), Month(3), Day(14), Hour(22), Minute(22))
 

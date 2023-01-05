@@ -12,7 +12,7 @@ function read_png_data(fn::String)
     h = Cairo.height(surface)
     a = Array{UInt32}(undef, convert(Int, w), convert(Int, h))
         
-    p = ccall((:cairo_image_surface_get_data,Cairo._jl_libcairo),
+    p = ccall((:cairo_image_surface_get_data,Cairo.libcairo),
               Ptr{UInt32}, (Ptr{Cvoid},), surface.ptr)
 
     for i = 1:length(a)

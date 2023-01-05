@@ -1,7 +1,6 @@
 using Winston
-using Compat
-using Compat.Test
-using Compat.Printf
+using Test
+using Printf
 using Colors
 import Cairo
 using Random

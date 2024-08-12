@@ -25,7 +25,7 @@ PrecompileTools = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
 [compat]
 Cairo = "1"
 Colors = "0.12"
-Compat = "3"
+Compat = "4"
 Graphics = "1"
 Grisu = "1"
 Gtk4 = "0.3"
